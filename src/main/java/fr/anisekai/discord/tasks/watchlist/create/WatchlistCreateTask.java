@@ -1,16 +1,16 @@
 package fr.anisekai.discord.tasks.watchlist.create;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.core.internal.sentry.ITimedAction;
 import fr.anisekai.discord.JDAStore;
 import fr.anisekai.discord.responses.embeds.WatchlistEmbed;
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.Interest;
-import fr.anisekai.server.entities.Watchlist;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.Interest;
+import fr.anisekai.server.domain.entities.Watchlist;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.InterestService;
 import fr.anisekai.server.services.WatchlistService;
 import fr.anisekai.server.tasking.TaskExecutor;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.api.sentry.ITimedAction;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;

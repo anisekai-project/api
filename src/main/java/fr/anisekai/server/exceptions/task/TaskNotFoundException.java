@@ -1,6 +1,6 @@
 package fr.anisekai.server.exceptions.task;
 
-import fr.anisekai.annotations.FatalTask;
+import fr.anisekai.core.annotations.FatalTask;
 import fr.anisekai.server.exceptions.EntityNotFoundException;
 
 @FatalTask

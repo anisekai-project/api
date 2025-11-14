@@ -1,6 +1,6 @@
 package fr.anisekai.web.dto.auth;
 
-import fr.anisekai.server.entities.DiscordUser;
+import fr.anisekai.server.domain.entities.DiscordUser;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(name = "User", description = "Represent a user")

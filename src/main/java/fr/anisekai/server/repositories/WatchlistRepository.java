@@ -1,9 +1,9 @@
 package fr.anisekai.server.repositories;
 
-import fr.anisekai.server.entities.Watchlist;
-import fr.anisekai.wireless.remote.enums.AnimeList;
-import org.springframework.data.jpa.repository.JpaRepository;
+import fr.anisekai.core.persistence.interfaces.AnisekaiRepository;
+import fr.anisekai.server.domain.entities.Watchlist;
+import fr.anisekai.server.domain.enums.AnimeList;
 
-public interface WatchlistRepository extends JpaRepository<Watchlist, AnimeList> {
+public interface WatchlistRepository extends AnisekaiRepository<Watchlist, AnimeList> {
 
 }

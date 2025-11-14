@@ -1,24 +1,23 @@
 package fr.anisekai.library.tasks.executors;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.core.internal.json.validation.JsonObjectRule;
+import fr.anisekai.core.internal.sentry.ITimedAction;
 import fr.anisekai.library.Library;
+import fr.anisekai.media.MediaFile;
+import fr.anisekai.media.MediaStream;
+import fr.anisekai.media.bin.FFMpeg;
+import fr.anisekai.media.enums.Codec;
+import fr.anisekai.media.enums.CodecType;
+import fr.anisekai.media.enums.Disposition;
+import fr.anisekai.media.interfaces.MediaStreamMapper;
 import fr.anisekai.sanctum.AccessScope;
 import fr.anisekai.sanctum.interfaces.isolation.IsolationSession;
-import fr.anisekai.server.entities.Episode;
-import fr.anisekai.server.entities.Track;
-import fr.anisekai.server.entities.adapters.TrackEventAdapter;
+import fr.anisekai.server.domain.entities.Episode;
+import fr.anisekai.server.domain.entities.Track;
 import fr.anisekai.server.services.EpisodeService;
 import fr.anisekai.server.services.TrackService;
 import fr.anisekai.server.tasking.TaskExecutor;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.api.json.validation.JsonObjectRule;
-import fr.anisekai.wireless.api.media.MediaFile;
-import fr.anisekai.wireless.api.media.MediaStream;
-import fr.anisekai.wireless.api.media.bin.FFMpeg;
-import fr.anisekai.wireless.api.media.enums.Codec;
-import fr.anisekai.wireless.api.media.enums.CodecType;
-import fr.anisekai.wireless.api.media.enums.Disposition;
-import fr.anisekai.wireless.api.media.interfaces.MediaStreamMapper;
-import fr.anisekai.wireless.api.sentry.ITimedAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +28,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 
 public class MediaImportTask implements TaskExecutor {
 
@@ -81,7 +79,7 @@ public class MediaImportTask implements TaskExecutor {
         Path    source = Path.of(params.getString(OPTION_SOURCE));
         boolean delete = params.optBoolean(OPTION_DELETE, false);
 
-        this.episode = this.episodeService.fetch(params.getLong(OPTION_EPISODE));
+        this.episode = this.episodeService.requireById(params.getLong(OPTION_EPISODE));
         this.media   = MediaFile.of(source);
 
         String taskName = String.format("%s:%s", this.episode.getAnime().getId(), this.episode.getNumber());
@@ -118,27 +116,27 @@ public class MediaImportTask implements TaskExecutor {
 
     private Track createTrack(MediaStream stream, Codec codec) {
 
-        Consumer<TrackEventAdapter> trackUpdater = entity -> {
-            entity.setEpisode(this.episode);
+        Track entity = new Track();
 
-            if (stream.getMetadata().containsKey("title")) {
-                entity.setName(stream.getMetadata().get("title"));
-            } else {
-                entity.setName("Track %s".formatted(stream.getId()));
-            }
+        entity.setEpisode(this.episode);
 
-            switch (codec.getType()) {
-                case VIDEO -> entity.setCodec(VIDEO_CODEC);
-                case AUDIO -> entity.setCodec(AUDIO_CODEC);
-                case SUBTITLE -> entity.setCodec(SUBTITLE_CODEC);
-            }
+        if (stream.getMetadata().containsKey("title")) {
+            entity.setName(stream.getMetadata().get("title"));
+        } else {
+            entity.setName("Track %s".formatted(stream.getId()));
+        }
 
-            entity.setCodec(codec);
-            entity.setLanguage(stream.getMetadata().get("language"));
-            entity.setDispositions(Disposition.toBits(stream.getDispositions()));
-        };
+        switch (codec.getType()) {
+            case VIDEO -> entity.setCodec(VIDEO_CODEC);
+            case AUDIO -> entity.setCodec(AUDIO_CODEC);
+            case SUBTITLE -> entity.setCodec(SUBTITLE_CODEC);
+        }
 
-        return this.trackService.getProxy().create(trackUpdater);
+        entity.setCodec(codec);
+        entity.setLanguage(stream.getMetadata().get("language"));
+        entity.setDispositions(Disposition.toBits(stream.getDispositions()));
+
+        return this.trackService.getRepository().save(entity);
     }
 
     private Path convertFile() throws IOException, InterruptedException {

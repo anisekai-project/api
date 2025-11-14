@@ -1,23 +1,22 @@
 package fr.anisekai.library.tasks.executors;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.core.internal.json.validation.JsonObjectRule;
+import fr.anisekai.core.internal.sentry.ITimedAction;
+import fr.anisekai.core.persistence.domain.Entity;
 import fr.anisekai.library.Library;
 import fr.anisekai.library.exceptions.NoMediaException;
+import fr.anisekai.media.MediaFile;
+import fr.anisekai.media.bin.FFMpeg;
+import fr.anisekai.media.enums.CodecType;
+import fr.anisekai.media.enums.Disposition;
+import fr.anisekai.media.interfaces.MediaStreamMapper;
 import fr.anisekai.sanctum.AccessScope;
 import fr.anisekai.sanctum.interfaces.isolation.IsolationSession;
-import fr.anisekai.server.entities.Episode;
-import fr.anisekai.server.entities.Track;
+import fr.anisekai.server.domain.entities.Episode;
+import fr.anisekai.server.domain.entities.Track;
 import fr.anisekai.server.services.EpisodeService;
 import fr.anisekai.server.tasking.TaskExecutor;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.api.json.validation.JsonObjectRule;
-import fr.anisekai.wireless.api.media.MediaFile;
-import fr.anisekai.wireless.api.media.bin.FFMpeg;
-import fr.anisekai.wireless.api.media.enums.CodecType;
-import fr.anisekai.wireless.api.media.enums.Disposition;
-import fr.anisekai.wireless.api.media.interfaces.MediaStreamMapper;
-import fr.anisekai.wireless.api.sentry.ITimedAction;
-import fr.anisekai.wireless.remote.interfaces.TrackEntity;
-import fr.anisekai.wireless.utils.MapUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class MediaUpdateTask implements TaskExecutor {
@@ -56,7 +56,7 @@ public class MediaUpdateTask implements TaskExecutor {
     @Override
     public void execute(ITimedAction timer, AnisekaiJson params) throws Exception {
 
-        Episode episode = this.service.fetch(params.getLong(OPTION_EPISODE));
+        Episode episode = this.service.requireById(params.getLong(OPTION_EPISODE));
 
         AccessScope chunksScope   = new AccessScope(Library.CHUNKS, episode);
         AccessScope episodeScope  = new AccessScope(Library.EPISODES, episode);
@@ -73,7 +73,7 @@ public class MediaUpdateTask implements TaskExecutor {
 
         Map<Long, Track> trackMap = episode.getTracks()
                                            .stream()
-                                           .collect(MapUtils.map(TrackEntity::getId, t -> t));
+                                           .collect(Collectors.toMap(Entity::getId, Function.identity()));
 
         MediaStreamMapper mapper = getStreamMapper(trackMap);
 

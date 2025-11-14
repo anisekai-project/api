@@ -1,7 +1,7 @@
 package fr.anisekai.discord.tasks.anime.count;
 
 import fr.anisekai.discord.JDAStore;
-import fr.anisekai.server.entities.Task;
+import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.enums.TaskPipeline;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.TaskService;

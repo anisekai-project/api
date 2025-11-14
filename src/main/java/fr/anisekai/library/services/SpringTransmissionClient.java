@@ -1,8 +1,8 @@
 package fr.anisekai.library.services;
 
+import fr.anisekai.core.internal.services.Nyaa;
+import fr.anisekai.core.internal.services.Transmission;
 import fr.anisekai.server.services.SettingService;
-import fr.anisekai.wireless.api.services.Nyaa;
-import fr.anisekai.wireless.api.services.Transmission;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;

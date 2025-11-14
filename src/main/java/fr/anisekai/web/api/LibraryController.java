@@ -1,16 +1,16 @@
 package fr.anisekai.web.api;
 
 import fr.anisekai.library.Library;
+import fr.anisekai.media.enums.CodecType;
 import fr.anisekai.sanctum.interfaces.resolvers.StorageResolver;
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.Episode;
-import fr.anisekai.server.entities.Track;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.Episode;
+import fr.anisekai.server.domain.entities.Track;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.EpisodeService;
 import fr.anisekai.server.services.TrackService;
 import fr.anisekai.web.WebFile;
 import fr.anisekai.web.annotations.RequireAuth;
-import fr.anisekai.wireless.api.media.enums.CodecType;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -52,7 +52,7 @@ public class LibraryController {
     @GetMapping("/chunks/{episodeId:[0-9]+}/{name}")
     public ResponseEntity<InputStreamResource> getChunkItem(@PathVariable long episodeId, @PathVariable String name) {
 
-        Episode         episode  = this.episodeService.fetch(episodeId);
+        Episode         episode  = this.episodeService.requireById(episodeId);
         StorageResolver resolver = this.library.getResolver(Library.CHUNKS);
         Path            path     = resolver.file(episode, name);
 
@@ -63,7 +63,7 @@ public class LibraryController {
     @GetMapping("/episodes/{episodeId:[0-9]+}")
     public ResponseEntity<InputStreamResource> getEpisode(@PathVariable long episodeId) {
 
-        Episode         episode  = this.episodeService.fetch(episodeId);
+        Episode         episode  = this.episodeService.requireById(episodeId);
         Anime           anime    = episode.getAnime();
         StorageResolver resolver = this.library.getResolver(Library.EPISODES);
         String          filename = String.format("%s %02d.mkv", anime.getTitle(), episode.getNumber());
@@ -77,7 +77,7 @@ public class LibraryController {
     @GetMapping("/subtitles/{trackId:[0-9]+}")
     public ResponseEntity<InputStreamResource> getSubtitle(@PathVariable long trackId) {
 
-        Track track = this.trackService.fetch(trackId);
+        Track track = this.trackService.requireById(trackId);
         if (track.getCodec().getType() != CodecType.SUBTITLE) return ResponseEntity.badRequest().build();
 
         StorageResolver resolver = this.library.getResolver(Library.SUBTITLES);
@@ -89,7 +89,7 @@ public class LibraryController {
     @GetMapping("/event-images/{animeId:[0-9]+}")
     public ResponseEntity<InputStreamResource> getEventImage(@PathVariable long animeId) {
 
-        Anime anime = this.animeService.fetch(animeId);
+        Anime anime = this.animeService.requireById(animeId);
 
         StorageResolver resolver = this.library.getResolver(Library.EVENT_IMAGES);
         Path            path     = resolver.file(anime);

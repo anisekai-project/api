@@ -1,6 +1,6 @@
 package fr.anisekai.server.tasking;
 
-import fr.anisekai.server.entities.Task;
+import fr.anisekai.server.domain.entities.Task;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.text.html.parser.Entity;

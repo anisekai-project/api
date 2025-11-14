@@ -11,7 +11,7 @@ import fr.anisekai.sanctum.interfaces.resolvers.StorageResolver;
 import fr.anisekai.sanctum.stores.RawStorage;
 import fr.anisekai.sanctum.stores.ScopedDirectoryStorage;
 import fr.anisekai.sanctum.stores.ScopedFileStorage;
-import fr.anisekai.server.entities.*;
+import fr.anisekai.server.domain.entities.*;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
 

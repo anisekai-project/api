@@ -1,9 +1,8 @@
 package fr.anisekai.web.dto;
 
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.Episode;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.Episode;
 import fr.anisekai.web.enums.AnimeStorageState;
-import fr.anisekai.wireless.remote.interfaces.EpisodeEntity;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,7 +33,7 @@ public class AnimeDto {
         this.imageUrl = String.format(IMAGE_URL, anime.getId());
         this.episodes = episodes.stream()
                                 .sorted(Comparator.comparing(Episode::getNumber))
-                                .filter(EpisodeEntity::isReady)
+                                .filter(Episode::isReady)
                                 .map(EpisodeDto::new).toList();
 
         if (anime.getTotal() == this.episodes.size()) {

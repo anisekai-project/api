@@ -1,17 +1,17 @@
 package fr.anisekai.discord.tasks.anime.announcement;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.core.internal.json.validation.JsonObjectRule;
+import fr.anisekai.core.internal.sentry.ITimedAction;
 import fr.anisekai.discord.JDAStore;
 import fr.anisekai.discord.exceptions.tasks.UndefinedAnnouncementChannelException;
 import fr.anisekai.discord.exceptions.tasks.UndefinedAnnouncementRoleException;
 import fr.anisekai.discord.responses.messages.AnimeCardMessage;
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.Interest;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.Interest;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.InterestService;
 import fr.anisekai.server.tasking.TaskExecutor;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.api.json.validation.JsonObjectRule;
-import fr.anisekai.wireless.api.sentry.ITimedAction;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
@@ -42,7 +42,7 @@ public abstract class AnnouncementTask implements TaskExecutor {
 
         TextChannel      channel   = this.getAnnouncementChannel();
         Role             role      = this.getAnnouncementRole();
-        Anime            anime     = this.animeService.fetch(params.getLong(OPTION_ANIME));
+        Anime            anime     = this.animeService.requireById(params.getLong(OPTION_ANIME));
         List<Interest>   interests = this.interestService.getInterests(anime);
         AnimeCardMessage card      = new AnimeCardMessage(anime, interests, role);
 

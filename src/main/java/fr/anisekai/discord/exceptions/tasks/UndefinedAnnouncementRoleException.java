@@ -1,6 +1,6 @@
 package fr.anisekai.discord.exceptions.tasks;
 
-import fr.anisekai.annotations.FatalTask;
+import fr.anisekai.core.annotations.FatalTask;
 import fr.anisekai.discord.exceptions.SilentDiscordException;
 import org.jetbrains.annotations.NotNull;
 

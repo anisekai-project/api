@@ -12,12 +12,11 @@ import fr.anisekai.discord.responses.messages.AnimeCardMessage;
 import fr.anisekai.discord.responses.messages.ProfileMessage;
 import fr.anisekai.discord.responses.messages.SelectionMessage;
 import fr.anisekai.discord.utils.InteractionType;
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.DiscordUser;
-import fr.anisekai.server.entities.Interest;
-import fr.anisekai.server.entities.Selection;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.DiscordUser;
+import fr.anisekai.server.domain.entities.Interest;
+import fr.anisekai.server.domain.entities.Selection;
 import fr.anisekai.server.services.*;
-import fr.anisekai.wireless.remote.interfaces.UserEntity;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -60,7 +59,7 @@ public class UserInteractions {
     )
     public SlashResponse viewAnime(@Param("anime") long animeId) {
 
-        Anime          anime     = this.animeService.fetch(animeId);
+        Anime          anime     = this.animeService.requireById(animeId);
         List<Interest> interests = this.interestService.getInterests(anime);
         return new AnimeCardMessage(anime, interests);
     }
@@ -79,7 +78,7 @@ public class UserInteractions {
                     ),
             }
     )
-    public SlashResponse changeEmote(UserEntity user, @Param("emote") String emote) {
+    public SlashResponse changeEmote(DiscordUser user, @Param("emote") String emote) {
 
         if (!this.userService.canUseEmote(user, emote)) {
             return DiscordResponse.error("L'emote choisie est déjà utilisée.");
@@ -119,7 +118,7 @@ public class UserInteractions {
                     "Vous devez définir une emote de vote avant de pouvoir choisir votre intérêt pour un anime.");
         }
 
-        Anime anime = this.animeService.fetch(animeId);
+        Anime anime = this.animeService.requireById(animeId);
 
         if (interestLevel < -2 || interestLevel > 2) {
             return DiscordResponse.error("La valeur d'intérêt doit être comprise entre -2 (inclus) et 2 (inclus)");
@@ -146,11 +145,10 @@ public class UserInteractions {
     )
     public SlashResponse profileView(User sender, @Param("user") Member member) {
 
-        User        effectiveUser        = member == null ? sender : member.getUser();
-        DiscordUser effectiveDiscordUser = this.userService.of(effectiveUser);
-        List<Anime> animes = this.animeService.getAnimesAddedByUser(
-                effectiveDiscordUser);
-        List<Interest> interests = this.interestService.getInterests(effectiveDiscordUser);
+        User           effectiveUser        = member == null ? sender : member.getUser();
+        DiscordUser    effectiveDiscordUser = this.userService.of(effectiveUser);
+        List<Anime>    animes               = this.animeService.getRepository().findByAddedBy(effectiveDiscordUser);
+        List<Interest> interests            = this.interestService.getInterests(effectiveDiscordUser);
 
         return new ProfileMessage(effectiveUser, effectiveDiscordUser, animes, interests);
     }
@@ -178,8 +176,8 @@ public class UserInteractions {
     @InteractAt(InteractionType.BUTTON)
     public ButtonResponse castSelectionVote(DiscordUser user, @Param("selection") long selectionId, @Param("anime") long animeId) {
 
-        Selection selection = this.selectionService.fetch(selectionId);
-        Anime     anime     = this.animeService.fetch(animeId);
+        Selection selection = this.selectionService.requireById(selectionId);
+        Anime     anime     = this.animeService.requireById(animeId);
 
         this.voterService.castVote(selection, user, anime);
         return new SelectionMessage(selection, this.voterService.getVoters(selection));

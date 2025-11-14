@@ -18,7 +18,6 @@ configurations {
 }
 
 repositories {
-    mavenLocal()
     mavenCentral()
 }
 
@@ -44,8 +43,10 @@ dependencies {
 
     implementation(libs.api.discord.jda)
     implementation(libs.api.discord.jda.interactions)
-    implementation(libs.api.anisekai.wireless)
+    //implementation(libs.api.anisekai.wireless)
     implementation(libs.api.anisekai.sanctum)
+    implementation(libs.api.anisekai.proxy)
+    implementation(libs.api.anisekai.ffmpeg)
 
     implementation(libs.util.http.client)
     implementation(libs.util.json)

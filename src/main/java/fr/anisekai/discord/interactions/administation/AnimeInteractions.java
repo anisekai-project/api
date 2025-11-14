@@ -12,13 +12,13 @@ import fr.anisekai.discord.tasks.anime.announcement.create.AnnouncementCreateFac
 import fr.anisekai.library.Library;
 import fr.anisekai.sanctum.AccessScope;
 import fr.anisekai.sanctum.interfaces.isolation.IsolationSession;
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.Task;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.DiscordUser;
+import fr.anisekai.server.domain.entities.Task;
+import fr.anisekai.server.domain.enums.AnimeList;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.TaskService;
 import fr.anisekai.utils.FileUrlStreamer;
-import fr.anisekai.wireless.remote.enums.AnimeList;
-import fr.anisekai.wireless.remote.interfaces.UserEntity;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import org.springframework.stereotype.Component;
@@ -42,7 +42,7 @@ public class AnimeInteractions {
         this.service     = service;
     }
 
-    private static void requireAdministrator(UserEntity user) {
+    private static void requireAdministrator(DiscordUser user) {
 
         if (!user.isAdministrator()) {
             throw new RequireAdministratorException();
@@ -69,7 +69,7 @@ public class AnimeInteractions {
                     )
             }
     )
-    public SlashResponse setAnimeTitleMatch(UserEntity user, @Param("anime") long animeId, @Param("regex") String regex) {
+    public SlashResponse setAnimeTitleMatch(DiscordUser user, @Param("anime") long animeId, @Param("regex") String regex) {
 
         requireAdministrator(user);
 
@@ -103,10 +103,10 @@ public class AnimeInteractions {
                     )
             }
     )
-    public SlashResponse announceAnime(UserEntity user, @Param("anime") long animeId) {
+    public SlashResponse announceAnime(DiscordUser user, @Param("anime") long animeId) {
 
         requireAdministrator(user);
-        Anime anime = this.service.fetch(animeId);
+        Anime anime = this.service.requireById(animeId);
         this.taskService.getFactory(AnnouncementCreateFactory.class).queue(anime, Task.PRIORITY_MANUAL_LOW);
         if (anime.getAnnouncementId() == null) {
             return DiscordResponse.info("L'annonce pour l'anime **%s** sera envoyée d'ici peu.", anime.getTitle());
@@ -137,7 +137,7 @@ public class AnimeInteractions {
                     )
             }
     )
-    public SlashResponse animeStatusUpdate(UserEntity user, @Param("anime") long animeId, @Param("watchlist") String status) {
+    public SlashResponse animeStatusUpdate(DiscordUser user, @Param("anime") long animeId, @Param("watchlist") String status) {
 
         requireAdministrator(user);
         Anime anime = this.service.mod(animeId, entity -> entity.setList(AnimeList.from(status)));
@@ -169,7 +169,7 @@ public class AnimeInteractions {
                     ),
             }
     )
-    public SlashResponse animeProgress(UserEntity user, @Param("anime") long animeId, @Param("progress") long progress) {
+    public SlashResponse animeProgress(DiscordUser user, @Param("anime") long animeId, @Param("progress") long progress) {
 
         requireAdministrator(user);
         Anime anime = this.service.mod(animeId, entity -> entity.setWatched((int) progress));
@@ -201,7 +201,7 @@ public class AnimeInteractions {
                     ),
             }
     )
-    public SlashResponse animeTotal(UserEntity user, @Param("anime") long animeId, @Param("total") long total) {
+    public SlashResponse animeTotal(DiscordUser user, @Param("anime") long animeId, @Param("total") long total) {
 
         requireAdministrator(user);
         Anime anime = this.service.mod(animeId, entity -> entity.setTotal((int) total));
@@ -234,7 +234,7 @@ public class AnimeInteractions {
                     ),
             }
     )
-    public SlashResponse animeDuration(UserEntity user, @Param("anime") long animeId, @Param("duration") long duration) {
+    public SlashResponse animeDuration(DiscordUser user, @Param("anime") long animeId, @Param("duration") long duration) {
 
         requireAdministrator(user);
         Anime anime = this.service.mod(animeId, entity -> entity.setEpisodeDuration((int) duration));
@@ -269,17 +269,14 @@ public class AnimeInteractions {
                     )
             }
     )
-    public SlashResponse animeStatusBulkUpdate(UserEntity user, @Param("from") String from, @Param("to") String to) {
+    public SlashResponse animeStatusBulkUpdate(DiscordUser user, @Param("from") String from, @Param("to") String to) {
 
         requireAdministrator(user);
 
         AnimeList source      = AnimeList.from(from);
         AnimeList destination = AnimeList.from(to);
 
-        List<Anime> animes = this.service.batch(
-                repo -> repo.findAllByList(source),
-                entity -> entity.setList(destination)
-        );
+        List<Anime> animes = this.service.move(source, destination);
 
         return DiscordResponse.info(
                 "La watchlist de **%s** anime(s) a bien été changée.\n%s **->** %s",
@@ -311,7 +308,7 @@ public class AnimeInteractions {
                     ),
             }
     )
-    public SlashResponse animeEventImage(UserEntity user, @Param("anime") long animeId, @Param("image") Message.Attachment attachment) throws Exception {
+    public SlashResponse animeEventImage(DiscordUser user, @Param("anime") long animeId, @Param("image") Message.Attachment attachment) throws Exception {
 
         requireAdministrator(user);
 
@@ -327,7 +324,7 @@ public class AnimeInteractions {
             ));
         }
 
-        Anime anime = this.service.fetch(animeId);
+        Anime anime = this.service.requireById(animeId);
 
         AccessScope scope = new AccessScope(Library.EVENT_IMAGES, anime);
 

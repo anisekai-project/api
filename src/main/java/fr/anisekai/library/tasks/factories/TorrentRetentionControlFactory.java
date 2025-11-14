@@ -2,7 +2,7 @@ package fr.anisekai.library.tasks.factories;
 
 import fr.anisekai.library.Library;
 import fr.anisekai.library.tasks.executors.TorrentRetentionControlTask;
-import fr.anisekai.server.entities.Task;
+import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.enums.TaskPipeline;
 import fr.anisekai.server.services.SettingService;
 import fr.anisekai.server.services.TaskService;

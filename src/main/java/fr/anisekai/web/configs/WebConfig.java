@@ -3,6 +3,7 @@ package fr.anisekai.web.configs;
 import fr.anisekai.ApplicationConfiguration;
 import fr.anisekai.web.interceptors.AuthenticationInterceptor;
 import fr.anisekai.web.interceptors.IsolationInterceptor;
+import fr.anisekai.web.interceptors.PersistenceInterceptor;
 import fr.anisekai.web.resolvers.IsolationArgumentResolver;
 import fr.anisekai.web.resolvers.SessionArgumentResolver;
 import org.jetbrains.annotations.NotNull;
@@ -26,14 +27,16 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final SessionArgumentResolver      sessionArgumentResolver;
     private final IsolationArgumentResolver    isolationArgumentResolver;
+    private final PersistenceInterceptor       persistenceInterceptor;
     private final AuthenticationInterceptor    authenticationInterceptor;
     private final IsolationInterceptor         isolationInterceptor;
     private final ApplicationConfiguration.Api config;
 
-    public WebConfig(SessionArgumentResolver sessionArgumentResolver, IsolationArgumentResolver isolationArgumentResolver, AuthenticationInterceptor authenticationInterceptor, IsolationInterceptor isolationInterceptor, ApplicationConfiguration config) {
+    public WebConfig(SessionArgumentResolver sessionArgumentResolver, IsolationArgumentResolver isolationArgumentResolver, PersistenceInterceptor persistenceInterceptor, AuthenticationInterceptor authenticationInterceptor, IsolationInterceptor isolationInterceptor, ApplicationConfiguration config) {
 
         this.sessionArgumentResolver   = sessionArgumentResolver;
         this.isolationArgumentResolver = isolationArgumentResolver;
+        this.persistenceInterceptor    = persistenceInterceptor;
         this.authenticationInterceptor = authenticationInterceptor;
         this.isolationInterceptor      = isolationInterceptor;
         this.config                    = config.getApi();
@@ -59,6 +62,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+
+        registry.addInterceptor(this.persistenceInterceptor)
+                .addPathPatterns("/api/v3/**");
 
         registry.addInterceptor(this.authenticationInterceptor)
                 .addPathPatterns("/api/v3/**");

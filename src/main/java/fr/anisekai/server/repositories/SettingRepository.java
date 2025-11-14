@@ -1,10 +1,10 @@
 package fr.anisekai.server.repositories;
 
-import fr.anisekai.server.entities.Setting;
-import org.springframework.data.jpa.repository.JpaRepository;
+import fr.anisekai.core.persistence.interfaces.AnisekaiRepository;
+import fr.anisekai.server.domain.entities.Setting;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface SettingRepository extends JpaRepository<Setting, String> {
+public interface SettingRepository extends AnisekaiRepository<Setting, String> {
 
 }

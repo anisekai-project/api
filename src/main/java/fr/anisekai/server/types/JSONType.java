@@ -1,6 +1,6 @@
 package fr.anisekai.server.types;
 
-import fr.anisekai.wireless.api.json.AnisekaiJson;
+import fr.anisekai.core.internal.json.AnisekaiJson;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.usertype.UserType;
 

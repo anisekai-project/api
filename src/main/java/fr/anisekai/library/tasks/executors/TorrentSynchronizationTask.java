@@ -1,14 +1,14 @@
 package fr.anisekai.library.tasks.executors;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.core.internal.sentry.ITimedAction;
+import fr.anisekai.core.internal.services.Transmission;
 import fr.anisekai.library.services.SpringTransmissionClient;
 import fr.anisekai.library.tasks.factories.MediaImportFactory;
-import fr.anisekai.server.entities.Torrent;
+import fr.anisekai.server.domain.entities.Torrent;
 import fr.anisekai.server.services.TaskService;
 import fr.anisekai.server.services.TorrentService;
 import fr.anisekai.server.tasking.TaskExecutor;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.api.sentry.ITimedAction;
-import fr.anisekai.wireless.api.services.Transmission;
 
 import java.util.List;
 import java.util.Optional;

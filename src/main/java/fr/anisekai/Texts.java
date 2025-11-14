@@ -1,7 +1,8 @@
 package fr.anisekai;
 
-import fr.anisekai.wireless.remote.enums.AnimeList;
-import fr.anisekai.wireless.remote.enums.AnimeSeason;
+
+import fr.anisekai.server.domain.enums.AnimeList;
+import fr.anisekai.server.domain.enums.AnimeSeason;
 
 import java.util.HashMap;
 import java.util.Map;

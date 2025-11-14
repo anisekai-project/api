@@ -1,25 +1,21 @@
 package fr.anisekai.server.services;
 
-import fr.anisekai.server.entities.Watchlist;
-import fr.anisekai.server.entities.adapters.WatchlistEventAdapter;
-import fr.anisekai.server.persistence.DataService;
-import fr.anisekai.server.proxy.WatchlistProxy;
+import fr.anisekai.core.persistence.AnisekaiService;
+import fr.anisekai.core.persistence.EntityEventProcessor;
+import fr.anisekai.server.domain.entities.Watchlist;
+import fr.anisekai.server.domain.enums.AnimeList;
 import fr.anisekai.server.repositories.WatchlistRepository;
-import fr.anisekai.wireless.remote.enums.AnimeList;
-import fr.anisekai.wireless.remote.enums.AnimeList.Property;
-import fr.anisekai.wireless.remote.interfaces.WatchlistEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
 
 @Service
-public class WatchlistService extends DataService<Watchlist, AnimeList, WatchlistEventAdapter, WatchlistRepository, WatchlistProxy> {
+public class WatchlistService extends AnisekaiService<Watchlist, AnimeList, WatchlistRepository> {
 
+    public WatchlistService(WatchlistRepository repository, EntityEventProcessor eventProcessor) {
 
-    public WatchlistService(WatchlistProxy proxy) {
-
-        super(proxy);
+        super(repository, eventProcessor);
     }
 
     /**
@@ -32,7 +28,9 @@ public class WatchlistService extends DataService<Watchlist, AnimeList, Watchlis
      */
     private Watchlist create(AnimeList list) {
 
-        return this.getProxy().create(entity -> entity.setId(list));
+        Watchlist watchlist = new Watchlist();
+        watchlist.setId(list);
+        return this.getRepository().save(watchlist);
     }
 
     /**
@@ -43,13 +41,13 @@ public class WatchlistService extends DataService<Watchlist, AnimeList, Watchlis
      */
     public List<Watchlist> create() {
 
-        List<Watchlist> all = this.getProxy().getRepository().findAll();
+        List<Watchlist> all = this.getRepository().findAll();
 
         if (!all.isEmpty()) {
             throw new IllegalStateException("You cannot use create() when there are existing watchlists");
         }
 
-        return AnimeList.collect(Property.SHOW).stream()
+        return AnimeList.collect(AnimeList.Property.SHOW).stream()
                         .sorted(Comparator.comparingInt(Enum::ordinal))
                         .map(this::create)
                         .toList();
@@ -58,13 +56,13 @@ public class WatchlistService extends DataService<Watchlist, AnimeList, Watchlis
     /**
      * Delete all {@link Watchlist} and re-create them using {@link #create()}.
      * <p>
-     * <b>Note:</b> Corresponding Discord message ({@link WatchlistEntity#getMessageId()}) will not be deleted.
+     * <b>Note:</b> Corresponding Discord message ({@link Watchlist#getMessageId()}) will not be deleted.
      *
      * @return A {@link List} of all created {@link Watchlist}.
      */
     public List<Watchlist> reset() {
 
-        this.getProxy().getRepository().deleteAll();
+        this.getRepository().deleteAll();
         return this.create();
     }
 

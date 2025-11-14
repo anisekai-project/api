@@ -1,11 +1,11 @@
 package fr.anisekai.discord.responses.embeds.selections;
 
 import fr.anisekai.Texts;
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.DiscordUser;
-import fr.anisekai.server.entities.Voter;
-import fr.anisekai.wireless.remote.enums.SelectionStatus;
-import fr.anisekai.wireless.remote.interfaces.SelectionEntity;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.DiscordUser;
+import fr.anisekai.server.domain.entities.Selection;
+import fr.anisekai.server.domain.entities.Voter;
+import fr.anisekai.server.domain.enums.SelectionStatus;
 import net.dv8tion.jda.api.EmbedBuilder;
 
 import java.util.Comparator;
@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 public class SelectionClosedEmbed extends EmbedBuilder {
 
-    public SelectionClosedEmbed(SelectionEntity<Anime> selection, Iterable<Voter> voters) {
+    public SelectionClosedEmbed(Selection selection, Iterable<Voter> voters) {
 
         this.setTitle(Texts.formatted(selection.getSeason(), selection.getYear()), "https://anichart.net/");
 

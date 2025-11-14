@@ -1,13 +1,13 @@
 package fr.anisekai.discord.tasks.broadcast;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.core.internal.json.validation.JsonObjectRule;
+import fr.anisekai.core.internal.plannifier.interfaces.entities.Planifiable;
 import fr.anisekai.discord.JDAStore;
 import fr.anisekai.library.Library;
-import fr.anisekai.server.entities.Anime;
+import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.services.BroadcastService;
 import fr.anisekai.server.tasking.TaskExecutor;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.api.json.validation.JsonObjectRule;
-import fr.anisekai.wireless.api.plannifier.interfaces.entities.Planifiable;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Icon;
 import org.jetbrains.annotations.NotNull;

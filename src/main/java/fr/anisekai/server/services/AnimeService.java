@@ -1,18 +1,17 @@
 package fr.anisekai.server.services;
 
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.DiscordUser;
-import fr.anisekai.server.entities.adapters.AnimeEventAdapter;
-import fr.anisekai.server.events.AnimeCreatedEvent;
-import fr.anisekai.server.persistence.DataService;
-import fr.anisekai.server.persistence.UpsertResult;
-import fr.anisekai.server.proxy.AnimeProxy;
+import fr.anisekai.core.internal.plannifier.interfaces.ScheduleSpotData;
+import fr.anisekai.core.persistence.AnisekaiService;
+import fr.anisekai.core.persistence.EntityEventProcessor;
+import fr.anisekai.core.persistence.UpsertResult;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.DiscordUser;
+import fr.anisekai.server.domain.enums.AnimeList;
 import fr.anisekai.server.repositories.AnimeRepository;
-import fr.anisekai.wireless.api.plannifier.interfaces.ScheduleSpotData;
-import fr.anisekai.wireless.remote.enums.AnimeList;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,14 +20,15 @@ import java.util.List;
 import java.util.function.Consumer;
 
 @Service
-public class AnimeService extends DataService<Anime, Long, AnimeEventAdapter, AnimeRepository, AnimeProxy> {
+public class AnimeService extends AnisekaiService<Anime, Long, AnimeRepository> {
 
-    public AnimeService(AnimeProxy proxy) {
+    public AnimeService(AnimeRepository repository, EntityEventProcessor eventProcessor) {
 
-        super(proxy);
+        super(repository, eventProcessor);
     }
 
     @Deprecated
+    @Transactional
     public UpsertResult<Anime> importAnime(DiscordUser sender, JSONObject source) {
 
         JSONArray genreArray = source.getJSONArray("genres");
@@ -49,9 +49,15 @@ public class AnimeService extends DataService<Anime, Long, AnimeEventAdapter, An
         String    group           = source.getString("group");
         byte      order           = Byte.parseByte(source.getString("order"));
 
-        return this.getProxy().upsert(
-                repo -> repo.findByUrl(link)
-                , anime -> {
+
+        return this.upsert(
+                repo -> repo.findByUrl(link),
+                () -> {
+                    Anime anime = new Anime();
+                    anime.setAddedBy(sender);
+                    return anime;
+                },
+                anime -> {
                     anime.setGroup(group);
                     anime.setOrder(order);
                     anime.setTitle(name);
@@ -62,21 +68,18 @@ public class AnimeService extends DataService<Anime, Long, AnimeEventAdapter, An
                     anime.setUrl(link);
                     anime.setTotal(total);
                     anime.setEpisodeDuration(episodeDuration);
-                    //noinspection ConstantValue — This is an UPSERT context, this can *really* be null.
-                    if (anime.getAddedBy() == null) anime.setAddedBy(sender);
-                },
-                AnimeCreatedEvent::new
+                }
         );
     }
 
-    public List<Anime> getAnimesAddedByUser(DiscordUser user) {
+    public List<Anime> getAnimesAddedBy(DiscordUser user) {
 
-        return this.fetchAll(repo -> repo.findByAddedBy(user));
+        return this.getRepository().findByAddedBy(user);
     }
 
     public List<Anime> getOfStatus(AnimeList status) {
 
-        return this.fetchAll(repo -> repo.findAllByList(status));
+        return this.getRepository().findAllByList(status);
     }
 
     public List<Anime> getSimulcastsAvailable() {
@@ -86,28 +89,30 @@ public class AnimeService extends DataService<Anime, Long, AnimeEventAdapter, An
 
     public List<Anime> getAllDownloadable() {
 
-        return this.fetchAll(AnimeRepository::findAllByTitleRegexIsNotNull);
+        return this.getRepository().findAllByTitleRegexIsNotNull();
     }
 
+    @Transactional
     public List<Anime> move(Collection<Long> ids, AnimeList to) {
 
-        if (ids.isEmpty()) return Collections.emptyList();
+        if (ids.isEmpty()) {
+            return Collections.emptyList();
+        }
 
-        return this.batch(
-                repository -> repository.findAllById(ids),
-                entity -> entity.setList(to)
-        );
+        List<Anime> animes = this.getRepository().findAllById(ids);
+        animes.forEach(anime -> anime.setList(to));
+        return this.getRepository().saveAll(animes);
     }
 
+    @Transactional
     public List<Anime> move(AnimeList from, AnimeList to) {
 
-        return this.batch(
-                repository -> repository.findAllByList(from),
-                entity -> entity.setList(to)
-        );
+        List<Anime> animes = this.getOfStatus(from);
+        animes.forEach(anime -> anime.setList(to));
+        return this.getRepository().saveAll(animes);
     }
 
-    public Consumer<AnimeEventAdapter> defineProgression(int progression) {
+    public Consumer<Anime> defineProgression(int progression) {
 
         return entity -> {
             entity.setWatched(progression);
@@ -117,18 +122,15 @@ public class AnimeService extends DataService<Anime, Long, AnimeEventAdapter, An
         };
     }
 
-    public Consumer<AnimeEventAdapter> defineProgression(int progression, int total) {
+    public Consumer<Anime> defineProgression(int progression, int total) {
 
         return entity -> {
-            entity.setWatched(progression);
             entity.setTotal(total);
-            if (entity.getTotal() == progression) {
-                entity.setList(AnimeList.WATCHED);
-            }
+            this.defineProgression(progression).accept(entity);
         };
     }
 
-    public Consumer<AnimeEventAdapter> defineWatching() {
+    public Consumer<Anime> defineWatching() {
 
         return anime -> {
             switch (anime.getList()) {
@@ -144,7 +146,7 @@ public class AnimeService extends DataService<Anime, Long, AnimeEventAdapter, An
         };
     }
 
-    public Consumer<AnimeEventAdapter> defineScheduleProgress(ScheduleSpotData<?> broadcast) {
+    public Consumer<Anime> defineScheduleProgress(ScheduleSpotData<?> broadcast) {
 
         return entity -> this.defineProgression(entity.getWatched() + broadcast.getEpisodeCount()).accept(entity);
     }

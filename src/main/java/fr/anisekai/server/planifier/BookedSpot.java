@@ -1,8 +1,8 @@
 package fr.anisekai.server.planifier;
 
 
-import fr.anisekai.wireless.api.plannifier.interfaces.ScheduleSpotData;
-import fr.anisekai.wireless.api.plannifier.interfaces.entities.WatchTarget;
+import fr.anisekai.core.internal.plannifier.interfaces.ScheduleSpotData;
+import fr.anisekai.core.internal.plannifier.interfaces.entities.WatchTarget;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.ZonedDateTime;

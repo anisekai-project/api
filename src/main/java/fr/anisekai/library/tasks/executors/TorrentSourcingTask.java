@@ -1,25 +1,26 @@
 package fr.anisekai.library.tasks.executors;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.core.internal.json.validation.JsonObjectRule;
+import fr.anisekai.core.internal.sentry.ITimedAction;
+import fr.anisekai.core.internal.services.Nyaa;
+import fr.anisekai.core.internal.services.Transmission;
 import fr.anisekai.library.services.SpringTransmissionClient;
-import fr.anisekai.server.entities.*;
+import fr.anisekai.server.domain.entities.*;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.EpisodeService;
 import fr.anisekai.server.services.TorrentFileService;
 import fr.anisekai.server.services.TorrentService;
 import fr.anisekai.server.tasking.TaskExecutor;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.api.json.validation.JsonObjectRule;
-import fr.anisekai.wireless.api.sentry.ITimedAction;
-import fr.anisekai.wireless.api.services.Nyaa;
-import fr.anisekai.wireless.api.services.Transmission;
-import fr.anisekai.wireless.utils.MapUtils;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class TorrentSourcingTask implements TaskExecutor {
 
@@ -63,12 +64,12 @@ public class TorrentSourcingTask implements TaskExecutor {
         List<Anime> animes = this.animeService.getAllDownloadable();
         Map<Long, Anime> animeMap = animes
                 .stream()
-                .collect(MapUtils.map(Anime::getId, anime -> anime));
+                .collect(Collectors.toMap(Anime::getId, Function.identity()));
 
         Map<Long, Pattern> regexMap = animes
                 .stream()
                 .filter(anime -> anime.getTitleRegex() != null)
-                .collect(MapUtils.map(Anime::getId, Anime::getTitleRegex));
+                .collect(Collectors.toMap(Anime::getId, Anime::getTitleRegex));
         timer.endAction();
 
         timer.action("rss-load", "Reading RSS content");
@@ -115,24 +116,30 @@ public class TorrentSourcingTask implements TaskExecutor {
                     timer.endAction();
 
                     timer.action("saving-entities", "Saving entities to database");
-                    Torrent torrent = this.torrentService.getProxy().create(entity -> {
-                        entity.setHash(transmissionTorrent.hash());
-                        entity.setName(entry.title());
-                        entity.setStatus(transmissionTorrent.status());
-                        entity.setProgress(transmissionTorrent.percentDone());
-                        entity.setLink(entry.link());
-                        entity.setPriority(priority);
-                        entity.setDownloadDirectory(transmissionTorrent.downloadDir());
-                    });
+                    Torrent torrent = this.torrentService.create(
+                            Torrent::new,
+                            entity -> {
+                                entity.setHash(transmissionTorrent.hash());
+                                entity.setName(entry.title());
+                                entity.setStatus(transmissionTorrent.status());
+                                entity.setProgress(transmissionTorrent.percentDone());
+                                entity.setLink(entry.link());
+                                entity.setPriority(priority);
+                                entity.setDownloadDirectory(transmissionTorrent.downloadDir());
+                            }
+                    );
 
                     String file = transmissionTorrent.files().getFirst();
 
-                    this.torrentFileService.getProxy().create(entity -> {
-                        entity.setEpisode(episode);
-                        entity.setTorrent(torrent);
-                        entity.setIndex(0);
-                        entity.setName(file);
-                    });
+                    this.torrentFileService.create(
+                            TorrentFile::new,
+                            entity -> {
+                                entity.setEpisode(episode);
+                                entity.setTorrent(torrent);
+                                entity.setIndex(0);
+                                entity.setName(file);
+                            }
+                    );
 
                     timer.endAction();
                     break;

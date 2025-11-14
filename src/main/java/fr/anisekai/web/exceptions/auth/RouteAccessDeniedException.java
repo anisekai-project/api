@@ -1,12 +1,12 @@
 package fr.anisekai.web.exceptions.auth;
 
+import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.web.exceptions.WebException;
-import fr.anisekai.wireless.remote.interfaces.UserEntity;
 import org.springframework.http.HttpStatus;
 
 public class RouteAccessDeniedException extends WebException {
 
-    public RouteAccessDeniedException(String route, UserEntity user) {
+    public RouteAccessDeniedException(String route, DiscordUser user) {
 
         super(
                 HttpStatus.FORBIDDEN,

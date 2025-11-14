@@ -4,21 +4,19 @@ import fr.alexpado.jda.interactions.annotations.Interact;
 import fr.alexpado.jda.interactions.annotations.Option;
 import fr.alexpado.jda.interactions.annotations.Param;
 import fr.alexpado.jda.interactions.responses.SlashResponse;
+import fr.anisekai.core.internal.plannifier.data.CalibrationResult;
 import fr.anisekai.discord.annotations.InteractionBean;
 import fr.anisekai.discord.exceptions.RequireAdministratorException;
 import fr.anisekai.discord.responses.DiscordResponse;
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.Broadcast;
-import fr.anisekai.server.entities.adapters.BroadcastEventAdapter;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.Broadcast;
+import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.enums.BroadcastFrequency;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.BroadcastService;
+import fr.anisekai.utils.DateTimeUtils;
 import fr.anisekai.utils.DiscordUtils;
-import fr.anisekai.wireless.api.plannifier.data.CalibrationResult;
-import fr.anisekai.wireless.api.plannifier.interfaces.Scheduler;
-import fr.anisekai.wireless.remote.interfaces.UserEntity;
-import fr.anisekai.wireless.utils.DateTimeUtils;
-import fr.anisekai.wireless.utils.StringUtils;
+import fr.anisekai.utils.StringUtils;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import org.springframework.stereotype.Component;
 
@@ -40,7 +38,7 @@ public class BroadcastInteractions {
         this.service      = service;
     }
 
-    private static void requireAdministrator(UserEntity user) {
+    private static void requireAdministrator(DiscordUser user) {
 
         if (!user.isAdministrator()) {
             throw new RequireAdministratorException();
@@ -85,10 +83,10 @@ public class BroadcastInteractions {
                     )
             }
     )
-    public SlashResponse broadcastSchedule(UserEntity user, @Param("anime") long animeId, @Param("frequency") String frequencyName, @Param("time") String timeParam, @Param("amount") long amount, @Param("starting") String startingParam) {
+    public SlashResponse broadcastSchedule(DiscordUser user, @Param("anime") long animeId, @Param("frequency") String frequencyName, @Param("time") String timeParam, @Param("amount") long amount, @Param("starting") String startingParam) {
 
         requireAdministrator(user);
-        Anime anime = this.animeService.fetch(animeId);
+        Anime anime = this.animeService.requireById(animeId);
 
         BroadcastFrequency frequency = BroadcastFrequency.from(frequencyName);
         ZonedDateTime      starting  = DateTimeUtils.of(timeParam, startingParam);
@@ -116,10 +114,10 @@ public class BroadcastInteractions {
             description = "\uD83D\uDD12 — Permet de lancer une calibration manuelle des séances.",
             defer = true
     )
-    public SlashResponse broadcastCalibration(UserEntity user) {
+    public SlashResponse broadcastCalibration(DiscordUser user) {
 
         requireAdministrator(user);
-        CalibrationResult calibrate = this.service.createScheduler().calibrate();
+        CalibrationResult calibrate = this.service.calibrate();
         return DiscordResponse.success(
                 "Le planning a été calibré.\n%s évènement(s) mis à jour.\n%s évènement(s) supprimé(s).",
                 calibrate.updateCount(),
@@ -152,9 +150,8 @@ public class BroadcastInteractions {
                     )
             }
     )
-    public SlashResponse broadcastDelay(UserEntity user, @Param("delay") String delayParam, @Param("range") String rangeParam, @Param("starting") String startingParam) {
+    public SlashResponse broadcastDelay(DiscordUser user, @Param("delay") String delayParam, @Param("range") String rangeParam, @Param("starting") String startingParam) {
 
-        Scheduler<Anime, BroadcastEventAdapter, Broadcast> scheduler = this.service.createScheduler();
 
         ZonedDateTime starting = DateTimeUtils.of(startingParam, null);
         Duration range = Optional.ofNullable(rangeParam)
@@ -162,7 +159,7 @@ public class BroadcastInteractions {
                                  .orElse(Duration.ofHours(6));
         Duration delay = DateTimeUtils.toDuration(delayParam);
 
-        List<Broadcast> delayed = scheduler.delay(starting, range, delay);
+        List<Broadcast> delayed = this.service.delay(starting, range, delay);
 
         return DiscordResponse.info(
                 "%s évènement(s) mis à jour.",
@@ -194,7 +191,7 @@ public class BroadcastInteractions {
             name = "broadcast/refresh",
             description = "\uD83D\uDD12 — Actualise les évènements plannifiés du serveur."
     )
-    public SlashResponse broadcastRefresh(UserEntity user) {
+    public SlashResponse broadcastRefresh(DiscordUser user) {
 
         int amount = this.service.refresh();
 

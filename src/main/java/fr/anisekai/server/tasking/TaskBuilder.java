@@ -1,10 +1,8 @@
 package fr.anisekai.server.tasking;
 
-import fr.anisekai.server.entities.adapters.TaskEventAdapter;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.remote.enums.TaskStatus;
-
-import java.util.function.Consumer;
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.server.domain.entities.Task;
+import fr.anisekai.server.domain.enums.TaskStatus;
 
 public final class TaskBuilder {
 
@@ -61,15 +59,16 @@ public final class TaskBuilder {
         return this.args;
     }
 
-    public Consumer<TaskEventAdapter> build() {
+    public Task build() {
 
-        return task -> {
-            task.setFactoryName(this.factory.getName());
-            task.setName(this.name != null ? this.name : this.factory.getName());
-            task.setPriority(this.priority);
-            task.setStatus(TaskStatus.SCHEDULED);
-            task.setArguments(this.args);
-        };
+        Task task = new Task();
+        task.setFactoryName(this.factory.getName());
+        task.setName(this.name != null ? this.name : this.factory.getName());
+        task.setPriority(this.priority);
+        task.setStatus(TaskStatus.SCHEDULED);
+        task.setArguments(this.args);
+
+        return task;
     }
 
 }

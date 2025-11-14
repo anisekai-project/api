@@ -5,12 +5,10 @@ import fr.alexpado.jda.interactions.responses.SlashResponse;
 import fr.anisekai.discord.responses.embeds.selections.SelectionAnimeEmbed;
 import fr.anisekai.discord.responses.embeds.selections.SelectionClosedEmbed;
 import fr.anisekai.discord.responses.embeds.selections.SelectionVoterEmbed;
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.DiscordUser;
-import fr.anisekai.server.entities.Selection;
-import fr.anisekai.server.entities.Voter;
-import fr.anisekai.wireless.remote.interfaces.AnimeEntity;
-import fr.anisekai.wireless.remote.interfaces.UserEntity;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.DiscordUser;
+import fr.anisekai.server.domain.entities.Selection;
+import fr.anisekai.server.domain.entities.Voter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
@@ -78,7 +76,7 @@ public class SelectionMessage implements SlashResponse, ButtonResponse {
 
                 List<Button> buttons = this.selection.getAnimes()
                                                      .stream()
-                                                     .sorted(Comparator.comparingLong(AnimeEntity::getId))
+                                                     .sorted(Comparator.comparingLong(Anime::getId))
                                                      .map(anime -> votes.containsKey(anime) ? this.asButton(
                                                              anime,
                                                              votes.get(anime)
@@ -109,7 +107,7 @@ public class SelectionMessage implements SlashResponse, ButtonResponse {
         return false;
     }
 
-    private Button asButton(AnimeEntity<?> anime) {
+    private Button asButton(Anime anime) {
 
         return Button.primary(
                 String.format("button://vote?selection=%s&anime=%s", this.selection.getId(), anime.getId()),
@@ -117,7 +115,7 @@ public class SelectionMessage implements SlashResponse, ButtonResponse {
         );
     }
 
-    private Button asButton(AnimeEntity<?> anime, UserEntity votedBy) {
+    private Button asButton(Anime anime, DiscordUser votedBy) {
 
         return Button.of(
                 ButtonStyle.SECONDARY,

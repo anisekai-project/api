@@ -1,6 +1,6 @@
 package fr.anisekai.web.dto;
 
-import fr.anisekai.server.entities.Episode;
+import fr.anisekai.server.domain.entities.Episode;
 
 public class EpisodeDto {
 

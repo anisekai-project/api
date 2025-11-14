@@ -1,88 +1,90 @@
 package fr.anisekai.server.services;
 
-import fr.anisekai.server.entities.DiscordUser;
-import fr.anisekai.server.entities.adapters.UserEventAdapter;
-import fr.anisekai.server.events.UserCreatedEvent;
-import fr.anisekai.server.persistence.DataService;
-import fr.anisekai.server.proxy.UserProxy;
+import fr.anisekai.core.persistence.AnisekaiService;
+import fr.anisekai.core.persistence.EntityEventProcessor;
+import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.repositories.UserRepository;
 import fr.anisekai.web.packets.results.DiscordIdentity;
-import fr.anisekai.wireless.remote.interfaces.UserEntity;
 import net.dv8tion.jda.api.entities.User;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 @Service
-public class UserService extends DataService<DiscordUser, Long, UserEventAdapter, UserRepository, UserProxy> {
+public class UserService extends AnisekaiService<DiscordUser, Long, UserRepository> {
 
-    public UserService(UserProxy proxy) {
+    public UserService(UserRepository repository, EntityEventProcessor eventProcessor) {
 
-        super(proxy);
+        super(repository, eventProcessor);
     }
 
     public DiscordUser of(User user) {
 
-        return this.getProxy().upsertEntity(
-                user.getIdLong(),
-                UserCreatedEvent::new,
-                discordUser -> {
+        return this.upsert(
+                repository -> repository.findById(user.getIdLong()),
+                () -> {
+                    DiscordUser discordUser = new DiscordUser();
                     discordUser.setId(user.getIdLong());
+                    return discordUser;
+                },
+                discordUser -> {
                     discordUser.setUsername(user.getName());
                     discordUser.setAvatarUrl(user.getEffectiveAvatarUrl());
                     discordUser.setNickname(user.getGlobalName());
                 }
-        );
+        ).entity();
     }
 
     public DiscordUser ensureUserExists(DiscordIdentity identity) {
 
-        return this.getProxy()
-                   .fetchEntity(identity.getId())
-                   .orElseGet(() -> this.getProxy().create(user -> {
-                       user.setId(identity.getId());
-                       user.setUsername(identity.getGlobalName());
-                       user.setNickname(identity.getUsername());
-                       user.setAvatarUrl(identity.getAvatar());
-                   }));
+        return this.upsert(
+                repository -> repository.findById(identity.getId()),
+                () -> {
+                    DiscordUser discordUser = new DiscordUser();
+                    discordUser.setId(identity.getId());
+                    return discordUser;
+                },
+                discordUser -> {
+                    discordUser.setUsername(identity.getUsername());
+                    discordUser.setAvatarUrl(identity.getAvatar());
+                    discordUser.setNickname(identity.getUsername());
+                }
+        ).entity();
 
     }
 
+    @Deprecated
     public Optional<DiscordUser> getByApiKey(String apiKey) {
 
-        return this.getProxy().fetchEntity(repo -> repo.findByApiKey(apiKey));
+        return this.getRepository().findByApiKey(apiKey);
     }
 
-    public boolean canUseEmote(UserEntity requestingUser, String emote) {
+    public boolean canUseEmote(DiscordUser requestingUser, String emote) {
 
-        return this.fetchAll()
+        return this.getRepository()
+                   .findAll()
                    .stream()
                    .filter(user -> !Objects.isNull(user.getEmote()))
                    .filter(user -> !Objects.equals(user.getId(), requestingUser.getId()))
                    .noneMatch(user -> user.getEmote().equals(emote));
     }
 
-    public UserEntity useEmote(UserEntity requestingUser, String emote) {
+    public DiscordUser useEmote(DiscordUser requestingUser, String emote) {
 
-        return this.mod(requestingUser.getId(), this.defineEmote(emote));
-    }
-
-    public Consumer<UserEventAdapter> defineEmote(String emote) {
-
-        return entity -> entity.setEmote(emote);
+        requestingUser.setEmote(emote);
+        return this.getRepository().save(requestingUser);
     }
 
     public List<DiscordUser> getActiveUsers() {
 
-        return this.fetchAll(UserRepository::findAllByActiveIsTrue);
+        return this.getRepository().findAllByActiveIsTrue();
     }
 
     public Optional<DiscordUser> findFromIdentity(DiscordIdentity identity) {
 
-        return this.getProxy().fetchEntity(identity.getId());
+        return this.getRepository().findById(identity.getId());
     }
 
 }

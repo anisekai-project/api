@@ -1,12 +1,12 @@
 package fr.anisekai.discord.tasks.broadcast.cancel;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.core.internal.sentry.ITimedAction;
 import fr.anisekai.discord.JDAStore;
 import fr.anisekai.discord.tasks.broadcast.BroadcastTask;
 import fr.anisekai.library.Library;
-import fr.anisekai.server.entities.Broadcast;
+import fr.anisekai.server.domain.entities.Broadcast;
 import fr.anisekai.server.services.BroadcastService;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.api.sentry.ITimedAction;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.ScheduledEvent;
 import org.slf4j.Logger;
@@ -24,7 +24,7 @@ public class BroadcastCancelTask extends BroadcastTask {
     @Override
     public void execute(ITimedAction timer, AnisekaiJson params) throws Exception {
 
-        Broadcast broadcast = this.getService().fetch(params.getLong(OPT_BROADCAST));
+        Broadcast broadcast = this.getService().requireById(params.getLong(OPT_BROADCAST));
         Guild     guild     = this.getGuild();
 
         if (broadcast.getEventId() == null) {

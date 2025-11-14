@@ -2,11 +2,11 @@ package fr.anisekai.discord.tasks.broadcast;
 
 import fr.anisekai.discord.JDAStore;
 import fr.anisekai.library.Library;
+import fr.anisekai.server.domain.entities.Broadcast;
 import fr.anisekai.server.services.BroadcastService;
 import fr.anisekai.server.services.TaskService;
 import fr.anisekai.server.tasking.TaskExecutor;
 import fr.anisekai.server.tasking.TaskFactory;
-import fr.anisekai.wireless.remote.interfaces.BroadcastEntity;
 
 public abstract class BroadcastFactory<T extends TaskExecutor> implements TaskFactory<T> {
 
@@ -62,7 +62,7 @@ public abstract class BroadcastFactory<T extends TaskExecutor> implements TaskFa
         return false;
     }
 
-    public String asTaskName(BroadcastEntity<?> broadcast) {
+    public String asTaskName(Broadcast broadcast) {
 
         return String.format("%s:%s", this.getName(), broadcast.getId());
     }

@@ -1,6 +1,6 @@
 package fr.anisekai.web.api;
 
-import fr.anisekai.server.entities.Episode;
+import fr.anisekai.server.domain.entities.Episode;
 import fr.anisekai.server.services.EpisodeService;
 import fr.anisekai.web.annotations.RequireAuth;
 import fr.anisekai.web.api.dto.EpisodeDescriptor;
@@ -26,7 +26,7 @@ public class EpisodeController {
     @GetMapping(path = "/{episodeId:[0-9]+}/descriptor", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EpisodeDescriptor> getEpisodeDescriptor(@PathVariable long episodeId) {
 
-        Episode episode = this.service.fetch(episodeId);
+        Episode episode = this.service.requireById(episodeId);
         return ResponseEntity.ok(EpisodeDescriptor.of(episode));
     }
 

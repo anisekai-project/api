@@ -1,8 +1,8 @@
 package fr.anisekai.server.tasking;
 
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.api.json.validation.JsonObjectRule;
-import fr.anisekai.wireless.api.sentry.ITimedAction;
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.core.internal.json.validation.JsonObjectRule;
+import fr.anisekai.core.internal.sentry.ITimedAction;
 
 public interface TaskExecutor {
 

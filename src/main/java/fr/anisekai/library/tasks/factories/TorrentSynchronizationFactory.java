@@ -1,7 +1,7 @@
 package fr.anisekai.library.tasks.factories;
 
 import fr.anisekai.library.tasks.executors.TorrentSynchronizationTask;
-import fr.anisekai.server.entities.Task;
+import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.enums.TaskPipeline;
 import fr.anisekai.server.services.TaskService;
 import fr.anisekai.server.services.TorrentService;

@@ -6,14 +6,13 @@ import fr.alexpado.jda.interactions.interfaces.interactions.Injection;
 import fr.alexpado.jda.interactions.interfaces.interactions.autocomplete.AutoCompleteProvider;
 import fr.anisekai.Texts;
 import fr.anisekai.library.Library;
-import fr.anisekai.server.entities.DiscordUser;
+import fr.anisekai.server.domain.entities.DiscordUser;
+import fr.anisekai.server.domain.enums.AnimeList;
 import fr.anisekai.server.enums.BroadcastFrequency;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.EpisodeService;
 import fr.anisekai.server.services.UserService;
-import fr.anisekai.wireless.remote.enums.AnimeList;
-import fr.anisekai.wireless.remote.interfaces.UserEntity;
-import fr.anisekai.wireless.utils.StringUtils;
+import fr.anisekai.utils.StringUtils;
 import net.dv8tion.jda.api.interactions.Interaction;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.CommandAutoCompleteInteraction;
@@ -41,9 +40,9 @@ public class InteractionService {
 
     public void using(InteractionExtension extension, Map<String, AutoCompleteProvider> completionMap) {
 
-        extension.getSlashContainer().addClassMapping(UserEntity.class, this.entityUserInterfaceMapper());
+        extension.getSlashContainer().addClassMapping(DiscordUser.class, this.entityUserInterfaceMapper());
         extension.getSlashContainer().addClassMapping(DiscordUser.class, this.entityUserMapper());
-        extension.getButtonContainer().addClassMapping(UserEntity.class, this.entityUserInterfaceMapper());
+        extension.getButtonContainer().addClassMapping(DiscordUser.class, this.entityUserInterfaceMapper());
         extension.getButtonContainer().addClassMapping(DiscordUser.class, this.entityUserMapper());
 
         completionMap.put("anime", this::animeCompletion);
@@ -59,7 +58,7 @@ public class InteractionService {
         return (event, option) -> () -> this.userService.of(event.interaction().getUser());
     }
 
-    private <T extends Interaction> Injection<DispatchEvent<T>, UserEntity> entityUserInterfaceMapper() {
+    private <T extends Interaction> Injection<DispatchEvent<T>, DiscordUser> entityUserInterfaceMapper() {
 
         return (event, option) -> () -> this.userService.of(event.interaction().getUser());
     }
@@ -67,7 +66,8 @@ public class InteractionService {
     private List<Command.Choice> animeCompletion(DispatchEvent<CommandAutoCompleteInteraction> event, String name, String completionName, String value) {
 
         return this.animeService
-                .fetchAll()
+                .getRepository()
+                .findAll()
                 .stream()
                 .filter(anime -> anime.getTitle().toLowerCase().contains(value.toLowerCase()))
                 .sorted()

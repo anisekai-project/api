@@ -14,16 +14,16 @@ import fr.anisekai.library.tasks.factories.MediaImportFactory;
 import fr.anisekai.library.tasks.factories.MediaUpdateFactory;
 import fr.anisekai.library.tasks.factories.TorrentRetentionControlFactory;
 import fr.anisekai.library.tasks.factories.TorrentSourcingFactory;
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.Episode;
-import fr.anisekai.server.entities.Task;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.DiscordUser;
+import fr.anisekai.server.domain.entities.Episode;
+import fr.anisekai.server.domain.entities.Task;
+import fr.anisekai.server.domain.enums.AnimeList;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.EpisodeService;
 import fr.anisekai.server.services.SettingService;
 import fr.anisekai.server.services.TaskService;
 import fr.anisekai.utils.DiscordUtils;
-import fr.anisekai.wireless.remote.enums.AnimeList;
-import fr.anisekai.wireless.remote.interfaces.UserEntity;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import org.springframework.stereotype.Component;
 
@@ -54,7 +54,7 @@ public class TaskInteractions {
         this.settingService = settingService;
     }
 
-    private static void requireAdministrator(UserEntity user) {
+    private static void requireAdministrator(DiscordUser user) {
 
         if (!user.isAdministrator()) {
             throw new RequireAdministratorException();
@@ -73,7 +73,7 @@ public class TaskInteractions {
                     )
             }
     )
-    public SlashResponse checkDownloads(UserEntity user, @Param("url") String url) {
+    public SlashResponse checkDownloads(DiscordUser user, @Param("url") String url) {
 
         requireAdministrator(user);
 
@@ -99,7 +99,7 @@ public class TaskInteractions {
             name = "task/reset-list",
             description = "\uD83D\uDD12 — Créé les watchlist dans le salon configuré."
     )
-    public SlashResponse resetLists(UserEntity user) {
+    public SlashResponse resetLists(DiscordUser user) {
 
         this.service.getFactory(WatchlistCreateFactory.class).queue(Task.PRIORITY_MANUAL_HIGH);
         return DiscordResponse.success(
@@ -112,7 +112,7 @@ public class TaskInteractions {
             name = "task/refresh-lists",
             description = "\uD83D\uDD12 — Force l'actualisation des listes."
     )
-    public SlashResponse refreshLists(UserEntity user) {
+    public SlashResponse refreshLists(DiscordUser user) {
 
         requireAdministrator(user);
 
@@ -131,7 +131,7 @@ public class TaskInteractions {
             name = "task/purge-torrents",
             description = "\uD83D\uDD12 — Supprime les fichiers de torrents selon l'option de rétention."
     )
-    public SlashResponse purgeTorrents(UserEntity user) {
+    public SlashResponse purgeTorrents(DiscordUser user) {
 
         requireAdministrator(user);
         this.service.getFactory(TorrentRetentionControlFactory.class).queue();
@@ -167,10 +167,10 @@ public class TaskInteractions {
                     )
             }
     )
-    public SlashResponse importMedia(UserEntity user, @Param("anime") long animeId, @Param("file") String file, @Param("episode") long episodeNumber) {
+    public SlashResponse importMedia(DiscordUser user, @Param("anime") long animeId, @Param("file") String file, @Param("episode") long episodeNumber) {
 
         requireAdministrator(user);
-        Anime anime  = this.animeService.fetch(animeId);
+        Anime anime  = this.animeService.requireById(animeId);
         Path  source = this.library.getResolver(Library.IMPORTS).file(file);
 
         if (!Files.isRegularFile(source)) {
@@ -222,10 +222,10 @@ public class TaskInteractions {
                     ),
             }
     )
-    public SlashResponse importMedia(UserEntity user, @Param("anime") long animeId, @Param("directory") String directory) throws Exception {
+    public SlashResponse importMedia(DiscordUser user, @Param("anime") long animeId, @Param("directory") String directory) throws Exception {
 
         requireAdministrator(user);
-        Anime anime  = this.animeService.fetch(animeId);
+        Anime anime  = this.animeService.requireById(animeId);
         Path  source = this.library.getResolver(Library.IMPORTS).directory(directory);
 
         if (!Files.isDirectory(source)) {
@@ -299,10 +299,10 @@ public class TaskInteractions {
                     )
             }
     )
-    public SlashResponse updateEpisode(UserEntity user, @Param("episode") long episodeId) {
+    public SlashResponse updateEpisode(DiscordUser user, @Param("episode") long episodeId) {
 
         requireAdministrator(user);
-        Episode episode = this.episodeService.fetch(episodeId);
+        Episode episode = this.episodeService.requireById(episodeId);
         Task    task    = this.service.getFactory(MediaUpdateFactory.class).queue(episode);
 
         return DiscordResponse.info(

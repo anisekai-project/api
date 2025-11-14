@@ -1,9 +1,9 @@
 package fr.anisekai.web.api.dto;
 
-import fr.anisekai.server.entities.Track;
-import fr.anisekai.wireless.api.media.enums.Codec;
-import fr.anisekai.wireless.api.media.enums.CodecType;
-import fr.anisekai.wireless.api.media.enums.Disposition;
+import fr.anisekai.media.enums.Codec;
+import fr.anisekai.media.enums.CodecType;
+import fr.anisekai.media.enums.Disposition;
+import fr.anisekai.server.domain.entities.Track;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;

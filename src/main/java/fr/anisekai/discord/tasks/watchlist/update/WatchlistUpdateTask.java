@@ -1,19 +1,19 @@
 package fr.anisekai.discord.tasks.watchlist.update;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.core.internal.json.validation.JsonObjectRule;
+import fr.anisekai.core.internal.sentry.ITimedAction;
 import fr.anisekai.discord.JDAStore;
 import fr.anisekai.discord.responses.embeds.WatchlistEmbed;
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.Interest;
-import fr.anisekai.server.entities.Watchlist;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.Interest;
+import fr.anisekai.server.domain.entities.Watchlist;
+import fr.anisekai.server.domain.enums.AnimeList;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.InterestService;
 import fr.anisekai.server.services.WatchlistService;
 import fr.anisekai.server.tasking.TaskExecutor;
 import fr.anisekai.utils.DiscordUtils;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.api.json.validation.JsonObjectRule;
-import fr.anisekai.wireless.api.sentry.ITimedAction;
-import fr.anisekai.wireless.remote.enums.AnimeList;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.utils.messages.MessageEditBuilder;
@@ -51,7 +51,7 @@ public class WatchlistUpdateTask implements TaskExecutor {
         timer.action("load", "Loading task data");
         String         rawStatus = params.getString(OPTION_WATCHLIST);
         AnimeList      status    = AnimeList.valueOf(rawStatus.toUpperCase());
-        Watchlist      watchlist = this.watchlistService.fetch(status);
+        Watchlist      watchlist = this.watchlistService.requireById(status);
         MessageChannel channel   = this.store.requireWatchlistChannel();
         Message message = DiscordUtils
                 .findExistingMessage(channel, watchlist)

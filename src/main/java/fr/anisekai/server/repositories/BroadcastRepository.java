@@ -1,9 +1,9 @@
 package fr.anisekai.server.repositories;
 
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.Broadcast;
-import fr.anisekai.wireless.remote.enums.BroadcastStatus;
-import org.springframework.data.jpa.repository.JpaRepository;
+import fr.anisekai.core.persistence.interfaces.AnisekaiRepository;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.Broadcast;
+import fr.anisekai.server.domain.enums.BroadcastStatus;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface BroadcastRepository extends JpaRepository<Broadcast, Long> {
+public interface BroadcastRepository extends AnisekaiRepository<Broadcast, Long> {
 
     List<Broadcast> findAllByStatusIn(Collection<BroadcastStatus> statuses);
 

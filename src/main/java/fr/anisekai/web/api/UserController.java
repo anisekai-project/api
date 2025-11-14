@@ -1,6 +1,6 @@
 package fr.anisekai.web.api;
 
-import fr.anisekai.server.entities.SessionToken;
+import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.web.AuthenticationManager;
 import fr.anisekai.web.annotations.RequireAuth;
 import fr.anisekai.web.dto.auth.ApiKeyData;

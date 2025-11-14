@@ -1,13 +1,12 @@
 package fr.anisekai.web.api;
 
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.SessionToken;
-import fr.anisekai.server.repositories.AnimeRepository;
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.web.annotations.RequireAuth;
 import fr.anisekai.web.dto.AnimeDto;
 import fr.anisekai.web.enums.TokenType;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -57,7 +56,7 @@ public class AnimeController {
     })
     public ResponseEntity<List<AnimeDto>> listWatchableAnime() {
 
-        List<Anime> animes = this.animeService.fetchAll(AnimeRepository::findByEpisodeReady);
+        List<Anime> animes = this.animeService.getRepository().findByEpisodeReady();
         if (animes.isEmpty()) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(AnimeDto.toSortedDtos(animes, anime -> new AnimeDto(anime, anime.getEpisodes())));
     }
@@ -72,7 +71,7 @@ public class AnimeController {
     })
     public ResponseEntity<List<AnimeDto>> listAllAnimes() {
 
-        List<Anime> animes = this.animeService.fetchAll();
+        List<Anime> animes = this.animeService.getRepository().findAll();
         if (animes.isEmpty()) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(AnimeDto.toSortedDtos(animes, AnimeDto::new));
     }

@@ -1,6 +1,8 @@
 [versions]
 anisekai-sanctum = "1.0.1"
-anisekai-wireless = "2.0.1"
+anisekai-wireless = "3.1.1"
+anisekai-proxy = "1.0.0"
+anisekai-ffmpeg = "1.0.0"
 catalogUpdater = "1.0.1"
 flyway = "11.15.0"
 jda = "6.1.0"
@@ -23,6 +25,8 @@ uuid-creator = "6.1.1"
 [libraries]
 api-anisekai-sanctum = { module = "fr.anisekai:sanctum", version.ref = "anisekai-sanctum" }
 api-anisekai-wireless = { module = "fr.anisekai:wireless", version.ref = "anisekai-wireless" }
+api-anisekai-proxy = { module = "fr.anisekai:deep-proxy", version.ref = "anisekai-proxy" }
+api-anisekai-ffmpeg = { module = "fr.anisekai:ffmpeg4j", version.ref = "anisekai-ffmpeg" }
 api-discord-jda = { module = "net.dv8tion:JDA", version.ref = "jda" }
 api-discord-jda-interactions = { module = "fr.alexpado:jda-interactions-extension", version.ref = "jda-interactions" }
 database-flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }

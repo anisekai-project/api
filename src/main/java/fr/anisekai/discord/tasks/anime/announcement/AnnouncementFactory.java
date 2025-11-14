@@ -1,14 +1,14 @@
 package fr.anisekai.discord.tasks.anime.announcement;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
 import fr.anisekai.discord.JDAStore;
-import fr.anisekai.server.entities.Task;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.InterestService;
 import fr.anisekai.server.services.TaskService;
 import fr.anisekai.server.tasking.TaskBuilder;
 import fr.anisekai.server.tasking.TaskFactory;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.remote.interfaces.AnimeEntity;
 
 public abstract class AnnouncementFactory<T extends AnnouncementTask> implements TaskFactory<T> {
 
@@ -58,12 +58,12 @@ public abstract class AnnouncementFactory<T extends AnnouncementTask> implements
         return this.interestService;
     }
 
-    public Task queue(AnimeEntity<?> anime) {
+    public Task queue(Anime anime) {
 
         return this.queue(anime, Task.PRIORITY_AUTOMATIC_LOW);
     }
 
-    public Task queue(AnimeEntity<?> anime, byte priority) {
+    public Task queue(Anime anime, byte priority) {
 
         String       name      = String.format("%s:%s", this.getName(), anime.getId());
         AnisekaiJson arguments = new AnisekaiJson();

@@ -1,7 +1,7 @@
 package fr.anisekai.library.exceptions;
 
-import fr.anisekai.annotations.FatalTask;
-import fr.anisekai.wireless.remote.interfaces.TrackEntity;
+import fr.anisekai.core.annotations.FatalTask;
+import fr.anisekai.server.domain.entities.Track;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -9,15 +9,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @FatalTask
 public class IncompatibleTrackException extends RuntimeException {
 
-    private final TrackEntity<?> track;
+    private final Track track;
 
-    public IncompatibleTrackException(String message, TrackEntity<?> track) {
+    public IncompatibleTrackException(String message, Track track) {
 
         super(message);
         this.track = track;
     }
 
-    public TrackEntity<?> getTrack() {
+    public Track getTrack() {
 
         return this.track;
     }

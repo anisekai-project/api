@@ -1,9 +1,9 @@
 package fr.anisekai.discord.responses.embeds.selections;
 
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.DiscordUser;
-import fr.anisekai.wireless.remote.interfaces.SelectionEntity;
-import fr.anisekai.wireless.utils.StringUtils;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.DiscordUser;
+import fr.anisekai.server.domain.entities.Selection;
+import fr.anisekai.utils.StringUtils;
 import net.dv8tion.jda.api.EmbedBuilder;
 
 import java.util.Comparator;
@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 public class SelectionAnimeEmbed extends EmbedBuilder {
 
-    public SelectionAnimeEmbed(SelectionEntity<Anime> selection, Map<Anime, DiscordUser> votes) {
+    public SelectionAnimeEmbed(Selection selection, Map<Anime, DiscordUser> votes) {
 
 
         String animes = selection.getAnimes().stream()

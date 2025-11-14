@@ -8,8 +8,8 @@ import fr.alexpado.jda.interactions.responses.SlashResponse;
 import fr.anisekai.discord.annotations.InteractionBean;
 import fr.anisekai.discord.exceptions.RequireAdministratorException;
 import fr.anisekai.discord.responses.DiscordResponse;
+import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.services.SettingService;
-import fr.anisekai.wireless.remote.interfaces.UserEntity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.Channel;
@@ -28,7 +28,7 @@ public class SettingInteractions {
         this.service = service;
     }
 
-    private static void requireAdministrator(UserEntity user) {
+    private static void requireAdministrator(DiscordUser user) {
 
         if (!user.isAdministrator()) {
             throw new RequireAdministratorException();
@@ -49,7 +49,7 @@ public class SettingInteractions {
                     )
             }
     )
-    public SlashResponse settingWatchlistChannel(UserEntity user, @Param("channel") Channel channel) {
+    public SlashResponse settingWatchlistChannel(DiscordUser user, @Param("channel") Channel channel) {
 
         requireAdministrator(user);
 
@@ -76,7 +76,7 @@ public class SettingInteractions {
                     )
             }
     )
-    public SlashResponse settingAnnouncementRole(UserEntity user, @Param("role") Role role) {
+    public SlashResponse settingAnnouncementRole(DiscordUser user, @Param("role") Role role) {
 
         requireAdministrator(user);
 
@@ -99,7 +99,7 @@ public class SettingInteractions {
                     )
             }
     )
-    public SlashResponse settingAnnouncementChannel(UserEntity user, @Param("channel") Channel channel) {
+    public SlashResponse settingAnnouncementChannel(DiscordUser user, @Param("channel") Channel channel) {
 
         requireAdministrator(user);
 
@@ -126,7 +126,7 @@ public class SettingInteractions {
                     )
             }
     )
-    public SlashResponse settingAuditChannel(UserEntity user, @Param("channel") Channel channel) {
+    public SlashResponse settingAuditChannel(DiscordUser user, @Param("channel") Channel channel) {
 
         requireAdministrator(user);
 
@@ -156,7 +156,7 @@ public class SettingInteractions {
                     )
             }
     )
-    public SlashResponse settingAutoDownload(UserEntity user, @Param("value") boolean value) {
+    public SlashResponse settingAutoDownload(DiscordUser user, @Param("value") boolean value) {
 
         requireAdministrator(user);
 
@@ -179,7 +179,7 @@ public class SettingInteractions {
                     )
             }
     )
-    public SlashResponse settingDownloadServer(UserEntity user, @Param("value") String value) {
+    public SlashResponse settingDownloadServer(DiscordUser user, @Param("value") String value) {
 
         requireAdministrator(user);
 
@@ -202,7 +202,7 @@ public class SettingInteractions {
                     )
             }
     )
-    public SlashResponse settingDownloadSource(UserEntity user, @Param("value") String value) {
+    public SlashResponse settingDownloadSource(DiscordUser user, @Param("value") String value) {
 
         requireAdministrator(user);
 
@@ -225,7 +225,7 @@ public class SettingInteractions {
                     )
             }
     )
-    public SlashResponse settingAnimeAnnouncements(UserEntity user, @Param("value") boolean value) {
+    public SlashResponse settingAnimeAnnouncements(DiscordUser user, @Param("value") boolean value) {
 
         requireAdministrator(user);
 
@@ -240,7 +240,7 @@ public class SettingInteractions {
             description = "\uD83D\uDD12 — Défini le serveur actif sur le serveur actuel.",
             target = SlashTarget.ALL
     )
-    public SlashResponse settingServer(UserEntity user, Guild guild) {
+    public SlashResponse settingServer(DiscordUser user, Guild guild) {
 
         requireAdministrator(user);
 
@@ -263,7 +263,7 @@ public class SettingInteractions {
                     )
             }
     )
-    public SlashResponse settingDownloadRetention(UserEntity user, @Param("value") long value) {
+    public SlashResponse settingDownloadRetention(DiscordUser user, @Param("value") long value) {
 
         requireAdministrator(user);
 

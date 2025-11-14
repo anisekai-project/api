@@ -11,12 +11,12 @@ import fr.anisekai.discord.annotations.InteractionBean;
 import fr.anisekai.discord.exceptions.RequireAdministratorException;
 import fr.anisekai.discord.responses.messages.SelectionMessage;
 import fr.anisekai.discord.utils.InteractionType;
-import fr.anisekai.server.entities.Selection;
-import fr.anisekai.server.entities.Voter;
+import fr.anisekai.server.domain.entities.DiscordUser;
+import fr.anisekai.server.domain.entities.Selection;
+import fr.anisekai.server.domain.entities.Voter;
+import fr.anisekai.server.domain.enums.SelectionStatus;
 import fr.anisekai.server.services.SelectionService;
 import fr.anisekai.server.services.VoterService;
-import fr.anisekai.wireless.remote.enums.SelectionStatus;
-import fr.anisekai.wireless.remote.interfaces.UserEntity;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import org.springframework.stereotype.Component;
 
@@ -36,7 +36,7 @@ public class SelectionInteractions {
         this.voterService = voterService;
     }
 
-    private static void requireAdministrator(UserEntity user) {
+    private static void requireAdministrator(DiscordUser user) {
 
         if (!user.isAdministrator()) {
             throw new RequireAdministratorException();
@@ -55,7 +55,7 @@ public class SelectionInteractions {
                     )
             }
     )
-    public SlashResponse createSelection(UserEntity user, @Param("votes") Long votesParam) {
+    public SlashResponse createSelection(DiscordUser user, @Param("votes") Long votesParam) {
 
         requireAdministrator(user);
 
@@ -81,7 +81,7 @@ public class SelectionInteractions {
             }
     )
     @InteractAt(InteractionType.BUTTON)
-    public ButtonResponse closeSelection(UserEntity user, @Param("selection") long selectionId) {
+    public ButtonResponse closeSelection(DiscordUser user, @Param("selection") long selectionId) {
 
         requireAdministrator(user);
 

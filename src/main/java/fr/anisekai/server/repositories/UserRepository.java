@@ -1,17 +1,18 @@
 package fr.anisekai.server.repositories;
 
-import fr.anisekai.server.entities.DiscordUser;
-import org.springframework.data.jpa.repository.JpaRepository;
+import fr.anisekai.core.persistence.interfaces.AnisekaiRepository;
+import fr.anisekai.server.domain.entities.DiscordUser;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserRepository extends JpaRepository<DiscordUser, Long> {
+public interface UserRepository extends AnisekaiRepository<DiscordUser, Long> {
 
     List<DiscordUser> findAllByActiveIsTrue();
 
+    @Deprecated
     Optional<DiscordUser> findByApiKey(String apiKey);
 
 }

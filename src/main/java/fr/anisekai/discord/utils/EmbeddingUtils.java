@@ -1,7 +1,7 @@
 package fr.anisekai.discord.utils;
 
-import fr.anisekai.wireless.api.json.AnisekaiArray;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
+import fr.anisekai.core.internal.json.AnisekaiArray;
+import fr.anisekai.core.internal.json.AnisekaiJson;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;

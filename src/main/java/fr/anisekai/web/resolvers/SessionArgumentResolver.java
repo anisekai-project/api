@@ -1,6 +1,6 @@
 package fr.anisekai.web.resolvers;
 
-import fr.anisekai.server.entities.SessionToken;
+import fr.anisekai.server.domain.entities.SessionToken;
 import jakarta.servlet.http.HttpServletRequest;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;

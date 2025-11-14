@@ -1,10 +1,10 @@
 package fr.anisekai.server.repositories;
 
-import fr.anisekai.server.entities.Selection;
-import org.springframework.data.jpa.repository.JpaRepository;
+import fr.anisekai.core.persistence.interfaces.AnisekaiRepository;
+import fr.anisekai.server.domain.entities.Selection;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface SelectionRepository extends JpaRepository<Selection, Long> {
+public interface SelectionRepository extends AnisekaiRepository<Selection, Long> {
 
 }

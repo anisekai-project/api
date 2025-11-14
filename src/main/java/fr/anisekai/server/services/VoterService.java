@@ -1,16 +1,15 @@
 package fr.anisekai.server.services;
 
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.DiscordUser;
-import fr.anisekai.server.entities.Selection;
-import fr.anisekai.server.entities.Voter;
-import fr.anisekai.server.entities.adapters.VoterEventAdapter;
+import fr.anisekai.core.persistence.AnisekaiService;
+import fr.anisekai.core.persistence.EntityEventProcessor;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.DiscordUser;
+import fr.anisekai.server.domain.entities.Selection;
+import fr.anisekai.server.domain.entities.Voter;
+import fr.anisekai.server.domain.keys.VoterKey;
 import fr.anisekai.server.exceptions.selection.SelectionAnimeNotFoundException;
 import fr.anisekai.server.exceptions.voter.VoterMaxReachedException;
-import fr.anisekai.server.persistence.DataService;
-import fr.anisekai.server.proxy.VoterProxy;
 import fr.anisekai.server.repositories.VoterRepository;
-import fr.anisekai.wireless.remote.keys.VoterKey;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -18,13 +17,13 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class VoterService extends DataService<Voter, VoterKey, VoterEventAdapter, VoterRepository, VoterProxy> {
+public class VoterService extends AnisekaiService<Voter, VoterKey, VoterRepository> {
 
     private final UserService userService;
 
-    public VoterService(VoterProxy proxy, UserService userService) {
+    public VoterService(VoterRepository repository, EntityEventProcessor eventProcessor, UserService userService) {
 
-        super(proxy);
+        super(repository, eventProcessor);
         this.userService = userService;
     }
 
@@ -34,10 +33,11 @@ public class VoterService extends DataService<Voter, VoterKey, VoterEventAdapter
             throw new SelectionAnimeNotFoundException();
         }
 
-        Voter voter = this.fetch(repo -> repo.findBySelectionAndUser(selection, user));
+        Voter voter = this.require(repository -> repository.findBySelectionAndUser(selection, user));
 
         if (voter.getVotes().contains(anime)) {
-            this.mod(voter.getId(), entity -> entity.getVotes().remove(anime));
+            voter.getVotes().remove(anime);
+            this.getRepository().save(voter);
             return;
         }
 
@@ -45,12 +45,13 @@ public class VoterService extends DataService<Voter, VoterKey, VoterEventAdapter
             throw new VoterMaxReachedException();
         }
 
-        this.mod(voter.getId(), entity -> entity.getVotes().add(anime));
+        voter.getVotes().add(anime);
+        this.getRepository().save(voter);
     }
 
     public List<Voter> getVoters(Selection selection) {
 
-        return this.fetchAll(repo -> repo.findBySelection(selection));
+        return this.getRepository().findBySelection(selection);
     }
 
     public List<Voter> createVoters(Selection selection, long maxVote) {
@@ -75,11 +76,13 @@ public class VoterService extends DataService<Voter, VoterKey, VoterEventAdapter
 
     public Voter createVoter(Selection selection, DiscordUser user, short amount) {
 
-        return this.getProxy().create(voter -> {
-            voter.setSelection(selection);
-            voter.setAmount(amount);
-            voter.setUser(user);
-        });
+        Voter voter = new Voter();
+
+        voter.setSelection(selection);
+        voter.setAmount(amount);
+        voter.setUser(user);
+
+        return this.getRepository().save(voter);
     }
 
 }

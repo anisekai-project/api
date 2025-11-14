@@ -2,8 +2,8 @@ package fr.anisekai.web;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 import fr.anisekai.ApplicationConfiguration;
-import fr.anisekai.server.entities.DiscordUser;
-import fr.anisekai.server.entities.SessionToken;
+import fr.anisekai.server.domain.entities.DiscordUser;
+import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.server.repositories.SessionTokenRepository;
 import fr.anisekai.server.services.UserService;
 import fr.anisekai.web.dto.auth.AuthData;

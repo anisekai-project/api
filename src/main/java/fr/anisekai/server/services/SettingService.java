@@ -1,17 +1,15 @@
 package fr.anisekai.server.services;
 
-import fr.anisekai.server.entities.Setting;
-import fr.anisekai.server.entities.adapters.SettingEventAdapter;
-import fr.anisekai.server.events.SettingCreatedEvent;
-import fr.anisekai.server.persistence.DataService;
-import fr.anisekai.server.proxy.SettingProxy;
+import fr.anisekai.core.persistence.AnisekaiService;
+import fr.anisekai.core.persistence.EntityEventProcessor;
+import fr.anisekai.server.domain.entities.Setting;
 import fr.anisekai.server.repositories.SettingRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
 @Service
-public class SettingService extends DataService<Setting, String, SettingEventAdapter, SettingRepository, SettingProxy> {
+public class SettingService extends AnisekaiService<Setting, String, SettingRepository> {
 
     public static final String WATCHLIST_CHANNEL    = "discord.channels.watchlist";
     public static final String ANNOUNCEMENT_CHANNEL = "discord.channels.announcements";
@@ -24,27 +22,28 @@ public class SettingService extends DataService<Setting, String, SettingEventAda
     public static final String DOWNLOAD_RETENTION   = "application.downloads.retention";
     public static final String ANIME_AUTO_ANNOUNCE  = "application.announces.anime";
 
-    public SettingService(SettingProxy proxy) {
+    public SettingService(SettingRepository repository, EntityEventProcessor eventProcessor) {
 
-        super(proxy);
+        super(repository, eventProcessor);
     }
 
     private Optional<String> getSetting(String id) {
 
-        return this.getProxy()
-                   .fetchEntity(id)
+        return this.getRepository()
+                   .findById(id)
                    .map(Setting::getValue);
     }
 
     public void setSetting(String id, String value) {
 
-        this.getProxy().upsertEntity(
-                id,
-                SettingCreatedEvent::new,
-                setting -> {
+        this.upsert(
+                repository -> repository.findById(id),
+                () -> {
+                    Setting setting = new Setting();
                     setting.setId(id);
-                    setting.setValue(value);
-                }
+                    return setting;
+                },
+                setting -> setting.setValue(value)
         );
     }
 

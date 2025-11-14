@@ -1,16 +1,16 @@
 package fr.anisekai.library.tasks.executors;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.core.internal.sentry.ITimedAction;
+import fr.anisekai.core.internal.services.Transmission;
 import fr.anisekai.library.Library;
 import fr.anisekai.library.services.SpringTransmissionClient;
-import fr.anisekai.server.entities.Torrent;
-import fr.anisekai.server.entities.TorrentFile;
+import fr.anisekai.server.domain.entities.Torrent;
+import fr.anisekai.server.domain.entities.TorrentFile;
 import fr.anisekai.server.services.SettingService;
 import fr.anisekai.server.services.TorrentFileService;
 import fr.anisekai.server.services.TorrentService;
 import fr.anisekai.server.tasking.TaskExecutor;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.api.sentry.ITimedAction;
-import fr.anisekai.wireless.api.services.Transmission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

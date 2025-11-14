@@ -1,13 +1,13 @@
 package fr.anisekai.discord.responses.embeds;
 
-import fr.anisekai.wireless.api.plannifier.data.CalibrationResult;
-import fr.anisekai.wireless.remote.interfaces.BroadcastEntity;
-import fr.anisekai.wireless.utils.StringUtils;
+import fr.anisekai.core.internal.plannifier.data.CalibrationResult;
+import fr.anisekai.server.domain.entities.Broadcast;
+import fr.anisekai.utils.StringUtils;
 import net.dv8tion.jda.api.EmbedBuilder;
 
 public class CalibrationEmbed extends EmbedBuilder {
 
-    public void setCalibrationResult(BroadcastEntity<?> broadcast, CalibrationResult result) {
+    public void setCalibrationResult(Broadcast broadcast, CalibrationResult result) {
 
         this.addField("Broadcast ID", broadcast.getId().toString(), false);
         //noinspection DataFlowIssue

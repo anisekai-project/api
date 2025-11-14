@@ -1,6 +1,6 @@
 package fr.anisekai.web.configs;
 
-import fr.anisekai.server.entities.SessionToken;
+import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.web.annotations.RequireAuth;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;

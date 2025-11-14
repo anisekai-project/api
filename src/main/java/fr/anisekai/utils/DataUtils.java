@@ -1,10 +1,10 @@
 package fr.anisekai.utils;
 
-import fr.anisekai.server.entities.Episode;
-import fr.anisekai.server.entities.Track;
-import fr.anisekai.wireless.api.json.AnisekaiArray;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.api.media.enums.Disposition;
+import fr.anisekai.core.internal.json.AnisekaiArray;
+import fr.anisekai.core.internal.json.AnisekaiJson;
+import fr.anisekai.media.enums.Disposition;
+import fr.anisekai.server.domain.entities.Episode;
+import fr.anisekai.server.domain.entities.Track;
 import org.jetbrains.annotations.NotNull;
 
 public final class DataUtils {

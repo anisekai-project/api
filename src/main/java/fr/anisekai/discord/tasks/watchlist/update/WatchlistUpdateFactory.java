@@ -1,7 +1,9 @@
 package fr.anisekai.discord.tasks.watchlist.update;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
 import fr.anisekai.discord.JDAStore;
-import fr.anisekai.server.entities.Task;
+import fr.anisekai.server.domain.entities.Task;
+import fr.anisekai.server.domain.enums.AnimeList;
 import fr.anisekai.server.enums.TaskPipeline;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.InterestService;
@@ -10,8 +12,6 @@ import fr.anisekai.server.services.WatchlistService;
 import fr.anisekai.server.tasking.TaskBuilder;
 import fr.anisekai.server.tasking.TaskExecutor;
 import fr.anisekai.server.tasking.TaskFactory;
-import fr.anisekai.wireless.api.json.AnisekaiJson;
-import fr.anisekai.wireless.remote.enums.AnimeList;
 import jakarta.annotation.PostConstruct;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;

@@ -1,25 +1,26 @@
 package fr.anisekai.listeners;
 
+import fr.anisekai.core.persistence.events.EntityCreatedEvent;
+import fr.anisekai.core.persistence.events.EntityPropertyChangedEvent;
 import fr.anisekai.discord.tasks.anime.announcement.create.AnnouncementCreateFactory;
 import fr.anisekai.discord.tasks.anime.announcement.update.AnnouncementUpdateFactory;
 import fr.anisekai.discord.tasks.broadcast.schedule.BroadcastScheduleFactory;
 import fr.anisekai.discord.tasks.watchlist.update.WatchlistUpdateFactory;
-import fr.anisekai.server.entities.Anime;
-import fr.anisekai.server.entities.Broadcast;
-import fr.anisekai.server.entities.Voter;
-import fr.anisekai.server.events.*;
-import fr.anisekai.server.events.anime.*;
-import fr.anisekai.server.events.broadcast.BroadcastEpisodeCountUpdatedEvent;
-import fr.anisekai.server.events.broadcast.BroadcastFirstEpisodeUpdatedEvent;
-import fr.anisekai.server.events.broadcast.BroadcastStartingAtUpdatedEvent;
-import fr.anisekai.server.events.broadcast.BroadcastStatusUpdatedEvent;
-import fr.anisekai.server.events.interest.InterestLevelUpdatedEvent;
-import fr.anisekai.server.events.selection.SelectionStatusUpdatedEvent;
-import fr.anisekai.server.events.user.UserEmoteUpdatedEvent;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.Broadcast;
+import fr.anisekai.server.domain.entities.Interest;
+import fr.anisekai.server.domain.entities.Voter;
+import fr.anisekai.server.domain.enums.AnimeList;
+import fr.anisekai.server.domain.enums.BroadcastStatus;
+import fr.anisekai.server.domain.events.anime.*;
+import fr.anisekai.server.domain.events.broadcast.BroadcastEpisodeCountUpdatedEvent;
+import fr.anisekai.server.domain.events.broadcast.BroadcastFirstEpisodeUpdatedEvent;
+import fr.anisekai.server.domain.events.broadcast.BroadcastStartingAtUpdatedEvent;
+import fr.anisekai.server.domain.events.broadcast.BroadcastStatusUpdatedEvent;
+import fr.anisekai.server.domain.events.interest.InterestLevelUpdatedEvent;
+import fr.anisekai.server.domain.events.selection.SelectionStatusUpdatedEvent;
+import fr.anisekai.server.domain.events.user.UserEmoteUpdatedEvent;
 import fr.anisekai.server.services.*;
-import fr.anisekai.wireless.remote.enums.AnimeList;
-import fr.anisekai.wireless.remote.enums.BroadcastStatus;
-import fr.anisekai.wireless.remote.interfaces.AnimeEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -56,7 +57,7 @@ public class EventListeners {
     // <editor-fold desc="Anime">
 
     @EventListener
-    public void onAnimeCreated(AnimeCreatedEvent event) {
+    public void onAnimeCreated(EntityCreatedEvent<Anime> event) {
 
         if (this.settingService.isAnimeAnnouncementEnabled()) {
             this.taskService.getFactory(AnnouncementCreateFactory.class).queue(event.getEntity());
@@ -75,7 +76,7 @@ public class EventListeners {
             AnimeTitleUpdatedEvent.class,
             AnimeTotalUpdatedEvent.class,
     })
-    public void onAnimeGenericUpdated(AnimeUpdatedEvent<?> event) {
+    public void onAnimeGenericUpdated(EntityPropertyChangedEvent<Anime, ?> event) {
 
         if (event.getEntity().getAnnouncementId() != null) {
             this.taskService.getFactory(AnnouncementUpdateFactory.class).queue(event.getEntity());
@@ -86,7 +87,7 @@ public class EventListeners {
             AnimeUrlUpdatedEvent.class,
             AnimeTitleUpdatedEvent.class
     })
-    public void onAnimeDataUpdated(AnimeUpdatedEvent<?> event) {
+    public void onAnimeDataUpdated(EntityPropertyChangedEvent<Anime, ?> event) {
 
         if (event.getEntity().getList().hasProperty(AnimeList.Property.SHOW)) {
             this.taskService.getFactory(WatchlistUpdateFactory.class).queue(event.getEntity().getList());
@@ -96,18 +97,18 @@ public class EventListeners {
     @EventListener
     public void onAnimeStatusUpdated(AnimeListUpdatedEvent event) {
 
-        if (event.getOldValue().hasProperty(AnimeList.Property.SHOW)) {
-            this.taskService.getFactory(WatchlistUpdateFactory.class).queue(event.getOldValue());
+        if (event.getPrevious().hasProperty(AnimeList.Property.SHOW)) {
+            this.taskService.getFactory(WatchlistUpdateFactory.class).queue(event.getPrevious());
         }
 
-        if (event.getNewValue().hasProperty(AnimeList.Property.SHOW)) {
-            this.taskService.getFactory(WatchlistUpdateFactory.class).queue(event.getNewValue());
+        if (event.getCurrent().hasProperty(AnimeList.Property.SHOW)) {
+            this.taskService.getFactory(WatchlistUpdateFactory.class).queue(event.getCurrent());
         }
 
     }
 
     @EventListener({AnimeTotalUpdatedEvent.class, AnimeWatchedUpdatedEvent.class})
-    public void onAnimeEpisodeValueUpdated(AnimeUpdatedEvent<Integer> event) {
+    public void onAnimeEpisodeValueUpdated(EntityPropertyChangedEvent<Anime, Integer> event) {
 
         Anime   anime            = event.getEntity();
         boolean hasBeenFinished  = anime.getWatched() == anime.getTotal();
@@ -123,7 +124,7 @@ public class EventListeners {
         }
 
         if (event instanceof AnimeWatchedUpdatedEvent watchedUpdatedEvent) {
-            if (watchedUpdatedEvent.getOldValue() == 0 && watchedUpdatedEvent.getNewValue() > 0) {
+            if (watchedUpdatedEvent.getPrevious() == 0 && watchedUpdatedEvent.getCurrent() > 0) {
                 this.animeService.mod(anime.getId(), this.animeService.defineWatching());
             }
         }
@@ -134,7 +135,7 @@ public class EventListeners {
     // <editor-fold desc="Broadcast">
 
     @EventListener
-    public void onBroadcastCreated(BroadcastCreatedEvent event) {
+    public void onBroadcastCreated(EntityCreatedEvent<Broadcast> event) {
 
         if (!this.broadcastService.hasPreviousScheduled(event.getEntity())) {
             this.taskService.getFactory(BroadcastScheduleFactory.class).queue(event.getEntity());
@@ -147,13 +148,13 @@ public class EventListeners {
     public void onBroadcastStatusUpdate(BroadcastStatusUpdatedEvent event) {
 
         Broadcast broadcast = event.getEntity();
-        if (event.getNewValue() == BroadcastStatus.CANCELED) {
+        if (event.getCurrent() == BroadcastStatus.CANCELED) {
             return;
         }
 
-        AnimeEntity<?> anime = broadcast.getWatchTarget();
+        Anime anime = broadcast.getWatchTarget();
 
-        switch (event.getNewValue()) {
+        switch (event.getCurrent()) {
             case ACTIVE -> this.animeService.mod(anime.getId(), this.animeService.defineWatching());
             case COMPLETED -> this.animeService.mod(
                     anime.getId(),
@@ -163,9 +164,8 @@ public class EventListeners {
 
         // Special treatment for unscheduled events that are waiting.
         // Keeping it separated from the logic above
-        if (event.getNewValue() == BroadcastStatus.CANCELED || event.getNewValue() == BroadcastStatus.COMPLETED) {
+        if (event.getCurrent() == BroadcastStatus.CANCELED || event.getCurrent() == BroadcastStatus.COMPLETED) {
             List<Broadcast> broadcasts = this.broadcastService
-                    .getProxy()
                     .getRepository()
                     .findByWatchTargetAndStartingAtAfterOrderByStartingAtAsc(
                             broadcast.getWatchTarget(),
@@ -184,7 +184,7 @@ public class EventListeners {
             BroadcastStartingAtUpdatedEvent.class,
             BroadcastEpisodeCountUpdatedEvent.class,
     })
-    public void onBroadcastStateUpdated(BroadcastUpdatedEvent<?> event) {
+    public void onBroadcastStateUpdated(EntityPropertyChangedEvent<Broadcast, ?> event) {
 
         if (event.getEntity().getStatus() == BroadcastStatus.SCHEDULED) {
             this.taskService.getFactory(BroadcastScheduleFactory.class).queue(event.getEntity());
@@ -209,7 +209,7 @@ public class EventListeners {
     // <editor-fold desc="Interest">
 
     @EventListener
-    public void onInterestCreate(InterestCreatedEvent event) {
+    public void onInterestCreate(EntityCreatedEvent<Interest> event) {
 
         this.taskService.getFactory(AnnouncementCreateFactory.class).queue(event.getEntity().getAnime());
         this.taskService.getFactory(WatchlistUpdateFactory.class).queue(event.getEntity().getAnime().getList());
@@ -229,20 +229,20 @@ public class EventListeners {
     @EventListener
     public void onSelectionStateUpdated(SelectionStatusUpdatedEvent event) {
 
-        List<Long> ids = switch (event.getNewValue()) {
+        List<Long> ids = switch (event.getCurrent()) {
             case OPEN -> Collections.emptyList();
             case CLOSED -> this.voterService
                     .getVoters(event.getEntity())
                     .stream()
                     .map(Voter::getVotes)
                     .flatMap(Set::stream)
-                    .map(AnimeEntity::getId)
+                    .map(Anime::getId)
                     .distinct()
                     .collect(Collectors.toList());
             case AUTO_CLOSED -> event.getEntity()
                                      .getAnimes()
                                      .stream()
-                                     .map(AnimeEntity::getId)
+                                     .map(Anime::getId)
                                      .distinct()
                                      .collect(Collectors.toList());
         };

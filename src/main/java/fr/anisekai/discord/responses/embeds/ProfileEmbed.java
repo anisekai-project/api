@@ -1,8 +1,8 @@
 package fr.anisekai.discord.responses.embeds;
 
-import fr.anisekai.wireless.remote.interfaces.AnimeEntity;
-import fr.anisekai.wireless.remote.interfaces.InterestEntity;
-import fr.anisekai.wireless.remote.interfaces.UserEntity;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.DiscordUser;
+import fr.anisekai.server.domain.entities.Interest;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.User;
 
@@ -16,14 +16,14 @@ public class ProfileEmbed extends EmbedBuilder {
         this.setAuthor(user.getName(), null, user.getEffectiveAvatarUrl());
     }
 
-    public void setUser(UserEntity user) {
+    public void setUser(DiscordUser user) {
 
         this.addField("Icône de vote", Optional.ofNullable(user.getEmote()).orElse("*Non défini*"), true);
         this.addField("Accès au site", user.isGuest() ? "Non" : "Oui", true);
         this.addField("Actif", user.isActive() ? "Oui" : "Non", true);
     }
 
-    public void setInterests(Collection<? extends InterestEntity<?, ?>> interests) {
+    public void setInterests(Collection<Interest> interests) {
 
         long positiveInterests = interests.stream().filter(interest -> interest.getLevel() > 0).count();
         long negativeInterests = interests.stream().filter(interest -> interest.getLevel() < 0).count();
@@ -31,7 +31,7 @@ public class ProfileEmbed extends EmbedBuilder {
         this.addField("Votes", String.format("%d positifs, %d négatifs", positiveInterests, negativeInterests), true);
     }
 
-    public void setAnimes(Collection<? extends AnimeEntity<?>> animes) {
+    public void setAnimes(Collection<Anime> animes) {
 
         this.addField("Nombre d'anime(s) ajouté(s)", String.valueOf(animes.size()), true);
     }

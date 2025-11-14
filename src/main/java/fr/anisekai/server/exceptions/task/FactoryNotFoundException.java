@@ -1,13 +1,13 @@
 package fr.anisekai.server.exceptions.task;
 
-import fr.anisekai.annotations.FatalTask;
+import fr.anisekai.core.annotations.FatalTask;
+import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.tasking.TaskFactory;
-import fr.anisekai.wireless.remote.interfaces.TaskEntity;
 
 @FatalTask
 public class FactoryNotFoundException extends RuntimeException {
 
-    public FactoryNotFoundException(TaskEntity task) {
+    public FactoryNotFoundException(Task task) {
 
         super(String.format(
                 "The factory of name '%s' does not exist or has not been registered.",

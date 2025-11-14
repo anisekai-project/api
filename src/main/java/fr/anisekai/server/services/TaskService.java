@@ -1,22 +1,19 @@
 package fr.anisekai.server.services;
 
-import fr.anisekai.annotations.FatalTask;
-import fr.anisekai.discord.JDAStore;
-import fr.anisekai.server.entities.Task;
-import fr.anisekai.server.entities.adapters.TaskEventAdapter;
+import fr.anisekai.core.annotations.FatalTask;
+import fr.anisekai.core.internal.json.exceptions.JSONValidationException;
+import fr.anisekai.core.internal.sentry.ITimedAction;
+import fr.anisekai.core.persistence.AnisekaiService;
+import fr.anisekai.core.persistence.EntityEventProcessor;
+import fr.anisekai.server.domain.entities.Task;
+import fr.anisekai.server.domain.enums.TaskStatus;
 import fr.anisekai.server.enums.TaskPipeline;
 import fr.anisekai.server.exceptions.task.FactoryAlreadyRegisteredException;
 import fr.anisekai.server.exceptions.task.FactoryNotFoundException;
-import fr.anisekai.server.persistence.DataService;
-import fr.anisekai.server.proxy.TaskProxy;
 import fr.anisekai.server.repositories.TaskRepository;
 import fr.anisekai.server.tasking.TaskBuilder;
 import fr.anisekai.server.tasking.TaskExecutor;
 import fr.anisekai.server.tasking.TaskFactory;
-import fr.anisekai.wireless.api.json.exceptions.JSONValidationException;
-import fr.anisekai.wireless.api.sentry.ITimedAction;
-import fr.anisekai.wireless.remote.enums.TaskStatus;
-import fr.anisekai.wireless.remote.interfaces.TaskEntity;
 import io.sentry.Sentry;
 import jakarta.annotation.PostConstruct;
 import org.jetbrains.annotations.NotNull;
@@ -27,19 +24,18 @@ import org.springframework.stereotype.Service;
 
 import java.time.ZonedDateTime;
 import java.util.*;
-import java.util.function.Consumer;
 
 @Service
-public class TaskService extends DataService<Task, Long, TaskEventAdapter, TaskRepository, TaskProxy> {
+public class TaskService extends AnisekaiService<Task, Long, TaskRepository> {
 
     private final static Logger LOGGER           = LoggerFactory.getLogger(TaskService.class);
     private final static int    MAX_TASK_FAILURE = 3;
 
     private final Map<TaskPipeline, Collection<TaskFactory<?>>> factoryPipelines = new HashMap<>();
 
-    public TaskService(TaskProxy proxy, JDAStore store) {
+    public TaskService(TaskRepository repository, EntityEventProcessor eventProcessor) {
 
-        super(proxy);
+        super(repository, eventProcessor);
     }
 
     /**
@@ -96,10 +92,11 @@ public class TaskService extends DataService<Task, Long, TaskEventAdapter, TaskR
      */
     public void cancel(String name) {
 
-        List<Task> tasks = this.fetchAll(repo -> repo.findAllByNameAndStatus(name, TaskStatus.SCHEDULED));
+        List<Task> tasks = this.getRepository().findAllByNameAndStatus(name, TaskStatus.SCHEDULED);
         for (Task task : tasks) {
-            this.mod(task.getId(), entity -> entity.setStatus(TaskStatus.CANCELED));
+            task.setStatus(TaskStatus.CANCELED);
         }
+        this.getRepository().saveAll(tasks);
     }
 
     /**
@@ -112,7 +109,7 @@ public class TaskService extends DataService<Task, Long, TaskEventAdapter, TaskR
      */
     public Optional<Task> find(String name) {
 
-        return this.getProxy().getRepository().findByNameAndStatusIn(name, List.of(TaskStatus.SCHEDULED));
+        return this.getRepository().findByNameAndStatusIn(name, List.of(TaskStatus.SCHEDULED));
     }
 
     /**
@@ -170,14 +167,15 @@ public class TaskService extends DataService<Task, Long, TaskEventAdapter, TaskR
                         builder.getPriority()
                 );
 
-                return this.mod(task.getId(), entity -> entity.setPriority(builder.getPriority()));
+                task.setPriority(builder.getPriority());
+                return this.getRepository().save(task);
             }
         }
 
         LOGGER.info("Queuing task '{}' with a priority of {}.", builder.getName(), builder.getPriority());
         LOGGER.debug(" :: Arguments = {}", builder.getArgs());
 
-        return this.getProxy().create(builder.build());
+        return this.getRepository().save(builder.build());
     }
 
     @Scheduled(cron = "0 * * * * *")
@@ -201,12 +199,14 @@ public class TaskService extends DataService<Task, Long, TaskEventAdapter, TaskR
     @PostConstruct
     private void controlData() {
 
-        List<Task> tasks = this.fetchAll(repo -> repo.findAllByStatus(TaskStatus.EXECUTING));
+        List<Task> tasks = this.getRepository().findAllByStatus(TaskStatus.EXECUTING);
 
         for (Task task : tasks) {
             LOGGER.warn("Task {} was still running when the application stopped.", task.getId());
-            this.mod(task.getId(), entity -> entity.setStatus(TaskStatus.SCHEDULED));
+            task.setStatus(TaskStatus.SCHEDULED);
         }
+
+        this.getRepository().saveAll(tasks);
     }
 
     /**
@@ -230,19 +230,18 @@ public class TaskService extends DataService<Task, Long, TaskEventAdapter, TaskR
 
         Collection<String> factoryNames = factories.stream().map(TaskFactory::getName).toList();
 
-        return this.getProxy()
-                   .fetchEntity(repo -> repo.findNextOf(TaskStatus.SCHEDULED, factoryNames));
+        return this.getRepository().findNextOf(TaskStatus.SCHEDULED, factoryNames);
     }
 
     /**
-     * Retrieve the {@link TaskFactory} of the provided {@link TaskEntity}.
+     * Retrieve the {@link TaskFactory} of the provided {@link Task}.
      *
      * @param task
-     *         The {@link TaskEntity} for which the {@link TaskFactory} must be retrieved.
+     *         The {@link Task} for which the {@link TaskFactory} must be retrieved.
      *
      * @return A {@link TaskFactory}.
      */
-    private @NotNull TaskFactory<?> getTaskFactory(TaskEntity task) {
+    private @NotNull TaskFactory<?> getTaskFactory(Task task) {
 
         String factoryName = task.getFactoryName();
 
@@ -274,7 +273,7 @@ public class TaskService extends DataService<Task, Long, TaskEventAdapter, TaskR
         try (ITimedAction timer = ITimedAction.create()) {
             timer.open("task", task.getFactoryName(), "Execution of the task");
 
-            task = this.mod(task.getId(), this.flagExecuting());
+            this.flagExecuting(task);
 
             try {
                 timer.action("prepare", "Perform basic task checks");
@@ -288,12 +287,16 @@ public class TaskService extends DataService<Task, Long, TaskEventAdapter, TaskR
                 LOGGER.debug("[{}] Done.", task.getName());
                 timer.endAction();
 
-                task = this.mod(task.getId(), this.flagSuccessful());
+                this.flagSuccessful(task);
 
             } catch (Exception e) {
                 timer.action("failure", "Handle task execution failure");
                 LOGGER.error("[{}] Execution failure.", task.getName(), e);
-                task = this.mod(task.getId(), this.isFatal(e) ? this.flagImmediateFailure() : this.flagFailure());
+                if (this.isFatal(e)) {
+                    this.flagImmediateFailure(task);
+                } else {
+                    this.flagFailure(task);
+                }
                 timer.endAction();
 
                 Map<String, Object> context = new HashMap<>();
@@ -309,48 +312,44 @@ public class TaskService extends DataService<Task, Long, TaskEventAdapter, TaskR
             }
             timer.endAction();
         }
+
+        this.getRepository().save(task);
     }
 
-    private Consumer<TaskEventAdapter> flagExecuting() {
+    private void flagExecuting(Task entity) {
 
-        return entity -> {
-            entity.setStatus(TaskStatus.EXECUTING);
-            entity.setStartedAt(ZonedDateTime.now());
-            entity.setCompletedAt(null);
-        };
+        entity.setStatus(TaskStatus.EXECUTING);
+        entity.setStartedAt(ZonedDateTime.now());
+        entity.setCompletedAt(null);
     }
 
-    private Consumer<TaskEventAdapter> flagSuccessful() {
+    private void flagSuccessful(Task entity) {
 
-        return entity -> {
-            entity.setStatus(TaskStatus.SUCCEEDED);
-            entity.setCompletedAt(ZonedDateTime.now());
-        };
+        entity.setStatus(TaskStatus.SUCCEEDED);
+        entity.setCompletedAt(ZonedDateTime.now());
     }
 
-    private Consumer<TaskEventAdapter> flagFailure() {
+    private void flagFailure(Task entity) {
 
-        return entity -> {
+        entity.setFailureCount((byte) (entity.getFailureCount() + 1));
 
-            if (entity.failure() >= MAX_TASK_FAILURE) {
-                entity.setStatus(TaskStatus.FAILED);
-            } else {
-                entity.setStatus(TaskStatus.SCHEDULED);
-            }
-
-            entity.setStartedAt(null);
-            entity.setCompletedAt(null);
-        };
-    }
-
-    private Consumer<TaskEventAdapter> flagImmediateFailure() {
-
-        return entity -> {
-            entity.failure();
+        if (entity.getFailureCount() >= MAX_TASK_FAILURE) {
             entity.setStatus(TaskStatus.FAILED);
-            entity.setStartedAt(null);
-            entity.setCompletedAt(null);
-        };
+        } else {
+            entity.setStatus(TaskStatus.SCHEDULED);
+        }
+
+        entity.setStartedAt(null);
+        entity.setCompletedAt(null);
+
+    }
+
+    private void flagImmediateFailure(Task entity) {
+
+        entity.setFailureCount((byte) (entity.getFailureCount() + 1));
+        entity.setStatus(TaskStatus.FAILED);
+        entity.setStartedAt(null);
+        entity.setCompletedAt(null);
     }
 
     private boolean isFatal(Exception ex) {

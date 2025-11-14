@@ -1,17 +1,12 @@
 package fr.anisekai.utils;
 
-import fr.alexpado.jda.interactions.ext.sentry.ITimedAction;
-import fr.alexpado.lib.rest.exceptions.RestException;
-import fr.alexpado.lib.rest.interfaces.IRestAction;
 import fr.anisekai.Texts;
-import fr.anisekai.wireless.remote.interfaces.AnimeEntity;
-import fr.anisekai.wireless.remote.interfaces.BroadcastEntity;
-import fr.anisekai.wireless.remote.interfaces.SelectionEntity;
-import fr.anisekai.wireless.remote.interfaces.WatchlistEntity;
-import fr.anisekai.wireless.utils.FileDownloader;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.Broadcast;
+import fr.anisekai.server.domain.entities.Selection;
+import fr.anisekai.server.domain.entities.Watchlist;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Icon;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.ScheduledEvent;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
@@ -19,7 +14,6 @@ import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.springframework.context.ApplicationEvent;
 
 import java.time.OffsetDateTime;
@@ -48,14 +42,14 @@ public final class DiscordUtils {
     }
 
     /**
-     * Creates a Markdown link for the {@link AnimeEntity} provided.
+     * Creates a Markdown link for the {@link Anime} provided.
      *
      * @param anime
-     *         The {@link AnimeEntity} for which the link will be created.
+     *         The {@link Anime} for which the link will be created.
      *
      * @return A Markdown link as string.
      */
-    public static String link(AnimeEntity<?> anime) {
+    public static String link(Anime anime) {
 
         return link(anime.getTitle(), anime.getUrl());
     }
@@ -96,19 +90,19 @@ public final class DiscordUtils {
     }
 
     /**
-     * Transform the provided {@link SelectionEntity} into a command choice.
+     * Transform the provided {@link Selection} into a command choice.
      *
      * @param selection
-     *         The {@link SelectionEntity} to transform
+     *         The {@link Selection} to transform
      *
      * @return A command choice
      */
-    public static Command.Choice asChoice(SelectionEntity<?> selection) {
+    public static Command.Choice asChoice(Selection selection) {
 
         return asChoice(selection.getId(), Texts.formatted(selection.getSeason(), selection.getYear()));
     }
 
-    public static Optional<Message> findExistingMessage(MessageChannel channel, AnimeEntity<?> anime) {
+    public static Optional<Message> findExistingMessage(MessageChannel channel, Anime anime) {
 
         if (anime.getAnnouncementId() == null || anime.getAnnouncementId() == -1) {
             return Optional.empty();
@@ -117,7 +111,7 @@ public final class DiscordUtils {
         return findExistingMessage(channel, anime.getAnnouncementId());
     }
 
-    public static Optional<Message> findExistingMessage(MessageChannel channel, WatchlistEntity<?> watchlist) {
+    public static Optional<Message> findExistingMessage(MessageChannel channel, Watchlist watchlist) {
 
         if (watchlist.getMessageId() == null) {
             return Optional.empty();
@@ -137,7 +131,7 @@ public final class DiscordUtils {
         }
     }
 
-    public static @NotNull ScheduledEvent requireEvent(Guild guild, BroadcastEntity<?> broadcast) {
+    public static @NotNull ScheduledEvent requireEvent(Guild guild, Broadcast broadcast) {
 
         if (broadcast.getEventId() == null) {
             throw new IllegalStateException("Broadcast is not scheduled on Discord.");
@@ -149,23 +143,6 @@ public final class DiscordUtils {
             throw new IllegalStateException("Broadcast is not scheduled on Discord.");
         }
         return event;
-    }
-
-    public static @Nullable Icon getBroadcastImage(ITimedAction timer, BroadcastEntity<?> broadcast) throws Exception {
-
-        timer.action("download-banner", "Downloading the event image banner");
-        IRestAction<byte[]> imageAction = new FileDownloader(String.format(
-                "https://media.anisekai.fr/%s.png",
-                broadcast.getWatchTarget().getId()
-        ));
-        Icon icon = null;
-        try {
-            icon = Icon.from(imageAction.complete());
-        } catch (RestException e) {
-            if (e.getCode() != 404) throw e;
-        }
-        timer.endAction();
-        return icon;
     }
 
 }

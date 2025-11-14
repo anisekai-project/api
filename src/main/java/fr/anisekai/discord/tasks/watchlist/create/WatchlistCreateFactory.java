@@ -1,7 +1,7 @@
 package fr.anisekai.discord.tasks.watchlist.create;
 
 import fr.anisekai.discord.JDAStore;
-import fr.anisekai.server.entities.Task;
+import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.enums.TaskPipeline;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.InterestService;

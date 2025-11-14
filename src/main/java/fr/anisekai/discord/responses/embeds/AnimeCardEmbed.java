@@ -1,7 +1,7 @@
 package fr.anisekai.discord.responses.embeds;
 
-import fr.anisekai.wireless.remote.interfaces.AnimeEntity;
-import fr.anisekai.wireless.remote.interfaces.InterestEntity;
+import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.Interest;
 import net.dv8tion.jda.api.EmbedBuilder;
 
 import java.time.format.DateTimeFormatter;
@@ -12,7 +12,7 @@ public class AnimeCardEmbed extends EmbedBuilder {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    public void setAnime(AnimeEntity<?> anime) {
+    public void setAnime(Anime anime) {
 
         String episodeText;
 
@@ -32,17 +32,17 @@ public class AnimeCardEmbed extends EmbedBuilder {
         this.addField("Tags", String.join(", ", anime.getTags()), false);
     }
 
-    public void setInterests(Collection<? extends InterestEntity<?, ?>> interests) {
+    public void setInterests(Collection<Interest> interests) {
 
         String positiveIcons = interests.stream()
                                         .filter(interest -> interest.getLevel() > 0)
-                                        .map(InterestEntity::getUser)
+                                        .map(Interest::getUser)
                                         .map(user -> String.format("%s <@%s>", user.getEmote(), user.getId()))
                                         .collect(Collectors.joining("\n"));
 
         String negativeIcons = interests.stream()
                                         .filter(interest -> interest.getLevel() < 0)
-                                        .map(InterestEntity::getUser)
+                                        .map(Interest::getUser)
                                         .map(user -> String.format("%s <@%s>", user.getEmote(), user.getId()))
                                         .collect(Collectors.joining("\n"));
 
