@@ -59,8 +59,8 @@ public class EventScheduler<T extends WatchTarget, E extends Planifiable<T>, ID 
 
     /**
      * Create a {@link Stream} of the current {@link EventScheduler} state, where every item will be filtered based on
-     * the return value of {@link ScheduleSpotData#getStartingAt()}. If the returned value is before or equals to the
-     * provided {@link ZonedDateTime}, the item will be kept.
+     * the return value of {@link ScheduleSpotData#getStartingAt()}. If the returned value is before the provided
+     * {@link ZonedDateTime}, the item will be kept.
      *
      * @param when
      *         The {@link ZonedDateTime} delimiting item filtering.
@@ -69,13 +69,13 @@ public class EventScheduler<T extends WatchTarget, E extends Planifiable<T>, ID 
      */
     private Stream<E> findPreviousQuery(ZonedDateTime when) {
 
-        return this.getState().stream().filter(item -> DateTimeUtils.isBeforeOrEquals(item.getStartingAt(), when));
+        return this.getState().stream().filter(item -> item.getStartingAt().isBefore(when));
     }
 
     /**
      * Create a {@link Stream} of the current {@link EventScheduler} state, where every item will be filtered based on
-     * the return value of {@link ScheduleSpotData#getStartingAt()}. If the returned value is after or equals to the
-     * provided {@link ZonedDateTime}, the item will be kept.
+     * the return value of {@link ScheduleSpotData#getStartingAt()}. If the returned value is after the provided
+     * {@link ZonedDateTime}, the item will be kept.
      *
      * @param when
      *         The {@link ZonedDateTime} delimiting item filtering.
@@ -84,7 +84,7 @@ public class EventScheduler<T extends WatchTarget, E extends Planifiable<T>, ID 
      */
     private Stream<E> findAfterQuery(ZonedDateTime when) {
 
-        return this.getState().stream().filter(item -> DateTimeUtils.isAfterOrEquals(item.getStartingAt(), when));
+        return this.getState().stream().filter(item -> item.getStartingAt().isAfter(when));
     }
 
     @Override
@@ -130,11 +130,13 @@ public class EventScheduler<T extends WatchTarget, E extends Planifiable<T>, ID 
             throw new InvalidSchedulingDurationException();
         }
 
-        boolean prevOverlap = this.findPrevious(spot.getStartingAt())
+        // Add one second to catch equals case
+        boolean prevOverlap = this.findPrevious(spot.getStartingAt().plusSeconds(1))
                                   .map(item -> isOverlapping(spot, item))
                                   .orElse(false);
 
-        boolean nextOverlap = this.findNext(spot.getStartingAt())
+        // Remove one second to catch equals case
+        boolean nextOverlap = this.findNext(spot.getStartingAt().minusSeconds(1))
                                   .map(item -> isOverlapping(spot, item))
                                   .orElse(false);
 

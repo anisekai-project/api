@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -612,6 +613,108 @@ public class EventSchedulerTests {
         actionForB2.updateHook().accept(mockParty);
 
         assertEquals(7, mockParty.getFirstEpisode(), "partyB2 should start at episode 7 (5+2).");
+    }
+
+    @Test
+    @DisplayName("Scheduler | Single Scheduling | Merging - To Right without previous target")
+    public void testSingleSchedulingMergingToRight_NoPreviousTarget() {
+
+        this.scheduler = new EventScheduler<>(List.of(this.data.partyB1), TestWatchParty::getId);
+
+        ScheduleSpotData<TestWatchTarget> spot = new TestSpot(
+                this.data.target1,
+                this.data.partyB1.getStartingAt()
+                                 .minus(Duration.ofMinutes(24))
+                                 .minusMinutes(5),
+                1
+        );
+        ZonedDateTime scheduleAt = spot.getStartingAt();
+
+        assertTrue(this.scheduler.canSchedule(spot), "The event can't be scheduled.");
+
+        SchedulingPlan<Integer> plan = this.scheduler.schedule(spot);
+
+        SchedulingAction.UpdateAction<Integer> action = this.getUpdateAction(plan);
+        assertEquals(
+                this.data.partyB1.getId(),
+                action.targetId(),
+                "The plan should target the right party for update."
+        );
+
+        TestWatchParty mockParty = new TestWatchParty(
+                this.data.target1,
+                this.data.partyB1.getStartingAt(),
+                this.data.partyB1.getEpisodeCount(),
+                this.data.partyB1.getFirstEpisode()
+        );
+        action.updateHook().accept(mockParty);
+
+        assertEquals(3, mockParty.getEpisodeCount(), "Episode count should be merged.");
+
+        assertEquals(
+                1,
+                mockParty.getFirstEpisode(),
+                "First episode should be calculated from the WatchTarget's progress."
+        );
+        assertEquals(scheduleAt, mockParty.getStartingAt(), "Starting time should be updated to the new spot's time.");
+    }
+
+    @Test
+    @DisplayName("Scheduler | Find Operations | findNext - Success")
+    void testFindNext_Success() {
+
+        Optional<TestWatchParty> queryResult = this.scheduler.findNext(this.data.partyA1.getStartingAt());
+        assertTrue(queryResult.isPresent(), "Should find the next event.");
+        assertEquals(this.data.partyB1.getId(), queryResult.get().getId(), "Should return partyB1 as the next event.");
+    }
+
+    @Test
+    @DisplayName("Scheduler | Find Operations | findNext - Empty")
+    void testFindNext_Empty() {
+
+        Optional<TestWatchParty> queryResult = this.scheduler.findNext(this.data.partyB2.getStartingAt());
+        assertTrue(queryResult.isEmpty(), "Should not find any event after the last one.");
+    }
+
+    @Test
+    @DisplayName("Scheduler | Find Operations | findPrevious - Success")
+    void testFindPrevious_Success() {
+
+        Optional<TestWatchParty> queryResult = this.scheduler.findPrevious(this.data.partyB2.getStartingAt());
+
+        assertTrue(queryResult.isPresent(), "Should find the previous event.");
+        assertEquals(
+                this.data.partyB1.getId(),
+                queryResult.get().getId(),
+                "Should return partyB1 as the previous event."
+        );
+    }
+
+    @Test
+    @DisplayName("Scheduler | Find Operations | findPrevious - Empty")
+    void testFindPrevious_Empty() {
+
+        Optional<TestWatchParty> queryResult = this.scheduler.findPrevious(this.data.partyA1.getStartingAt());
+        assertTrue(queryResult.isEmpty(), "Should not find any event before the first one.");
+    }
+
+    @Test
+    @DisplayName("Scheduler | Find Operations | findNext - With Target Filter")
+    void testFindNext_WithTarget() {
+        // Add an event for another target
+        TestWatchParty partyC = new TestWatchParty(this.data.target2, TestData.BASE_DATETIME.plusHours(1), 1, 1);
+        this.scheduler = new EventScheduler<>(
+                List.of(this.data.partyA1, partyC, this.data.partyB1),
+                TestWatchParty::getId
+        );
+
+        var nextForTarget1 = this.scheduler.findNext(this.data.partyA1.getStartingAt(), this.data.target1);
+        assertTrue(nextForTarget1.isPresent(), "Should find next for target1.");
+        assertEquals(this.data.partyB1.getId(), nextForTarget1.get().getId(), "Next for target1 should be partyB1.");
+
+        var nextForTarget2 = this.scheduler.findNext(this.data.partyA1.getStartingAt(), this.data.target2);
+        assertTrue(nextForTarget2.isPresent(), "Should find next for target2.");
+        assertEquals(partyC.getId(), nextForTarget2.get().getId(), "Next for target2 should be partyC.");
     }
 
 }
