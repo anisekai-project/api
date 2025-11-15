@@ -1,5 +1,6 @@
 package fr.anisekai.web.annotations;
 
+import fr.anisekai.web.enums.TokenScope;
 import fr.anisekai.web.enums.TokenType;
 
 import java.lang.annotation.ElementType;
@@ -48,5 +49,13 @@ public @interface RequireAuth {
      * @return The allowed session types for this route.
      */
     TokenType[] allowedSessionTypes() default {TokenType.USER, TokenType.APPLICATION};
+
+    /**
+     * Specifies the required {@link TokenScope}s for this route. The session token must possess ALL the specified
+     * scopes to be granted access.
+     *
+     * @return The required scopes.
+     */
+    TokenScope[] scopes() default {};
 
 }

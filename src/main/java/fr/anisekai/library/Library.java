@@ -24,8 +24,8 @@ import java.util.stream.Stream;
 @Component
 public class Library extends Sanctum {
 
+
     public static final FileStore CHUNKS    = new ScopedDirectoryStorage("chunks", Episode.class);
-    public static final FileStore EPISODES  = new ScopedFileStorage("episodes", Episode.class, "mkv");
     public static final FileStore SUBTITLES = new ScopedDirectoryStorage("subs", Episode.class);
 
     public static final FileStore EVENT_IMAGES = new ScopedFileStorage("event-images", Anime.class, "webp");
@@ -33,8 +33,11 @@ public class Library extends Sanctum {
     public static final FileStore DOWNLOADS = new RawStorage("downloads");
     public static final FileStore IMPORTS   = new RawStorage("imports");
 
-    private final ApplicationConfiguration.Library configuration;
+    @Deprecated
+    public static final FileStore EPISODES = new ScopedFileStorage("episodes", Episode.class, "mkv");
 
+    private final ApplicationConfiguration.Library          configuration;
+    private final Map<String, FileStore>                    stores       = new HashMap<>();
     private final Map<SessionToken, List<IsolationSession>> isolationMap = new HashMap<>();
 
     public Library(ApplicationConfiguration configuration) {
@@ -50,6 +53,21 @@ public class Library extends Sanctum {
 
         this.registerStore(DOWNLOADS, StorePolicy.PRIVATE);
         this.registerStore(IMPORTS, StorePolicy.PRIVATE);
+    }
+
+    @Override
+    public void registerStore(FileStore store, StorePolicy policy) {
+
+        this.stores.put(store.name(), store);
+        super.registerStore(store, policy);
+    }
+
+    public Optional<IsolationSession> resolveIsolation(Task task) {
+
+        if (task.getIsolationId() == null) return Optional.empty();
+        if (task.getWorker() == null) return Optional.empty();
+
+        return this.resolveIsolation(task.getWorker().getSessionToken(), task.getIsolationId());
     }
 
     public Optional<IsolationSession> resolveIsolation(SessionToken sessionToken, UUID isolation) {
@@ -68,6 +86,10 @@ public class Library extends Sanctum {
         return isolation;
     }
 
+    public Optional<FileStore> getStore(String name) {
+
+        return Optional.ofNullable(this.stores.get(name));
+    }
 
     public Path relativize(Path other) {
 

@@ -3,6 +3,7 @@ package fr.anisekai.library.tasks.factories;
 import fr.anisekai.core.internal.json.AnisekaiJson;
 import fr.anisekai.library.Library;
 import fr.anisekai.library.tasks.executors.MediaImportTask;
+import fr.anisekai.sanctum.AccessScope;
 import fr.anisekai.server.domain.entities.Episode;
 import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.domain.entities.Torrent;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class MediaImportFactory implements TaskFactory<MediaImportTask> {
@@ -59,6 +61,33 @@ public class MediaImportFactory implements TaskFactory<MediaImportTask> {
     public boolean hasNamedTask() {
 
         return true;
+    }
+
+    @Override
+    public boolean isPublic() {
+
+        return true;
+    }
+
+
+    @Override
+    public Set<AccessScope> getRequiredScopes(Task task) {
+
+        long    episodeId = task.getArguments().getLong(MediaImportTask.OPTION_EPISODE);
+        Episode episode   = this.episodeService.requireById(episodeId);
+
+        return Set.of(
+                new AccessScope(Library.CHUNKS, episode),
+                new AccessScope(Library.EPISODES, episode),
+                new AccessScope(Library.SUBTITLES, episode)
+        );
+    }
+
+    @Override
+    public List<Path> getSourceFiles(Task task) {
+
+        String sourcePath = task.getArguments().getString(MediaImportTask.OPTION_SOURCE);
+        return List.of(Path.of(sourcePath));
     }
 
     public List<Task> queue(Torrent torrent) {

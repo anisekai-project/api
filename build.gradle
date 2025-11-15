@@ -26,6 +26,7 @@ repositories {
 dependencies {
     implementation(libs.springframework.actuator)
     implementation(libs.springframework.data.jpa)
+    implementation(libs.springframework.flyway)
     implementation(libs.springframework.jdbc)
     implementation(libs.springframework.web)
 
