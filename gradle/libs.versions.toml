@@ -4,17 +4,17 @@ anisekai-proxy = "1.2.1"
 anisekai-sanctum = "1.1.0"
 anisekai-wireless = "3.1.1"
 catalogUpdater = "1.0.1"
-flyway = "11.20.2"
-jda = "6.3.0"
+# flyway = "12.0.1"
+jda = "6.3.1"
 jda-interactions = "2.0.0-rc.3"
 jetbrains-annotations = "26.0.2-1"
 jjwt = "0.13.0"
 json = "20251224"
 jsoup = "1.22.1"
 mariadb = "3.5.7"
-reckon = "1.0.1"
+reckon = "2.0.0"
 rome = "2.1.0"
-sentry = "5.12.2"
+sentry = "6.0.0"
 simple-http = "1.1.2"
 slugify = "3.0.7"
 springboot-dependency-management = "1.1.7"
@@ -29,8 +29,8 @@ api-anisekai-sanctum = { module = "fr.anisekai:sanctum", version.ref = "anisekai
 api-anisekai-wireless = { module = "fr.anisekai:wireless", version.ref = "anisekai-wireless" }
 api-discord-jda = { module = "net.dv8tion:JDA", version.ref = "jda" }
 api-discord-jda-interactions = { module = "fr.alexpado:jda-interactions-extension", version.ref = "jda-interactions" }
-database-flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
-database-flyway-mysql = { module = "org.flywaydb:flyway-mysql", version.ref = "flyway" }
+database-flyway-core = { module = "org.flywaydb:flyway-core" }
+database-flyway-mysql = { module = "org.flywaydb:flyway-mysql" }
 database-mariadb-client = { module = "org.mariadb.jdbc:mariadb-java-client", version.ref = "mariadb" }
 dev-annotations-jetbrains = { module = "org.jetbrains:annotations", version.ref = "jetbrains-annotations" }
 dev-spring-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor" }
@@ -41,11 +41,12 @@ security-uuid = { module = "com.github.f4b6a3:uuid-creator", version.ref = "uuid
 springdoc-openapi = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 springframework-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 springframework-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
+springframework-flyway = { module = "org.springframework.boot:spring-boot-starter-flyway" }
 springframework-jdbc = { module = "org.springframework.boot:spring-boot-starter-jdbc" }
 springframework-web = { module = "org.springframework.boot:spring-boot-starter-web" }
-testing-springframework-test = { module = "org.springframework.boot:spring-boot-starter-test" }
-testing-springframework-data-jpa-test = { module = "org.springframework.boot:spring-boot-data-jpa-test" }
 testing-h2 = { module = "com.h2database:h2" }
+testing-springframework-data-jpa-test = { module = "org.springframework.boot:spring-boot-data-jpa-test" }
+testing-springframework-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 util-http-client = { module = "fr.alexpado:simple-http-client", version.ref = "simple-http" }
 util-json = { module = "org.json:json", version.ref = "json" }
 util-jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }

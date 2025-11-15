@@ -2,17 +2,20 @@ package fr.anisekai.server.domain.entities;
 
 import fr.anisekai.core.persistence.annotations.TriggerEvent;
 import fr.anisekai.core.persistence.domain.BaseEntity;
-import fr.anisekai.server.domain.events.user.UserActiveUpdatedEvent;
+import fr.anisekai.server.domain.converters.UserFlagConverter;
+import fr.anisekai.server.domain.enums.UserFlag;
 import fr.anisekai.server.domain.events.user.UserEmoteUpdatedEvent;
 import fr.anisekai.server.domain.events.user.UserUsernameUpdatedEvent;
 import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.EnumSet;
 import java.util.Objects;
 
 @Entity
@@ -37,14 +40,8 @@ public class DiscordUser extends BaseEntity<Long> {
     private String emote;
 
     @Column(nullable = false)
-    @TriggerEvent(UserActiveUpdatedEvent.class)
-    private boolean active = false;
-
-    @Column(nullable = false)
-    private boolean administrator = false;
-
-    @Column(nullable = false)
-    private boolean guest = true;
+    @Convert(converter = UserFlagConverter.class)
+    private EnumSet<UserFlag> flags = EnumSet.noneOf(UserFlag.class);
 
     @Override
     public Long getId() {
@@ -98,34 +95,62 @@ public class DiscordUser extends BaseEntity<Long> {
         this.emote = emote;
     }
 
+    public EnumSet<UserFlag> getFlags() {
+
+        return this.flags;
+    }
+
+    public void setFlags(EnumSet<UserFlag> flags) {
+
+        this.flags = flags;
+    }
+
+    @Deprecated
     public boolean isActive() {
 
-        return this.active;
+        return this.flags.contains(UserFlag.ACTIVE);
     }
 
+    @Deprecated
     public void setActive(boolean active) {
 
-        this.active = active;
+        if (active) {
+            this.flags.add(UserFlag.ACTIVE);
+        } else {
+            this.flags.remove(UserFlag.ACTIVE);
+        }
     }
 
+    @Deprecated
     public boolean isAdministrator() {
 
-        return this.administrator;
+        return this.flags.contains(UserFlag.ADMINISTRATOR);
     }
 
+    @Deprecated
     public void setAdministrator(boolean administrator) {
 
-        this.administrator = administrator;
+        if (administrator) {
+            this.flags.add(UserFlag.ADMINISTRATOR);
+        } else {
+            this.flags.remove(UserFlag.ADMINISTRATOR);
+        }
     }
 
+    @Deprecated
     public boolean isGuest() {
 
-        return this.guest;
+        return !this.flags.contains(UserFlag.REGULAR);
     }
 
+    @Deprecated
     public void setGuest(boolean guest) {
 
-        this.guest = guest;
+        if (!guest) {
+            this.flags.add(UserFlag.REGULAR);
+        } else {
+            this.flags.remove(UserFlag.REGULAR);
+        }
     }
 
     @Override

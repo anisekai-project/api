@@ -5,7 +5,15 @@ import fr.anisekai.core.internal.json.exceptions.JSONValidationException;
 import fr.anisekai.core.internal.sentry.ITimedAction;
 import fr.anisekai.core.persistence.AnisekaiService;
 import fr.anisekai.core.persistence.EntityEventProcessor;
+import fr.anisekai.library.Library;
+import fr.anisekai.library.tasks.executors.MediaImportTask;
+import fr.anisekai.library.tasks.factories.MediaImportFactory;
+import fr.anisekai.media.enums.Codec;
+import fr.anisekai.sanctum.AccessScope;
+import fr.anisekai.sanctum.interfaces.isolation.IsolationSession;
+import fr.anisekai.server.domain.entities.Episode;
 import fr.anisekai.server.domain.entities.Task;
+import fr.anisekai.server.domain.entities.Worker;
 import fr.anisekai.server.domain.enums.TaskStatus;
 import fr.anisekai.server.enums.TaskPipeline;
 import fr.anisekai.server.exceptions.task.FactoryAlreadyRegisteredException;
@@ -14,8 +22,12 @@ import fr.anisekai.server.repositories.TaskRepository;
 import fr.anisekai.server.tasking.TaskBuilder;
 import fr.anisekai.server.tasking.TaskExecutor;
 import fr.anisekai.server.tasking.TaskFactory;
+import fr.anisekai.web.dto.worker.tasks.ConversionSettings;
+import fr.anisekai.web.dto.worker.tasks.MediaTaskDetails;
+import fr.anisekai.web.dto.worker.tasks.TrackCreationRequest;
 import io.sentry.Sentry;
 import jakarta.annotation.PostConstruct;
+import jakarta.transaction.Transactional;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +36,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class TaskService extends AnisekaiService<Task, Long, TaskRepository> {
@@ -32,10 +45,15 @@ public class TaskService extends AnisekaiService<Task, Long, TaskRepository> {
     private final static int    MAX_TASK_FAILURE = 3;
 
     private final Map<TaskPipeline, Collection<TaskFactory<?>>> factoryPipelines = new HashMap<>();
+    private final Library                                       library;
+    private final EpisodeService episodeService;
 
-    public TaskService(TaskRepository repository, EntityEventProcessor eventProcessor) {
+    public TaskService(TaskRepository repository, EntityEventProcessor eventProcessor, Library library, EpisodeService episodeService) {
 
-        super(repository, eventProcessor);
+        super(repository     , eventProcessor);
+
+        this.library        = library;
+        this.episodeService = episodeService;
     }
 
     /**
@@ -179,19 +197,19 @@ public class TaskService extends AnisekaiService<Task, Long, TaskRepository> {
     }
 
     @Scheduled(cron = "0 * * * * *")
-    private void executeHeavy() {
+    public void executeHeavy() {
 
         this.runPipeline(TaskPipeline.HEAVY);
     }
 
     @Scheduled(cron = "0/5 * * * * *")
-    private void executeSoft() {
+    public void executeSoft() {
 
         this.runPipeline(TaskPipeline.SOFT);
     }
 
     @Scheduled(cron = "0/5 * * * * *")
-    private void executeMessaging() {
+    public void executeMessaging() {
 
         this.runPipeline(TaskPipeline.MESSAGING);
     }
@@ -222,6 +240,9 @@ public class TaskService extends AnisekaiService<Task, Long, TaskRepository> {
         Collection<TaskFactory<?>> factories = this.factoryPipelines
                 .getOrDefault(pipeline, Collections.emptyList())
                 .stream()
+                //region External Task
+                .filter(factory -> !factory.isPublic())
+                //endregion
                 .toList();
 
         if (factories.isEmpty()) {
@@ -357,4 +378,127 @@ public class TaskService extends AnisekaiService<Task, Long, TaskRepository> {
         return ex instanceof JSONValidationException || ex.getClass().isAnnotationPresent(FatalTask.class);
     }
 
+
+    //region External Task Management
+
+    public MediaTaskDetails getMediaTaskDetails(Task task) {
+
+        if (task.getFactoryName().equals(MediaImportFactory.NAME)) {
+            long    episodeId = task.getArguments().getLong(MediaImportTask.OPTION_EPISODE);
+            Episode episode   = this.episodeService.requireById(episodeId);
+
+            ConversionSettings settings = new ConversionSettings(
+                    Codec.H264,
+                    Codec.AAC,
+                    Codec.SSA
+            ); // This could come from config
+            return MediaTaskDetails.of(episode, settings);
+        }
+        return null;
+    }
+
+
+    /**
+     * Finds and acquires the next available public task for a given worker. This method is transactional and ensures
+     * that a worker can only have one active task at a time.
+     *
+     * @param worker
+     *         The worker requesting a task.
+     *
+     * @return An {@link Optional} containing the acquired {@link Task}, or empty if no task is available or if the
+     *         worker already has an active task.
+     */
+    @Transactional
+    public synchronized Optional<Task> acquirePublicTask(Worker worker) {
+
+        if (this.getRepository().findByWorkerAndStatus(worker, TaskStatus.EXECUTING).isPresent()) {
+            LOGGER.warn("Worker {} requested a task but already has one executing.", worker.getId());
+            return Optional.empty();
+        }
+
+        List<String> publicFactoryNames = this.factoryPipelines
+                .values()
+                .stream()
+                .flatMap(Collection::stream)
+                .filter(TaskFactory::isPublic)
+                .map(TaskFactory::getName)
+                .collect(Collectors.toList());
+
+        if (publicFactoryNames.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Optional<Task> optionalTask = this.getRepository().findNextOf(TaskStatus.SCHEDULED, publicFactoryNames);
+
+        if (optionalTask.isPresent()) {
+            Task           task    = optionalTask.get();
+            TaskFactory<?> factory = this.getTaskFactory(task);
+
+            Set<AccessScope> scopes = factory.getRequiredScopes(task);
+
+            IsolationSession isolation = this.library.createIsolation(
+                    worker.getSessionToken(),
+                    scopes.toArray(new AccessScope[0])
+            );
+
+            task.setStatus(TaskStatus.EXECUTING);
+            task.setWorker(worker);
+            task.setStartedAt(Instant.now());
+            task.setExpiresAt(Instant.now().plus(factory.getLeaseDuration()));
+            task.setIsolationId(isolation.uuid());
+
+            return Optional.of(this.getRepository().save(task));
+        }
+
+        return Optional.empty();
+    }
+
+    public void extendTaskLease(Task task) {
+
+        TaskFactory<?> factory = this.getTaskFactory(task);
+        task.setExpiresAt(Instant.now().plus(factory.getLeaseDuration()));
+        this.getRepository().save(task);
+    }
+
+    @Transactional
+    public void completeTask(Task task, Collection<TrackCreationRequest> newTracks) {
+
+        long episodeId = task.getArguments().getLong(MediaImportTask.OPTION_EPISODE);
+        this.episodeService.ready(episodeId, newTracks);
+
+        this.library.resolveIsolation(task).ifPresent(isolation -> {
+            isolation.commit();
+            isolation.close();
+        });
+
+        task.setStatus(TaskStatus.SUCCEEDED);
+        task.setCompletedAt(Instant.now());
+        task.setWorker(null);
+        task.setIsolationId(null);
+        task.setExpiresAt(null);
+        this.getRepository().save(task);
+    }
+
+    /**
+     * Marks a task as failed and discards its associated isolation session. This method handles the retry logic.
+     *
+     * @param task
+     *         The task that failed.
+     */
+    public void failTask(Task task) {
+
+        if (task.getIsolationId() != null && task.getWorker() != null) {
+            this.library.resolveIsolation(task.getWorker().getSessionToken(), task.getIsolationId())
+                        .ifPresent(IsolationSession::close); // close() is discard()
+        }
+
+        this.flagFailure(task); // Uses the existing failure logic
+
+        task.setWorker(null);
+        task.setIsolationId(null);
+        task.setExpiresAt(null);
+        this.getRepository().save(task);
+    }
+
+    //endregion
 }

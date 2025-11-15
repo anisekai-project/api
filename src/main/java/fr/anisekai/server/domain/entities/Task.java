@@ -6,12 +6,15 @@ import fr.anisekai.server.domain.enums.TaskStatus;
 import fr.anisekai.server.types.JSONType;
 import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.Type;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.sql.Types;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 
 @Entity
 @Table(name = "task")
@@ -48,6 +51,17 @@ public class Task extends IncrementableEntity {
 
     @Column(name = "completed_at")
     private Instant completedAt;
+
+    @JoinColumn(name = "worker_id")
+    @ManyToOne
+    private Worker worker;
+
+    @Column(name = "isolation_id")
+    @JdbcTypeCode(Types.BINARY)
+    private UUID isolationId;
+
+    @Column(name = "expires_at")
+    private Instant expiresAt;
 
 
     public @NotNull String getFactoryName() {
@@ -130,6 +144,36 @@ public class Task extends IncrementableEntity {
         this.completedAt = completedAt;
     }
 
+    public @Nullable Worker getWorker() {
+
+        return this.worker;
+    }
+
+    public void setWorker(@Nullable Worker worker) {
+
+        this.worker = worker;
+    }
+
+    public @Nullable UUID getIsolationId() {
+
+        return this.isolationId;
+    }
+
+    public void setIsolationId(@Nullable UUID isolationId) {
+
+        this.isolationId = isolationId;
+    }
+
+    public @Nullable Instant getExpiresAt() {
+
+        return this.expiresAt;
+    }
+
+    public void setExpiresAt(@Nullable Instant expiresAt) {
+
+        this.expiresAt = expiresAt;
+    }
+
     @Override
     public boolean equals(Object o) {
 
@@ -152,5 +196,6 @@ public class Task extends IncrementableEntity {
                 this.getName()
         );
     }
+
 
 }
