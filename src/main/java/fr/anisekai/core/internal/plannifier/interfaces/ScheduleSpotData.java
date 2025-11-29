@@ -6,7 +6,7 @@ import fr.anisekai.core.internal.plannifier.interfaces.entities.WatchTarget;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
-import java.time.ZonedDateTime;
+import java.time.Instant;
 
 /**
  * Represents metadata for a scheduled watch session, including timing, episode count, and skip preferences.
@@ -36,19 +36,19 @@ public interface ScheduleSpotData<T extends WatchTarget> {
     void setWatchTarget(@NotNull T watchTarget);
 
     /**
-     * Retrieve the {@link ZonedDateTime} at which this {@link ScheduleSpotData} will take place.
+     * Retrieve the {@link Instant} at which this {@link ScheduleSpotData} will take place.
      *
-     * @return A {@link ZonedDateTime}
+     * @return An {@link Instant}
      */
-    @NotNull ZonedDateTime getStartingAt();
+    @NotNull Instant getStartingAt();
 
     /**
-     * Define the {@link ZonedDateTime} at which this {@link ScheduleSpotData} will take place.
+     * Define the {@link Instant} at which this {@link ScheduleSpotData} will take place.
      *
      * @param time
-     *         A {@link ZonedDateTime}
+     *         An {@link Instant}
      */
-    void setStartingAt(@NotNull ZonedDateTime time);
+    void setStartingAt(@NotNull Instant time);
 
     /**
      * Retrieve the amount of episode that will be watched during this {@link ScheduleSpotData}. If not applicable, just
@@ -91,12 +91,12 @@ public interface ScheduleSpotData<T extends WatchTarget> {
     void setSkipEnabled(boolean skipEnabled);
 
     /**
-     * Retrieve the {@link ZonedDateTime} at which this {@link Planifiable} will end, computed as
+     * Retrieve the {@link Instant} at which this {@link Planifiable} will end, computed as
      * {@code getStartingAt() + getDuration()}
      *
-     * @return A {@link ZonedDateTime}
+     * @return A {@link Instant}
      */
-    default @NotNull ZonedDateTime getEndingAt() {
+    default @NotNull Instant getEndingAt() {
 
         return this.getStartingAt().plus(this.getDuration());
     }

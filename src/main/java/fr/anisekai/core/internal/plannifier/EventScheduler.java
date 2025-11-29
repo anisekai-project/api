@@ -15,7 +15,7 @@ import fr.anisekai.utils.DateTimeUtils;
 
 import java.io.Serializable;
 import java.time.Duration;
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -60,14 +60,14 @@ public class EventScheduler<T extends WatchTarget, E extends Planifiable<T>, ID 
     /**
      * Create a {@link Stream} of the current {@link EventScheduler} state, where every item will be filtered based on
      * the return value of {@link ScheduleSpotData#getStartingAt()}. If the returned value is before the provided
-     * {@link ZonedDateTime}, the item will be kept.
+     * {@link Instant}, the item will be kept.
      *
      * @param when
-     *         The {@link ZonedDateTime} delimiting item filtering.
+     *         The {@link Instant} delimiting item filtering.
      *
      * @return A filtered {@link Stream} of the current state.
      */
-    private Stream<E> findPreviousQuery(ZonedDateTime when) {
+    private Stream<E> findPreviousQuery(Instant when) {
 
         return this.getState().stream().filter(item -> item.getStartingAt().isBefore(when));
     }
@@ -75,14 +75,14 @@ public class EventScheduler<T extends WatchTarget, E extends Planifiable<T>, ID 
     /**
      * Create a {@link Stream} of the current {@link EventScheduler} state, where every item will be filtered based on
      * the return value of {@link ScheduleSpotData#getStartingAt()}. If the returned value is after the provided
-     * {@link ZonedDateTime}, the item will be kept.
+     * {@link Instant}, the item will be kept.
      *
      * @param when
-     *         The {@link ZonedDateTime} delimiting item filtering.
+     *         The {@link Instant} delimiting item filtering.
      *
      * @return A filtered {@link Stream} of the current state.
      */
-    private Stream<E> findAfterQuery(ZonedDateTime when) {
+    private Stream<E> findAfterQuery(Instant when) {
 
         return this.getState().stream().filter(item -> item.getStartingAt().isAfter(when));
     }
@@ -94,19 +94,19 @@ public class EventScheduler<T extends WatchTarget, E extends Planifiable<T>, ID 
     }
 
     @Override
-    public Optional<E> findPrevious(ZonedDateTime when) {
+    public Optional<E> findPrevious(Instant when) {
 
         return this.findPreviousQuery(when).max(Comparator.comparing(Planifiable::getStartingAt));
     }
 
     @Override
-    public Optional<E> findNext(ZonedDateTime when) {
+    public Optional<E> findNext(Instant when) {
 
         return this.findAfterQuery(when).min(Comparator.comparing(Planifiable::getStartingAt));
     }
 
     @Override
-    public Optional<E> findPrevious(ZonedDateTime when, T target) {
+    public Optional<E> findPrevious(Instant when, T target) {
 
         return this.findPreviousQuery(when)
                    .filter(item -> item.getWatchTarget().equals(target))
@@ -114,7 +114,7 @@ public class EventScheduler<T extends WatchTarget, E extends Planifiable<T>, ID 
     }
 
     @Override
-    public Optional<E> findNext(ZonedDateTime when, T target) {
+    public Optional<E> findNext(Instant when, T target) {
 
         return this.findAfterQuery(when)
                    .filter(item -> item.getWatchTarget().equals(target))
@@ -218,9 +218,9 @@ public class EventScheduler<T extends WatchTarget, E extends Planifiable<T>, ID 
     }
 
     @Override
-    public SchedulingPlan<ID> delay(ZonedDateTime from, Duration interval, Duration delay) {
+    public SchedulingPlan<ID> delay(Instant from, Duration interval, Duration delay) {
 
-        ZonedDateTime to = from.plus(interval);
+        Instant to = from.plus(interval);
 
         List<E> events = this.getState()
                              .stream()
@@ -348,14 +348,14 @@ public class EventScheduler<T extends WatchTarget, E extends Planifiable<T>, ID 
      */
     private static <T extends WatchTarget> boolean isOverlapping(ScheduleSpotData<T> one, ScheduleSpotData<T> two) {
 
-        ZonedDateTime startingAt = one.getStartingAt();
-        ZonedDateTime endingAt   = startingAt.plus(one.getDuration());
+        Instant startingAt = one.getStartingAt();
+        Instant endingAt   = startingAt.plus(one.getDuration());
 
-        ZonedDateTime itemStartingAt = two.getStartingAt();
-        ZonedDateTime itemEndingAt   = itemStartingAt.plus(two.getDuration());
+        Instant itemStartingAt = two.getStartingAt();
+        Instant itemEndingAt   = itemStartingAt.plus(two.getDuration());
 
         return !startingAt.isAfter(itemEndingAt) && !startingAt.equals(itemEndingAt) && !endingAt.isBefore(
-                itemStartingAt) && !endingAt.isEqual(itemStartingAt);
+                itemStartingAt) && !endingAt.equals(itemStartingAt);
     }
 
 }

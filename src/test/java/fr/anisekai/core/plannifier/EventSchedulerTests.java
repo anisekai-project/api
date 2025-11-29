@@ -15,7 +15,8 @@ import org.junit.jupiter.api.*;
 
 import java.io.Serializable;
 import java.time.Duration;
-import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -67,12 +68,12 @@ public class EventSchedulerTests {
         private static final AtomicInteger   ID_COUNTER = new AtomicInteger(0);
         private final        Integer         id;
         private              TestWatchTarget watchTarget;
-        private              ZonedDateTime   startingAt;
+        private              Instant         startingAt;
         private              int             episodeCount;
         private              int             firstEpisode;
         private              boolean         skipEnabled;
 
-        public TestWatchParty(TestWatchTarget watchTarget, ZonedDateTime startingAt, int episodeCount, int firstEpisode) {
+        public TestWatchParty(TestWatchTarget watchTarget, Instant startingAt, int episodeCount, int firstEpisode) {
 
             this.id           = ID_COUNTER.incrementAndGet();
             this.watchTarget  = watchTarget;
@@ -93,10 +94,10 @@ public class EventSchedulerTests {
 
         @NotNull
         @Override
-        public ZonedDateTime getStartingAt() {return this.startingAt;}
+        public Instant getStartingAt() {return this.startingAt;}
 
         @Override
-        public void setStartingAt(@NotNull ZonedDateTime time) {this.startingAt = time;}
+        public void setStartingAt(@NotNull Instant time) {this.startingAt = time;}
 
         @Override
         public int getEpisodeCount() {return this.episodeCount;}
@@ -121,10 +122,10 @@ public class EventSchedulerTests {
     static class TestSpot implements ScheduleSpotData<TestWatchTarget> {
 
         private TestWatchTarget watchTarget;
-        private ZonedDateTime   startingAt;
+        private Instant         startingAt;
         private int             episodeCount;
 
-        public TestSpot(TestWatchTarget watchTarget, ZonedDateTime startingAt, int episodeCount) {
+        public TestSpot(TestWatchTarget watchTarget, Instant startingAt, int episodeCount) {
 
             this.watchTarget  = watchTarget;
             this.startingAt   = startingAt;
@@ -140,10 +141,10 @@ public class EventSchedulerTests {
 
         @NotNull
         @Override
-        public ZonedDateTime getStartingAt() {return this.startingAt;}
+        public Instant getStartingAt() {return this.startingAt;}
 
         @Override
-        public void setStartingAt(@NotNull ZonedDateTime time) {this.startingAt = time;}
+        public void setStartingAt(@NotNull Instant time) {this.startingAt = time;}
 
         @Override
         public int getEpisodeCount() {return this.episodeCount;}
@@ -161,17 +162,13 @@ public class EventSchedulerTests {
 
     static class TestData {
 
-        public static final ZonedDateTime   BASE_DATETIME = ZonedDateTime.now()
-                                                                         .plusYears(1)
-                                                                         .withHour(21)
-                                                                         .withMinute(0)
-                                                                         .withSecond(0)
-                                                                         .withNano(0);
-        public final        TestWatchTarget target1;
-        public final        TestWatchTarget target2;
-        public final        TestWatchParty  partyA1;
-        public final        TestWatchParty  partyB1;
-        public final        TestWatchParty  partyB2;
+        public static final Instant BASE_DATETIME = Instant.now().plus(30, ChronoUnit.DAYS);
+
+        public final TestWatchTarget target1;
+        public final TestWatchTarget target2;
+        public final TestWatchParty  partyA1;
+        public final TestWatchParty  partyB1;
+        public final TestWatchParty  partyB2;
 
         public TestData() {
 
@@ -179,8 +176,8 @@ public class EventSchedulerTests {
             this.target2 = new TestWatchTarget(0, 24, 24);
 
             this.partyA1 = new TestWatchParty(this.target1, BASE_DATETIME, 2, 1);
-            this.partyB1 = new TestWatchParty(this.target1, BASE_DATETIME.plusHours(2), 2, 3);
-            this.partyB2 = new TestWatchParty(this.target1, BASE_DATETIME.plusHours(4), 2, 5);
+            this.partyB1 = new TestWatchParty(this.target1, BASE_DATETIME.plus(2, ChronoUnit.HOURS), 2, 3);
+            this.partyB2 = new TestWatchParty(this.target1, BASE_DATETIME.plus(4, ChronoUnit.HOURS), 2, 5);
         }
 
         public List<TestWatchParty> dataBank() {
@@ -231,7 +228,7 @@ public class EventSchedulerTests {
     @DisplayName("Scheduler | Single Scheduling - No Conflicts")
     public void testSingleSchedulingNoConflict() {
 
-        ZonedDateTime                     scheduleAt = TestData.BASE_DATETIME.plusDays(1);
+        Instant                           scheduleAt = TestData.BASE_DATETIME.plus(1, ChronoUnit.DAYS);
         ScheduleSpotData<TestWatchTarget> spot       = new TestSpot(this.data.target2, scheduleAt, 1);
 
         assertTrue(this.scheduler.canSchedule(spot), "The event can't be scheduled.");
@@ -262,7 +259,7 @@ public class EventSchedulerTests {
     @DisplayName("Scheduler | Single Scheduling - Follow-up")
     public void testSingleSchedulingFollowUp() {
 
-        ZonedDateTime                     scheduleAt = TestData.BASE_DATETIME.plusDays(1);
+        Instant                           scheduleAt = TestData.BASE_DATETIME.plus(1, ChronoUnit.DAYS);
         ScheduleSpotData<TestWatchTarget> spot       = new TestSpot(this.data.target1, scheduleAt, 1);
 
         assertTrue(this.scheduler.canSchedule(spot), "The event can't be scheduled.");
@@ -286,7 +283,7 @@ public class EventSchedulerTests {
 
         ScheduleSpotData<TestWatchTarget> spot = new TestSpot(
                 this.data.target1,
-                this.data.partyB2.getEndingAt().plusMinutes(5),
+                this.data.partyB2.getEndingAt().plus(5, ChronoUnit.MINUTES),
                 1
         );
 
@@ -321,10 +318,10 @@ public class EventSchedulerTests {
                 this.data.target1,
                 this.data.partyB1.getStartingAt()
                                  .minus(Duration.ofMinutes(24))
-                                 .minusMinutes(5),
+                                 .minus(5, ChronoUnit.MINUTES),
                 1
         );
-        ZonedDateTime scheduleAt = spot.getStartingAt();
+        Instant scheduleAt = spot.getStartingAt();
 
         assertTrue(this.scheduler.canSchedule(spot), "The event can't be scheduled.");
 
@@ -355,12 +352,12 @@ public class EventSchedulerTests {
 
         ScheduleSpotData<TestWatchTarget> spot = new TestSpot(
                 this.data.target1,
-                this.data.partyB1.getEndingAt().plusMinutes(5),
+                this.data.partyB1.getEndingAt().plus(5, ChronoUnit.MINUTES),
                 1
         );
-        ZonedDateTime scheduleAt = spot.getStartingAt();
+        Instant scheduleAt = spot.getStartingAt();
 
-        this.data.partyB2.setStartingAt(scheduleAt.plus(spot.getDuration()).plusMinutes(5));
+        this.data.partyB2.setStartingAt(scheduleAt.plus(spot.getDuration()).plus(5, ChronoUnit.MINUTES));
 
         assertTrue(this.scheduler.canSchedule(spot), "The event can't be scheduled.");
 
@@ -561,8 +558,8 @@ public class EventSchedulerTests {
     @DisplayName("Scheduler | Additional | Merge At Exact Magnet Limit")
     void testMergeAtBoundary() {
 
-        ZonedDateTime scheduleAt = this.data.partyA1.getEndingAt()
-                                                    .plus(EventScheduler.MERGE_MAGNET_LIMIT);
+        Instant scheduleAt = this.data.partyA1.getEndingAt()
+                                              .plus(EventScheduler.MERGE_MAGNET_LIMIT);
         ScheduleSpotData<TestWatchTarget> spot = new TestSpot(this.data.target1, scheduleAt, 1);
 
         assertTrue(this.scheduler.canSchedule(spot), "Should be able to schedule at the exact merge boundary.");
@@ -575,9 +572,9 @@ public class EventSchedulerTests {
     @DisplayName("Scheduler | Additional | No Merge Outside Magnet Limit")
     void testNoMergeOutsideBoundary() {
 
-        ZonedDateTime scheduleAt = this.data.partyA1.getEndingAt()
-                                                    .plus(EventScheduler.MERGE_MAGNET_LIMIT)
-                                                    .plusSeconds(1);
+        Instant scheduleAt = this.data.partyA1.getEndingAt()
+                                              .plus(EventScheduler.MERGE_MAGNET_LIMIT)
+                                              .plusSeconds(1);
         ScheduleSpotData<TestWatchTarget> spot = new TestSpot(this.data.target1, scheduleAt, 1);
 
         assertTrue(this.scheduler.canSchedule(spot), "Should be able to schedule just outside the merge boundary.");
@@ -625,10 +622,10 @@ public class EventSchedulerTests {
                 this.data.target1,
                 this.data.partyB1.getStartingAt()
                                  .minus(Duration.ofMinutes(24))
-                                 .minusMinutes(5),
+                                 .minus(5, ChronoUnit.MINUTES),
                 1
         );
-        ZonedDateTime scheduleAt = spot.getStartingAt();
+        Instant scheduleAt = spot.getStartingAt();
 
         assertTrue(this.scheduler.canSchedule(spot), "The event can't be scheduled.");
 
@@ -702,7 +699,12 @@ public class EventSchedulerTests {
     @DisplayName("Scheduler | Find Operations | findNext - With Target Filter")
     void testFindNext_WithTarget() {
         // Add an event for another target
-        TestWatchParty partyC = new TestWatchParty(this.data.target2, TestData.BASE_DATETIME.plusHours(1), 1, 1);
+        TestWatchParty partyC = new TestWatchParty(
+                this.data.target2,
+                TestData.BASE_DATETIME.plus(1, ChronoUnit.HOURS),
+                1,
+                1
+        );
         this.scheduler = new EventScheduler<>(
                 List.of(this.data.partyA1, partyC, this.data.partyB1),
                 TestWatchParty::getId

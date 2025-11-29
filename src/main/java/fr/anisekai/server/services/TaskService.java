@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.*;
 
 @Service
@@ -319,14 +319,14 @@ public class TaskService extends AnisekaiService<Task, Long, TaskRepository> {
     private void flagExecuting(Task entity) {
 
         entity.setStatus(TaskStatus.EXECUTING);
-        entity.setStartedAt(ZonedDateTime.now());
+        entity.setStartedAt(Instant.now());
         entity.setCompletedAt(null);
     }
 
     private void flagSuccessful(Task entity) {
 
         entity.setStatus(TaskStatus.SUCCEEDED);
-        entity.setCompletedAt(ZonedDateTime.now());
+        entity.setCompletedAt(Instant.now());
     }
 
     private void flagFailure(Task entity) {

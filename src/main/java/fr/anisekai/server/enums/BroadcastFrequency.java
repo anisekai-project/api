@@ -1,19 +1,20 @@
 package fr.anisekai.server.enums;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.function.Function;
 
 public enum BroadcastFrequency {
 
     ONCE(null, "Une fois"),
-    DAILY(date -> date.plusDays(1), "Quotidien"),
-    WEEKLY(date -> date.plusDays(7), "Hebdomadaire");
+    DAILY(date -> date.plus(1, ChronoUnit.DAYS), "Quotidien"),
+    WEEKLY(date -> date.plus(7, ChronoUnit.DAYS), "Hebdomadaire");
 
 
-    private final Function<ZonedDateTime, ZonedDateTime> dateModifier;
-    private final String                                 displayName;
+    private final Function<Instant, Instant> dateModifier;
+    private final String                     displayName;
 
-    BroadcastFrequency(Function<ZonedDateTime, ZonedDateTime> dateModifier, String displayName) {
+    BroadcastFrequency(Function<Instant, Instant> dateModifier, String displayName) {
 
         this.dateModifier = dateModifier;
         this.displayName  = displayName;
@@ -24,7 +25,7 @@ public enum BroadcastFrequency {
         return this.dateModifier != null;
     }
 
-    public Function<ZonedDateTime, ZonedDateTime> getDateModifier() {
+    public Function<Instant, Instant> getDateModifier() {
 
         return this.dateModifier;
     }

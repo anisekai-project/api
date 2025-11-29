@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Date;
@@ -52,7 +52,7 @@ public class AuthenticationManager {
         this.sessionTokenRepository = sessionTokenRepository;
     }
 
-    private SessionToken createToken(TokenType type, DiscordUser user, ZonedDateTime expiresAt) {
+    private SessionToken createToken(TokenType type, DiscordUser user, Instant expiresAt) {
 
         SessionToken token = new SessionToken();
         token.setId(UuidCreator.getTimeOrderedEpoch());
@@ -87,7 +87,7 @@ public class AuthenticationManager {
                 .findByIdAndTypeIn(uuid, Arrays.asList(types))
                 .orElseThrow(() -> new InvalidSessionException(uuid));
 
-        ZonedDateTime now = ZonedDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
 
         if (token.getExpiresAt().isBefore(now)) {
             throw new TokenExpiredException(uuid);
@@ -193,7 +193,7 @@ public class AuthenticationManager {
      */
     public SessionToken createAccessToken(DiscordUser user) {
 
-        return this.createToken(TokenType.USER, user, ZonedDateTime.now().plus(ACCESS_TOKEN_LIFETIME));
+        return this.createToken(TokenType.USER, user, Instant.now().plus(ACCESS_TOKEN_LIFETIME));
     }
 
     /**
@@ -206,7 +206,7 @@ public class AuthenticationManager {
      */
     public SessionToken createRefreshToken(DiscordUser user) {
 
-        return this.createToken(TokenType.REFRESH, user, ZonedDateTime.now().plus(REFRESH_TOKEN_LIFETIME));
+        return this.createToken(TokenType.REFRESH, user, Instant.now().plus(REFRESH_TOKEN_LIFETIME));
     }
 
     /**
@@ -217,7 +217,7 @@ public class AuthenticationManager {
      *
      * @return The newly created {@link SessionToken}.
      */
-    public SessionToken createApplicationToken(DiscordUser user, ZonedDateTime expiresAt) {
+    public SessionToken createApplicationToken(DiscordUser user, Instant expiresAt) {
 
         return this.createToken(TokenType.APPLICATION, user, expiresAt);
     }
@@ -264,11 +264,11 @@ public class AuthenticationManager {
                 // 2. SUB
                 .subject(String.valueOf(token.getOwner().getId()))
                 // 3. EXP
-                .expiration(Date.from(token.getExpiresAt().toInstant()))
+                .expiration(Date.from(token.getExpiresAt()))
                 // 4. NBF
-                .notBefore(Date.from(token.getCreatedAt().toInstant()))
+                .notBefore(Date.from(token.getCreatedAt()))
                 // 5. IAT
-                .issuedAt(Date.from(token.getCreatedAt().toInstant()))
+                .issuedAt(Date.from(token.getCreatedAt()))
                 // 6. JTI
                 .id(token.getId().toString())
                 // 7. Role Claim

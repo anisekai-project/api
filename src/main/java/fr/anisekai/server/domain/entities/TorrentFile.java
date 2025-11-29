@@ -6,7 +6,6 @@ import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.*;
 import org.jetbrains.annotations.NotNull;
 
-import java.time.ZonedDateTime;
 import java.util.Objects;
 
 @Entity
@@ -29,12 +28,6 @@ public class TorrentFile extends BaseEntity<TorrentKey> {
 
     @Column(nullable = false)
     private boolean removed = false;
-
-    @Column(nullable = false)
-    private final ZonedDateTime createdAt = ZonedDateTime.now();
-
-    @Column(nullable = false)
-    private ZonedDateTime updatedAt = ZonedDateTime.now();
 
     @Override
     public TorrentKey getId() {

@@ -10,7 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @RestController
 @RequestMapping("/api/v3/users")
@@ -29,7 +30,7 @@ public class UserController {
 
         SessionToken token = this.manager.createApplicationToken(
                 session.getOwner(),
-                ZonedDateTime.now().plusMonths(1)
+                Instant.now().plus(1, ChronoUnit.MONTHS)
         );
 
         return ResponseEntity.ok(new ApiKeyData(this.manager.stringify(token)));

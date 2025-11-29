@@ -1,7 +1,7 @@
 package fr.anisekai.core.persistence.domain;
 
 import java.io.Serializable;
-import java.time.ZonedDateTime;
+import java.time.Instant;
 
 /**
  * Interface representing a persistable entity.
@@ -38,14 +38,14 @@ public interface Entity<PK extends Serializable> {
      *
      * @return The creation date.
      */
-    ZonedDateTime getCreatedAt();
+    Instant getCreatedAt();
 
     /**
      * Retrieve this {@link Entity} last update date.
      *
      * @return The last update date.
      */
-    ZonedDateTime getUpdatedAt();
+    Instant getUpdatedAt();
 
     /**
      * Check if this {@link Entity} has been persisted yet.

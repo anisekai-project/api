@@ -13,7 +13,7 @@ import org.hibernate.annotations.Type;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.Objects;
 
 @Entity
@@ -45,10 +45,11 @@ public class Task extends IncrementableEntity {
     @Column(nullable = false)
     private byte failureCount;
 
-    private ZonedDateTime startedAt;
+    @Column
+    private Instant startedAt;
 
     @Column
-    private ZonedDateTime completedAt;
+    private Instant completedAt;
 
 
     public @NotNull String getFactoryName() {
@@ -111,22 +112,22 @@ public class Task extends IncrementableEntity {
         this.failureCount = failureCount;
     }
 
-    public @Nullable ZonedDateTime getStartedAt() {
+    public @Nullable Instant getStartedAt() {
 
         return this.startedAt;
     }
 
-    public void setStartedAt(ZonedDateTime startedAt) {
+    public void setStartedAt(Instant startedAt) {
 
         this.startedAt = startedAt;
     }
 
-    public @Nullable ZonedDateTime getCompletedAt() {
+    public @Nullable Instant getCompletedAt() {
 
         return this.completedAt;
     }
 
-    public void setCompletedAt(ZonedDateTime completedAt) {
+    public void setCompletedAt(Instant completedAt) {
 
         this.completedAt = completedAt;
     }

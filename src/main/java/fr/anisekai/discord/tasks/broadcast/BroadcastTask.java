@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 public abstract class BroadcastTask implements TaskExecutor {
 
@@ -80,8 +81,8 @@ public abstract class BroadcastTask implements TaskExecutor {
                     getEpisodeText(planifiable)
             );
             this.icon        = this.getIcon(planifiable);
-            this.startTime   = planifiable.getStartingAt().toOffsetDateTime();
-            this.endTime     = planifiable.getEndingAt().toOffsetDateTime();
+            this.startTime   = planifiable.getStartingAt().atOffset(ZoneOffset.UTC);
+            this.endTime     = planifiable.getEndingAt().atOffset(ZoneOffset.UTC);
         }
 
         private Icon getIcon(Planifiable<Anime> planifiable) throws Exception {

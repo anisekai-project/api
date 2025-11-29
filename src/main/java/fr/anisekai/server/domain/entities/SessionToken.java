@@ -5,7 +5,7 @@ import fr.anisekai.utils.EntityUtils;
 import fr.anisekai.web.enums.TokenType;
 import jakarta.persistence.*;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.Objects;
 
 @Entity
@@ -19,10 +19,10 @@ public class SessionToken extends UuidEntity {
     private TokenType type;
 
     @Column(nullable = false)
-    private ZonedDateTime expiresAt;
+    private Instant expiresAt;
 
     @Column
-    private ZonedDateTime revokedAt;
+    private Instant revokedAt;
 
     public DiscordUser getOwner() {
 
@@ -44,22 +44,22 @@ public class SessionToken extends UuidEntity {
         this.type = type;
     }
 
-    public ZonedDateTime getExpiresAt() {
+    public Instant getExpiresAt() {
 
         return this.expiresAt;
     }
 
-    public void setExpiresAt(ZonedDateTime expiresAt) {
+    public void setExpiresAt(Instant expiresAt) {
 
         this.expiresAt = expiresAt;
     }
 
-    public ZonedDateTime getRevokedAt() {
+    public Instant getRevokedAt() {
 
         return this.revokedAt;
     }
 
-    public void setRevokedAt(ZonedDateTime revokedAt) {
+    public void setRevokedAt(Instant revokedAt) {
 
         this.revokedAt = revokedAt;
     }

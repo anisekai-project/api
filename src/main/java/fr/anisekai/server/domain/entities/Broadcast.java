@@ -13,7 +13,7 @@ import jakarta.persistence.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.Objects;
 
 @Entity
@@ -24,7 +24,7 @@ public class Broadcast extends IncrementableEntity implements Planifiable<Anime>
 
     @Column(nullable = false)
     @TriggerEvent(BroadcastStartingAtUpdatedEvent.class)
-    private ZonedDateTime startingAt;
+    private Instant startingAt;
 
     @Column
     private Long eventId;
@@ -58,13 +58,13 @@ public class Broadcast extends IncrementableEntity implements Planifiable<Anime>
     }
 
     @Override
-    public @NotNull ZonedDateTime getStartingAt() {
+    public @NotNull Instant getStartingAt() {
 
         return this.startingAt;
     }
 
     @Override
-    public void setStartingAt(@NotNull ZonedDateTime startingAt) {
+    public void setStartingAt(@NotNull Instant startingAt) {
 
         this.startingAt = startingAt;
     }

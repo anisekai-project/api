@@ -7,7 +7,7 @@ import fr.anisekai.core.internal.plannifier.interfaces.entities.Planifiable;
 import fr.anisekai.core.internal.plannifier.interfaces.entities.WatchTarget;
 import org.jetbrains.annotations.NotNull;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
 
 /**
  * Class representing a {@link Planifiable} that has not been commited to a {@link SchedulerManager} yet.
@@ -17,11 +17,11 @@ import java.time.ZonedDateTime;
  */
 public class BookedPlanifiable<T extends WatchTarget> implements Planifiable<T> {
 
-    private final T             target;
-    private       ZonedDateTime startingAt;
-    private       int           firstEpisode;
-    private       int           episodeCount;
-    private       boolean       skipEnabled;
+    private final T       target;
+    private       Instant startingAt;
+    private       int     firstEpisode;
+    private       int     episodeCount;
+    private       boolean skipEnabled;
 
     /**
      * Create a {@link BookedPlanifiable} based on the provided {@link ScheduleSpotData}.
@@ -77,13 +77,13 @@ public class BookedPlanifiable<T extends WatchTarget> implements Planifiable<T> 
     }
 
     @Override
-    public @NotNull ZonedDateTime getStartingAt() {
+    public @NotNull Instant getStartingAt() {
 
         return this.startingAt;
     }
 
     @Override
-    public void setStartingAt(@NotNull ZonedDateTime time) {
+    public void setStartingAt(@NotNull Instant time) {
 
         this.startingAt = time;
     }

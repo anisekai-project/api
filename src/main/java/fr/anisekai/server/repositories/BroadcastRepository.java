@@ -7,7 +7,7 @@ import fr.anisekai.server.domain.enums.BroadcastStatus;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -19,14 +19,14 @@ public interface BroadcastRepository extends AnisekaiRepository<Broadcast, Long>
 
     List<Broadcast> findAllByStatus(BroadcastStatus status);
 
-    long countBroadcastByStartingAtAfter(ZonedDateTime startingAtAfter);
+    long countBroadcastByStartingAtAfter(Instant startingAtAfter);
 
     Optional<Broadcast> findByEventId(Long eventId);
 
     @Query("select count(b) from Broadcast b where b.watchTarget.id = :id and b.startingAt < :startingAt and b.status IN :statuses")
-    long countPreviousOf(Long id, ZonedDateTime startingAt, Collection<BroadcastStatus> statuses);
+    long countPreviousOf(Long id, Instant startingAt, Collection<BroadcastStatus> statuses);
 
-    List<Broadcast> findByWatchTargetAndStartingAtAfterOrderByStartingAtAsc(Anime watchTarget, ZonedDateTime startingAt);
+    List<Broadcast> findByWatchTargetAndStartingAtAfterOrderByStartingAtAsc(Anime watchTarget, Instant startingAt);
 
 
 }

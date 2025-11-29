@@ -6,7 +6,7 @@ import fr.anisekai.core.internal.plannifier.plan.SchedulingPlan;
 
 import java.io.Serializable;
 import java.time.Duration;
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
 
@@ -37,50 +37,50 @@ public interface Scheduler<T extends WatchTarget, E extends Planifiable<T>, ID e
     Set<E> getState();
 
     /**
-     * Check in the current state for a {@link Planifiable} starting right before the provided {@link ZonedDateTime}.
+     * Check in the current state for a {@link Planifiable} starting right before the provided {@link Instant}.
      *
      * @param when
-     *         {@link ZonedDateTime} filtering all {@link Planifiable} possible in the state.
+     *         {@link Instant} filtering all {@link Planifiable} possible in the state.
      *
      * @return An optional {@link Planifiable}.
      */
-    Optional<E> findPrevious(ZonedDateTime when);
+    Optional<E> findPrevious(Instant when);
 
     /**
-     * Check in the current state for a {@link Planifiable} starting right after the provided {@link ZonedDateTime}.
+     * Check in the current state for a {@link Planifiable} starting right after the provided {@link Instant}.
      *
      * @param when
-     *         {@link ZonedDateTime} filtering all {@link Planifiable} possible in the state.
+     *         {@link Instant} filtering all {@link Planifiable} possible in the state.
      *
      * @return An optional {@link Planifiable}.
      */
-    Optional<E> findNext(ZonedDateTime when);
+    Optional<E> findNext(Instant when);
 
     /**
-     * Check in the current state for a {@link Planifiable} starting right before the provided {@link ZonedDateTime}
-     * while matching the provided {@link WatchTarget}.
+     * Check in the current state for a {@link Planifiable} starting right before the provided {@link Instant} while
+     * matching the provided {@link WatchTarget}.
      *
      * @param when
-     *         {@link ZonedDateTime} filtering all {@link Planifiable} possible in the state.
+     *         {@link Instant} filtering all {@link Planifiable} possible in the state.
      * @param target
      *         {@link WatchTarget} further filtering possible {@link Planifiable}.
      *
      * @return An optional {@link Planifiable}.
      */
-    Optional<E> findPrevious(ZonedDateTime when, T target);
+    Optional<E> findPrevious(Instant when, T target);
 
     /**
-     * Check in the current state for a {@link Planifiable} starting right after the provided {@link ZonedDateTime}
-     * while matching the provided {@link WatchTarget}.
+     * Check in the current state for a {@link Planifiable} starting right after the provided {@link Instant} while
+     * matching the provided {@link WatchTarget}.
      *
      * @param when
-     *         {@link ZonedDateTime} filtering all planifiable possible in the state.
+     *         {@link Instant} filtering all planifiable possible in the state.
      * @param target
      *         {@link WatchTarget} further filtering possible {@link Planifiable}.
      *
      * @return An optional {@link Planifiable}.
      */
-    Optional<E> findNext(ZonedDateTime when, T target);
+    Optional<E> findNext(Instant when, T target);
 
     /**
      * Check whether the given {@link ScheduleSpotData} can be scheduled without overlapping existing state or violating
@@ -111,7 +111,7 @@ public interface Scheduler<T extends WatchTarget, E extends Planifiable<T>, ID e
      * Generates a plan to delay every {@link Planifiable} being in the specified interval.
      *
      * @param from
-     *         {@link ZonedDateTime} defining the start of the interval
+     *         {@link Instant} defining the start of the interval
      * @param interval
      *         {@link Duration} defining the length of the interval
      * @param delay
@@ -119,7 +119,7 @@ public interface Scheduler<T extends WatchTarget, E extends Planifiable<T>, ID e
      *
      * @return A scheduling plan containing the update operations.
      */
-    SchedulingPlan<ID> delay(ZonedDateTime from, Duration interval, Duration delay);
+    SchedulingPlan<ID> delay(Instant from, Duration interval, Duration delay);
 
     /**
      * Generates a plan by reprocessing all scheduled entities to ensure consistency. This process may trim or adjust

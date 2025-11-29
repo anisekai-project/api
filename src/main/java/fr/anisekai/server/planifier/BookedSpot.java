@@ -5,15 +5,15 @@ import fr.anisekai.core.internal.plannifier.interfaces.ScheduleSpotData;
 import fr.anisekai.core.internal.plannifier.interfaces.entities.WatchTarget;
 import org.jetbrains.annotations.NotNull;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
 
 public class BookedSpot<T extends WatchTarget> implements ScheduleSpotData<T> {
 
-    private T             target;
-    private ZonedDateTime startingAt;
-    private int           episodeCount;
+    private T       target;
+    private Instant startingAt;
+    private int     episodeCount;
 
-    public BookedSpot(T target, ZonedDateTime startingAt, int episodeCount) {
+    public BookedSpot(T target, Instant startingAt, int episodeCount) {
 
         this.target       = target;
         this.startingAt   = startingAt;
@@ -33,13 +33,13 @@ public class BookedSpot<T extends WatchTarget> implements ScheduleSpotData<T> {
     }
 
     @Override
-    public @NotNull ZonedDateTime getStartingAt() {
+    public @NotNull Instant getStartingAt() {
 
         return this.startingAt;
     }
 
     @Override
-    public void setStartingAt(@NotNull ZonedDateTime time) {
+    public void setStartingAt(@NotNull Instant time) {
 
         this.startingAt = time;
     }

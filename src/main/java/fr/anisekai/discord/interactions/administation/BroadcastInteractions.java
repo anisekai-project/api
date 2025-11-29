@@ -21,7 +21,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -89,7 +89,7 @@ public class BroadcastInteractions {
         Anime anime = this.animeService.requireById(animeId);
 
         BroadcastFrequency frequency = BroadcastFrequency.from(frequencyName);
-        ZonedDateTime      starting  = DateTimeUtils.of(timeParam, startingParam);
+        Instant            starting  = DateTimeUtils.of(timeParam, startingParam);
 
         if (DateTimeUtils.isBeforeOrEquals(starting, DateTimeUtils.now())) {
             return DiscordResponse.error("Impossible de plannifier des séances dans le passé.");
@@ -153,7 +153,7 @@ public class BroadcastInteractions {
     public SlashResponse broadcastDelay(DiscordUser user, @Param("delay") String delayParam, @Param("range") String rangeParam, @Param("starting") String startingParam) {
 
 
-        ZonedDateTime starting = DateTimeUtils.of(startingParam, null);
+        Instant starting = DateTimeUtils.of(startingParam, null);
         Duration range = Optional.ofNullable(rangeParam)
                                  .map(DateTimeUtils::toDuration)
                                  .orElse(Duration.ofHours(6));

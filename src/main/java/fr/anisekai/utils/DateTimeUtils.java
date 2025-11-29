@@ -6,6 +6,7 @@ import java.time.*;
 import java.time.chrono.ChronoLocalDate;
 import java.time.chrono.ChronoZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,13 +32,13 @@ public final class DateTimeUtils {
     }
 
     /**
-     * Retrieve the system current {@link ZonedDateTime} with nanoseconds set to 0.
+     * Retrieve the system current {@link Instant} with nanoseconds set to 0.
      *
-     * @return The system current {@link ZonedDateTime}
+     * @return The system current {@link Instant}
      */
-    public static ZonedDateTime now() {
+    public static Instant now() {
 
-        return ZonedDateTime.now().withNano(0);
+        return Instant.now().truncatedTo(ChronoUnit.SECONDS);
     }
 
     /**
@@ -67,21 +68,21 @@ public final class DateTimeUtils {
     }
 
     /**
-     * Create a {@link ZonedDateTime} using provided time and date as string representation. Both arguments are optional
-     * and will default to their current system value if not provided ({@link LocalTime#now()} and
-     * {@link LocalDate#now()} respectively)
+     * Create a {@link Instant} using provided time and date as string representation. Both arguments are optional and
+     * will default to their current system value if not provided ({@link LocalTime#now()} and {@link LocalDate#now()}
+     * respectively)
      * <p>
-     * Although possible, sending 2 null values will return the same result as calling {@link ZonedDateTime#now()}, in a
-     * less efficient way.
+     * Although possible, sending 2 null values will return the same result as calling {@link Instant#now()}, in a less
+     * efficient way.
      *
      * @param time
-     *         The optional time for the {@link ZonedDateTime}.
+     *         The optional time for the {@link Instant}.
      * @param date
-     *         The optional date for the {@link ZonedDateTime}.
+     *         The optional date for the {@link Instant}.
      *
-     * @return A {@link ZonedDateTime} based on input parameters
+     * @return A {@link Instant} based on input parameters
      */
-    public static ZonedDateTime of(@Nullable CharSequence time, @Nullable CharSequence date) {
+    public static Instant of(@Nullable CharSequence time, @Nullable CharSequence date) {
 
         LocalTime localTime = Optional.ofNullable(time).map(DateTimeUtils::parseTime).orElseGet(DateTimeUtils::timeNow);
         LocalDate localDate = Optional.ofNullable(date).map(DateTimeUtils::parseDate).orElseGet(LocalDate::now);
@@ -89,25 +90,25 @@ public final class DateTimeUtils {
     }
 
     /**
-     * Create a {@link ZonedDateTime} using provided {@link LocalTime} and {@link LocalDate}. Both arguments are
-     * optional and will default to their current system value if not provided ({@link LocalTime#now()} and
-     * {@link LocalDate#now()} respectively)
+     * Create a {@link Instant} using provided {@link LocalTime} and {@link LocalDate}. Both arguments are optional and
+     * will default to their current system value if not provided ({@link LocalTime#now()} and {@link LocalDate#now()}
+     * respectively)
      * <p>
-     * Although possible, sending 2 null values will return the same result as calling {@link ZonedDateTime#now()}, in a
-     * less efficient way.
+     * Although possible, sending 2 null values will return the same result as calling {@link Instant#now()}, in a less
+     * efficient way.
      *
      * @param time
-     *         The optional {@link LocalTime} for the {@link ZonedDateTime}.
+     *         The optional {@link LocalTime} for the {@link Instant}.
      * @param date
-     *         The optional {@link LocalDate} for the {@link ZonedDateTime}.
+     *         The optional {@link LocalDate} for the {@link Instant}.
      *
-     * @return A {@link ZonedDateTime} based on input parameters
+     * @return A {@link Instant} based on input parameters
      */
-    public static ZonedDateTime of(@Nullable LocalTime time, @Nullable LocalDate date) {
+    public static Instant of(@Nullable LocalTime time, @Nullable LocalDate date) {
 
         LocalTime effectiveTime = Optional.ofNullable(time).orElseGet(LocalTime::now);
         LocalDate effectiveDate = Optional.ofNullable(date).orElseGet(LocalDate::now);
-        return ZonedDateTime.of(effectiveDate, effectiveTime, ZoneId.systemDefault());
+        return ZonedDateTime.of(effectiveDate, effectiveTime, ZoneId.systemDefault()).toInstant();
     }
 
     /**
@@ -175,9 +176,9 @@ public final class DateTimeUtils {
      *
      * @return {@code true} if {@code one} is before or equal to {@code two}, {@code false} otherwise
      */
-    public static <D extends ChronoLocalDate> boolean isBeforeOrEquals(ChronoZonedDateTime<D> one, ChronoZonedDateTime<D> two) {
+    public static <D extends ChronoLocalDate> boolean isBeforeOrEquals(Instant one, Instant two) {
 
-        return one.isBefore(two) || one.isEqual(two);
+        return one.isBefore(two) || one.equals(two);
     }
 
     /**
@@ -192,9 +193,9 @@ public final class DateTimeUtils {
      *
      * @return {@code true} if {@code one} is after or equal to {@code two}, otherwise {@code false}
      */
-    public static <D extends ChronoLocalDate> boolean isAfterOrEquals(ChronoZonedDateTime<D> one, ChronoZonedDateTime<D> two) {
+    public static <D extends ChronoLocalDate> boolean isAfterOrEquals(Instant one, Instant two) {
 
-        return one.isAfter(two) || one.isEqual(two);
+        return one.isAfter(two) || one.equals(two);
     }
 
 

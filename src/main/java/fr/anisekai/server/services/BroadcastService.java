@@ -26,7 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -69,7 +69,7 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
     }
 
     @Transactional
-    public List<Broadcast> schedule(Anime anime, ZonedDateTime starting, BroadcastFrequency frequency, int amount) {
+    public List<Broadcast> schedule(Anime anime, Instant starting, BroadcastFrequency frequency, int amount) {
 
         int total = Math.abs(anime.getTotal());
 
@@ -80,7 +80,7 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
         if (frequency.hasDateModifier()) {
             List<Broadcast> scheduledBroadcasts = new ArrayList<>();
             int             schedulable         = total - anime.getWatched();
-            ZonedDateTime   spotTime            = starting;
+            Instant         spotTime            = starting;
 
             while (schedulable > 0) {
                 // Recreate scheduler with current state for accurate conflict detection
@@ -113,7 +113,7 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
     }
 
     @Transactional
-    public List<Broadcast> delay(ZonedDateTime from, Duration interval, Duration delay) {
+    public List<Broadcast> delay(Instant from, Duration interval, Duration delay) {
 
         Scheduler<Anime, Broadcast, Long> scheduler = this.createScheduler();
         SchedulingPlan<Long>              plan      = scheduler.delay(from, interval, delay);
