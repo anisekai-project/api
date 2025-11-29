@@ -69,7 +69,7 @@ public abstract class AnisekaiService<T extends Entity<PK>, PK extends Serializa
             return ctx.proxy;
         }
 
-        LOGGER.debug("Unproxied 'getRepository()' call in {}", this.getClass().getSimpleName());
+        LOGGER.trace("Unproxied 'getRepository()' call in {}", this.getClass().getSimpleName());
         return this.repository;
     }
 
