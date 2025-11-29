@@ -25,7 +25,7 @@ public class AnisekaiApplication {
         service.login(beanFactory);
     }
 
-    public static void main(String... args) {
+    static void main(String... args) {
 
         SpringApplication.run(AnisekaiApplication.class, args);
     }

@@ -20,6 +20,10 @@ import java.util.function.Supplier;
  *
  * @param <T>
  *         Type of the entity
+ * @param <PK>
+ *         Type of the primary key
+ * @param <R>
+ *         Type of the repository
  */
 public abstract class AnisekaiService<T extends Entity<PK>, PK extends Serializable, R extends AnisekaiRepository<T, PK>> {
 
@@ -215,7 +219,7 @@ public abstract class AnisekaiService<T extends Entity<PK>, PK extends Serializa
      */
     public void exclude(Function<R, Optional<T>> retriever, Supplier<WebException> exceptionSupplier) {
 
-        retriever.apply(this.getRepository()).ifPresent(item -> {
+        retriever.apply(this.getRepository()).ifPresent(_ -> {
             throw exceptionSupplier.get();
         });
     }
