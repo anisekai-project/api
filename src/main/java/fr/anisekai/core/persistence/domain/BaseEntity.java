@@ -24,13 +24,13 @@ public abstract class BaseEntity<PK extends Serializable> implements Entity<PK> 
     private ZonedDateTime updatedAt;
 
     @Override
-    public final ZonedDateTime getCreatedAt() {
+    public ZonedDateTime getCreatedAt() {
 
         return this.createdAt;
     }
 
     @Override
-    public final ZonedDateTime getUpdatedAt() {
+    public ZonedDateTime getUpdatedAt() {
 
         return this.updatedAt;
     }
