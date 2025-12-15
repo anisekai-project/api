@@ -1,14 +1,13 @@
 package fr.anisekai.discord.responses;
 
-import fr.alexpado.jda.interactions.responses.ButtonResponse;
-import fr.alexpado.jda.interactions.responses.SlashResponse;
+import fr.anisekai.discord.interfaces.MessageRequestResponse;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageRequest;
 
 import java.awt.*;
 import java.util.function.Consumer;
 
-public class DiscordResponse implements SlashResponse, ButtonResponse {
+public class DiscordResponse implements MessageRequestResponse {
 
     private final EmbedBuilder builder;
     private final boolean      edit;
@@ -82,21 +81,9 @@ public class DiscordResponse implements SlashResponse, ButtonResponse {
     }
 
     @Override
-    public boolean shouldEditOriginalMessage() {
-
-        return this.edit;
-    }
-
-    @Override
     public Consumer<MessageRequest<?>> getHandler() {
 
         return (amb) -> amb.setEmbeds(this.builder.build());
-    }
-
-    @Override
-    public boolean isEphemeral() {
-
-        return this.ephemeral;
     }
 
     public DiscordResponse setImage(String url) {

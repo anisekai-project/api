@@ -1,7 +1,6 @@
 package fr.anisekai.discord.responses.messages;
 
-import fr.alexpado.jda.interactions.responses.ButtonResponse;
-import fr.alexpado.jda.interactions.responses.SlashResponse;
+import fr.anisekai.discord.interfaces.MessageRequestResponse;
 import fr.anisekai.discord.responses.embeds.selections.SelectionAnimeEmbed;
 import fr.anisekai.discord.responses.embeds.selections.SelectionClosedEmbed;
 import fr.anisekai.discord.responses.embeds.selections.SelectionVoterEmbed;
@@ -21,7 +20,7 @@ import net.dv8tion.jda.api.utils.messages.MessageRequest;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class SelectionMessage implements SlashResponse, ButtonResponse {
+public class SelectionMessage implements MessageRequestResponse {
 
     private final Selection         selection;
     private final Collection<Voter> voters;
@@ -94,17 +93,6 @@ public class SelectionMessage implements SlashResponse, ButtonResponse {
                 mr.setComponents(ActionRow.partitionOf(allButtons));
             }
         };
-    }
-
-    /**
-     * Check if this {@link SlashResponse} is ephemeral (ie: Only shown to the user who interacted).
-     *
-     * @return True if ephemeral, false otherwise.
-     */
-    @Override
-    public boolean isEphemeral() {
-
-        return false;
     }
 
     private Button asButton(Anime anime) {

@@ -1,6 +1,6 @@
 package fr.anisekai.discord.responses.messages;
 
-import fr.alexpado.jda.interactions.responses.SlashResponse;
+import fr.anisekai.discord.interfaces.MessageRequestResponse;
 import fr.anisekai.discord.responses.embeds.ProfileEmbed;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
@@ -11,7 +11,7 @@ import net.dv8tion.jda.api.utils.messages.MessageRequest;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class ProfileMessage implements SlashResponse {
+public class ProfileMessage implements MessageRequestResponse {
 
     private final User           user;
     private final DiscordUser    discordUser;
@@ -44,17 +44,6 @@ public class ProfileMessage implements SlashResponse {
 
             mr.setEmbeds(profile.build());
         };
-    }
-
-    /**
-     * Check if this {@link SlashResponse} is ephemeral (ie: Only shown to the user who interacted).
-     *
-     * @return True if ephemeral, false otherwise.
-     */
-    @Override
-    public boolean isEphemeral() {
-
-        return false;
     }
 
 }

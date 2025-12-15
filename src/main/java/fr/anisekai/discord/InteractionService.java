@@ -1,142 +1,156 @@
 package fr.anisekai.discord;
 
-import fr.alexpado.jda.interactions.InteractionExtension;
-import fr.alexpado.jda.interactions.entities.DispatchEvent;
-import fr.alexpado.jda.interactions.interfaces.interactions.Injection;
-import fr.alexpado.jda.interactions.interfaces.interactions.autocomplete.AutoCompleteProvider;
-import fr.anisekai.Texts;
-import fr.anisekai.library.Library;
-import fr.anisekai.server.domain.entities.DiscordUser;
-import fr.anisekai.server.domain.enums.AnimeList;
-import fr.anisekai.server.enums.BroadcastFrequency;
-import fr.anisekai.server.services.AnimeService;
-import fr.anisekai.server.services.EpisodeService;
-import fr.anisekai.server.services.UserService;
-import fr.anisekai.utils.StringUtils;
-import net.dv8tion.jda.api.interactions.Interaction;
-import net.dv8tion.jda.api.interactions.commands.Command;
+import fr.alexpado.interactions.InteractionManager;
+import fr.alexpado.interactions.interfaces.routing.Interceptor;
+import fr.alexpado.interactions.providers.interactions.button.ButtonSchemeAdapter;
+import fr.alexpado.interactions.providers.interactions.slash.adapters.AutocompleteSchemeAdapter;
+import fr.alexpado.interactions.providers.interactions.slash.adapters.SlashSchemeAdapter;
+import fr.anisekai.ApplicationConfiguration;
+import fr.anisekai.BuildInfo;
+import fr.anisekai.discord.resolvers.ButtonInteractionResolver;
+import fr.anisekai.discord.resolvers.SlashInteractionResolver;
+import fr.anisekai.discord.responses.DiscordResponse;
+import fr.anisekai.discord.responses.DiscordResponseHandler;
+import fr.anisekai.utils.ReflectionUtils;
+import io.sentry.Sentry;
+import io.sentry.SentryLevel;
+import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.session.ReadyEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.CommandAutoCompleteInteraction;
+import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonInteraction;
+import net.dv8tion.jda.api.requests.GatewayIntent;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
+import java.util.Set;
 
 @Service
-public class InteractionService {
+public class InteractionService extends ListenerAdapter {
 
-    private final Library        library;
-    private final UserService    userService;
-    private final AnimeService   animeService;
-    private final EpisodeService episodeService;
+    private static final Logger LOGGER = LoggerFactory.getLogger(InteractionService.class);
 
-    public InteractionService(Library library, UserService userService, AnimeService animeService, EpisodeService episodeService) {
+    private final InteractionManager       manager;
+    private final ApplicationConfiguration configuration;
+    private final ListableBeanFactory      factory;
 
-        this.library        = library;
-        this.userService    = userService;
-        this.animeService   = animeService;
-        this.episodeService = episodeService;
+    private final SlashInteractionResolver slashResolver;
+
+    public InteractionService(
+            SlashInteractionResolver slashResolver,
+            ButtonInteractionResolver buttonResolver,
+            List<Interceptor> interceptors,
+            ApplicationConfiguration configuration,
+            ListableBeanFactory factory
+    ) {
+
+        this.factory = factory;
+        this.manager = new InteractionManager();
+
+        this.manager.getRouter().registerResolver(slashResolver);
+        this.manager.getRouter().registerResolver(buttonResolver);
+
+        this.manager.registerAdapter(SlashCommandInteraction.class, new SlashSchemeAdapter());
+        this.manager.registerAdapter(ButtonInteraction.class, new ButtonSchemeAdapter());
+        this.manager.registerAdapter(CommandAutoCompleteInteraction.class, new AutocompleteSchemeAdapter());
+
+        this.manager.setErrorHandler(new InteractionErrorHandler());
+        this.manager.getResponseManager().registerHandler(DiscordResponse.class, new DiscordResponseHandler());
+
+        LOGGER.info("Found {} interceptors.", interceptors.size());
+        interceptors.stream()
+                    .sorted(ReflectionUtils.compareOrder())
+                    .forEach(interceptor -> {
+                        LOGGER.debug(" -> Registering {} interceptor...", interceptor.getClass().getSimpleName());
+                        this.manager.getRouter().registerInterceptor(interceptor);
+                    });
+
+        this.configuration = configuration;
+        this.slashResolver = slashResolver;
     }
 
-    public void using(InteractionExtension extension, Map<String, AutoCompleteProvider> completionMap) {
+    private boolean canLogin(ApplicationConfiguration.Discord.Bot bot) {
 
-        extension.getSlashContainer().addClassMapping(DiscordUser.class, this.entityUserInterfaceMapper());
-        extension.getSlashContainer().addClassMapping(DiscordUser.class, this.entityUserMapper());
-        extension.getButtonContainer().addClassMapping(DiscordUser.class, this.entityUserInterfaceMapper());
-        extension.getButtonContainer().addClassMapping(DiscordUser.class, this.entityUserMapper());
+        if (!bot.isEnabled()) {
+            LOGGER.info("Ignoring discord bot startup: The bot has been disabled.");
+            return false;
+        }
 
-        completionMap.put("anime", this::animeCompletion);
-        completionMap.put("watchlist", this::watchlistCompletion);
-        completionMap.put("frequency", this::frequencyCompletion);
-        completionMap.put("importable:directories", this::importableDirectories);
-        completionMap.put("importable:files", this::importableFiles);
-        completionMap.put("episode", this::episodeCompletion);
+        if (bot.getToken().isBlank()) {
+            LOGGER.warn("Ignoring discord bot startup: The bot is enabled but no token was provided.");
+            return false;
+        }
+
+        return true;
     }
 
-    private <T extends Interaction> Injection<DispatchEvent<T>, DiscordUser> entityUserMapper() {
+    public void login() {
 
-        return (event, option) -> () -> this.userService.of(event.interaction().getUser());
+        ApplicationConfiguration.Discord     discord = this.configuration.getDiscord();
+        ApplicationConfiguration.Discord.Bot bot     = discord.getBot();
+
+        if (!this.canLogin(bot)) return;
+
+        JDABuilder builder = JDABuilder.create(bot.getToken(), GatewayIntent.getIntents(GatewayIntent.DEFAULT));
+
+        LOGGER.info("Registering JDA listeners...");
+        Arrays.stream(this.factory.getBeanNamesForType(ListenerAdapter.class))
+              .map(name -> this.factory.getBean(name, ListenerAdapter.class))
+              .forEach(listener -> {
+                  LOGGER.debug(" -> {}", listener.getClass().getSimpleName());
+                  builder.addEventListeners(listener);
+              });
+
+        try {
+            LOGGER.info("Starting up JDA...");
+            builder.build();
+        } catch (Exception e) {
+            LOGGER.error("Unable to start JDA", e);
+            Sentry.withScope(scope -> {
+                scope.setLevel(SentryLevel.FATAL);
+                Sentry.captureException(e);
+            });
+        }
     }
 
-    private <T extends Interaction> Injection<DispatchEvent<T>, DiscordUser> entityUserInterfaceMapper() {
+    @Override
+    public void onReady(ReadyEvent event) {
 
-        return (event, option) -> () -> this.userService.of(event.interaction().getUser());
+        LOGGER.info("Setting app version...");
+        event.getJDA().getPresence().setPresence(Activity.customStatus(BuildInfo.getVersion()), false);
+
+        LOGGER.info("Registering commands....");
+        Set<CommandData> commands = this.slashResolver.getJdaCommands();
+        event.getJDA().updateCommands().addCommands(commands).complete();
     }
 
-    private List<Command.Choice> animeCompletion(DispatchEvent<CommandAutoCompleteInteraction> event, String name, String completionName, String value) {
+    @Override
+    public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
 
-        return this.animeService
-                .getRepository()
-                .findAll()
-                .stream()
-                .filter(anime -> anime.getTitle().toLowerCase().contains(value.toLowerCase()))
-                .sorted()
-                .map(anime -> new Command.Choice(
-                        StringUtils.truncate(
-                                String.format(
-                                        "%s %s",
-                                        anime.getList().getIcon(),
-                                        anime.getTitle()
-                                ),
-                                100, 30
-                        ),
-                        anime.getId()
-                ))
-                .toList();
+        this.manager.processEvent(event.getInteraction());
     }
 
-    private List<Command.Choice> watchlistCompletion(DispatchEvent<CommandAutoCompleteInteraction> event, String name, String completionName, String value) {
+    @Override
+    public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
 
-        return Stream.of(AnimeList.values())
-                     .filter(list -> Texts.formatted(list).toLowerCase().contains(value.toLowerCase()))
-                     .map(list -> new Command.Choice(Texts.formatted(list), list.name()))
-                     .toList();
+        this.manager.processEvent(event.getInteraction());
     }
 
-    private List<Command.Choice> frequencyCompletion(DispatchEvent<CommandAutoCompleteInteraction> event, String name, String completionName, String value) {
+    @Override
+    public void onCommandAutoCompleteInteraction(@NotNull CommandAutoCompleteInteractionEvent event) {
 
-        return Stream.of(BroadcastFrequency.values())
-                     .filter(frequency -> frequency.getDisplayName().toLowerCase().contains(value.toLowerCase()))
-                     .map(frequency -> new Command.Choice(frequency.getDisplayName(), frequency.name()))
-                     .toList();
-    }
-
-    private List<Command.Choice> importableDirectories(DispatchEvent<CommandAutoCompleteInteraction> event, String name, String completionName, String value) {
-
-        return this.library.getImportableDirectories()
-                           .stream()
-                           .map(directory -> new Command.Choice(directory, directory))
-                           .toList();
-    }
-
-    private List<Command.Choice> importableFiles(DispatchEvent<CommandAutoCompleteInteraction> event, String name, String completionName, String value) {
-
-        return this.library.getImportableFiles()
-                           .stream()
-                           .map(directory -> new Command.Choice(directory, directory))
-                           .toList();
-    }
-
-    private List<Command.Choice> episodeCompletion(DispatchEvent<CommandAutoCompleteInteraction> event, String name, String completionName, String value) {
-
-        return this.episodeService.getAllReady()
-                                  .stream()
-                                  .filter(episode -> episode.getAnime()
-                                                            .getTitle()
-                                                            .toLowerCase()
-                                                            .contains(value.toLowerCase()))
-                                  .sorted()
-                                  .map(episode -> new Command.Choice(
-                                          StringUtils.truncate(
-                                                  String.format(
-                                                          "%s %s - Épisode %d",
-                                                          episode.getAnime().getList().getIcon(),
-                                                          episode.getAnime().getTitle(),
-                                                          episode.getNumber()
-                                                  ),
-                                                  100, 30
-                                          ), episode.getId()
-                                  )).toList();
+        this.manager.processEvent(event.getInteraction());
     }
 
 }

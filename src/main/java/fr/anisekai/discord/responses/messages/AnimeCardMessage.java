@@ -1,6 +1,6 @@
 package fr.anisekai.discord.responses.messages;
 
-import fr.alexpado.jda.interactions.responses.SlashResponse;
+import fr.anisekai.discord.interfaces.MessageRequestResponse;
 import fr.anisekai.discord.responses.embeds.AnimeCardEmbed;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.Interest;
@@ -14,11 +14,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.function.Consumer;
 
-public class AnimeCardMessage implements SlashResponse {
+public class AnimeCardMessage implements MessageRequestResponse {
 
     private final Anime                anime;
     private final Collection<Interest> interests;
     private final Role                 role;
+
+    public AnimeCardMessage(Anime anime) {
+
+        this(anime, Collections.emptyList(), null);
+    }
 
     public AnimeCardMessage(Anime anime, Collection<Interest> interests) {
 
@@ -59,17 +64,6 @@ public class AnimeCardMessage implements SlashResponse {
 
             mr.setEmbeds(animeCard.build());
         };
-    }
-
-    /**
-     * Check if this {@link SlashResponse} is ephemeral (ie: Only shown to the user who interacted).
-     *
-     * @return True if ephemeral, false otherwise.
-     */
-    @Override
-    public boolean isEphemeral() {
-
-        return this.role == null;
     }
 
     private String getButtonUrl(int level) {

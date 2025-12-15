@@ -1,8 +1,7 @@
 package fr.anisekai;
 
 import fr.anisekai.core.persistence.AnisekaiRepositoryImpl;
-import fr.anisekai.discord.DiscordService;
-import org.springframework.beans.factory.ListableBeanFactory;
+import fr.anisekai.discord.InteractionService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
@@ -20,9 +19,9 @@ public class AnisekaiApplication {
     @SuppressWarnings({"StaticNonFinalField", "CanBeFinal"})
     public static boolean enableDetailedOutput = false;
 
-    public AnisekaiApplication(ListableBeanFactory beanFactory, DiscordService service) {
+    public AnisekaiApplication(InteractionService service) {
 
-        service.login(beanFactory);
+        service.login();
     }
 
     static void main(String... args) {

@@ -34,6 +34,10 @@ public class AnimeCardEmbed extends EmbedBuilder {
 
     public void setInterests(Collection<Interest> interests) {
 
+        if (interests.isEmpty()) {
+            return;
+        }
+
         String positiveIcons = interests.stream()
                                         .filter(interest -> interest.getLevel() > 0)
                                         .map(Interest::getUser)
