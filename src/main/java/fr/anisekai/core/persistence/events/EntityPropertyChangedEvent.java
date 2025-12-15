@@ -2,8 +2,11 @@ package fr.anisekai.core.persistence.events;
 
 
 import fr.anisekai.core.persistence.domain.Entity;
+import org.jspecify.annotations.Nullable;
+import org.springframework.core.ResolvableType;
+import org.springframework.core.ResolvableTypeProvider;
 
-public class EntityPropertyChangedEvent<E extends Entity<?>, T> extends EntityEvent<E> {
+public class EntityPropertyChangedEvent<E extends Entity<?>, T> extends EntityEvent<E> implements ResolvableTypeProvider {
 
     private final T previous;
     private final T next;
@@ -23,6 +26,15 @@ public class EntityPropertyChangedEvent<E extends Entity<?>, T> extends EntityEv
     public T getCurrent() {
 
         return this.next;
+    }
+
+    @Override
+    public @Nullable ResolvableType getResolvableType() {
+
+        return ResolvableType.forClassWithGenerics(
+                this.getClass(),
+                ResolvableType.forInstance(this.getEntity())
+        );
     }
 
 }
