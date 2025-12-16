@@ -21,7 +21,6 @@ import fr.anisekai.server.planifier.BookedSpot;
 import fr.anisekai.server.repositories.BroadcastRepository;
 import net.dv8tion.jda.api.entities.ScheduledEvent;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,13 +40,11 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
             BroadcastStatus.UNSCHEDULED
     );
 
-    private final ApplicationEventPublisher publisher;
-    private final TaskService               taskService;
+    private final TaskService taskService;
 
-    public BroadcastService(BroadcastRepository repository, EntityEventProcessor eventProcessor, ApplicationEventPublisher publisher, TaskService taskService) {
+    public BroadcastService(BroadcastRepository repository, EntityEventProcessor eventProcessor, TaskService taskService) {
 
         super(repository, eventProcessor);
-        this.publisher   = publisher;
         this.taskService = taskService;
     }
 
@@ -86,7 +83,7 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
                 // Recreate scheduler with current state for accurate conflict detection
                 Scheduler<Anime, Broadcast, Long> loopScheduler = this.createScheduler();
                 int                               spotAmount    = Math.min(schedulable, amount);
-                BookedSpot<Anime> spot = new BookedSpot<>(
+                ScheduleSpotData<Anime> spot = new BookedSpot<>(
                         anime,
                         spotTime,
                         spotAmount
@@ -106,7 +103,7 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
             return scheduledBroadcasts;
         } else {
             Scheduler<Anime, Broadcast, Long> scheduler = this.createScheduler();
-            BookedSpot<Anime>                 spot      = new BookedSpot<>(anime, starting, amount);
+            ScheduleSpotData<Anime>           spot      = new BookedSpot<>(anime, starting, amount);
             SchedulingPlan<Long>              plan      = scheduler.schedule(spot);
             return this.applyPlan(plan);
         }

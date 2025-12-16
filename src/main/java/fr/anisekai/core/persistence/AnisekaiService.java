@@ -86,7 +86,7 @@ public abstract class AnisekaiService<T extends Entity<PK>, PK extends Serializa
      *
      * @return A {@link CloseableContext} to be used in a try-with-resources statement.
      */
-    public final CloseableContext withEventsSupport() {
+    public CloseableContext withEventsSupport() {
 
         ContextHolder<R> holder = this.proxiedRepositoryHolder.get();
 

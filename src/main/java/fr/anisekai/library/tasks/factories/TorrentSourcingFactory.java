@@ -1,12 +1,12 @@
 package fr.anisekai.library.tasks.factories;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
 import fr.anisekai.library.tasks.executors.TorrentSourcingTask;
 import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.enums.TaskPipeline;
 import fr.anisekai.server.services.*;
 import fr.anisekai.server.tasking.TaskBuilder;
 import fr.anisekai.server.tasking.TaskFactory;
-import fr.anisekai.core.internal.json.AnisekaiJson;
 import jakarta.annotation.PostConstruct;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;

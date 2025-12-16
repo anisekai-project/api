@@ -79,7 +79,7 @@ public final class Nyaa {
             String torrent = entry.getLink();
             String hash    = null;
 
-            for (Element tag : (Iterable<Element>) entry.getForeignMarkup()) {
+            for (Element tag : entry.getForeignMarkup()) {
                 if (tag.getName().equals("infoHash")) {
                     hash = tag.getText();
                 }

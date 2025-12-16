@@ -1,5 +1,6 @@
 package fr.anisekai.library.tasks.factories;
 
+import fr.anisekai.core.internal.json.AnisekaiJson;
 import fr.anisekai.library.Library;
 import fr.anisekai.library.tasks.executors.MediaImportTask;
 import fr.anisekai.library.tasks.executors.MediaUpdateTask;
@@ -11,7 +12,6 @@ import fr.anisekai.server.services.TaskService;
 import fr.anisekai.server.services.TrackService;
 import fr.anisekai.server.tasking.TaskBuilder;
 import fr.anisekai.server.tasking.TaskFactory;
-import fr.anisekai.core.internal.json.AnisekaiJson;
 import jakarta.annotation.PostConstruct;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;

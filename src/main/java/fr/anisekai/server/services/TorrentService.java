@@ -45,7 +45,7 @@ public class TorrentService extends AnisekaiService<Torrent, UUID, TorrentReposi
                                                           .filter(Transmission.TorrentStatus::isFinished)
                                                           .toList();
 
-        return this.getRepository().findByStatusInAndUpdatedAtLessThan(statuses, start);
+        return this.getRepository().findByStatusInAndUpdatedAtLessThan(statuses, start.toInstant());
     }
 
 }

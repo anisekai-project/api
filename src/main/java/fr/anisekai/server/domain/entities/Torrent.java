@@ -8,7 +8,6 @@ import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.*;
 import org.jetbrains.annotations.NotNull;
 
-import java.time.ZonedDateTime;
 import java.util.Objects;
 import java.util.Set;
 

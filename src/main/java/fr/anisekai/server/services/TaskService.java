@@ -79,7 +79,7 @@ public class TaskService extends AnisekaiService<Task, Long, TaskRepository> {
                 .stream()
                 .flatMap(Collection::stream)
                 .filter(factoryClass::isInstance)
-                .map(factory -> (T) factory)
+                .map(factoryClass::cast)
                 .findAny()
                 .orElseThrow(() -> new IllegalArgumentException("Tried to retrieve an unregistered factory " + factoryClass.getName()));
     }

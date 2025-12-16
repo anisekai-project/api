@@ -111,7 +111,7 @@ public class AuthenticationManager {
      * @throws BearerParsingException
      *         when the {@link UUID} or JWT could not be parsed.
      */
-    public UUID getJti(String jwt) {
+    public UUID getJti(CharSequence jwt) {
 
         String jti;
         try {

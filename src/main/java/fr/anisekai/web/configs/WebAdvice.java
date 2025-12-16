@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class WebAdvice {
 
-    private static final boolean DETAILS_ENABLED = false;
+    public static final boolean DETAILS_ENABLED = false;
 
     @ExceptionHandler(WebException.class)
     public ResponseEntity<?> handle(WebException ex) {
