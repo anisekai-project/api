@@ -1,15 +1,13 @@
 package fr.anisekai.server.services;
 
-import fr.anisekai.core.persistence.AnisekaiService;
-import fr.anisekai.core.persistence.EntityEventProcessor;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.entities.Selection;
 import fr.anisekai.server.domain.entities.Voter;
-import fr.anisekai.server.domain.keys.VoterKey;
 import fr.anisekai.server.exceptions.selection.SelectionAnimeNotFoundException;
 import fr.anisekai.server.exceptions.voter.VoterMaxReachedException;
 import fr.anisekai.server.repositories.VoterRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -17,13 +15,15 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class VoterService extends AnisekaiService<Voter, VoterKey, VoterRepository> {
+@Transactional
+public class VoterService {
 
-    private final UserService userService;
+    private final VoterRepository repository;
+    private final UserService     userService;
 
-    public VoterService(VoterRepository repository, EntityEventProcessor eventProcessor, UserService userService) {
+    public VoterService(VoterRepository repository, UserService userService) {
 
-        super(repository, eventProcessor);
+        this.repository = repository;
         this.userService = userService;
     }
 
@@ -33,11 +33,11 @@ public class VoterService extends AnisekaiService<Voter, VoterKey, VoterReposito
             throw new SelectionAnimeNotFoundException();
         }
 
-        Voter voter = this.require(repository -> repository.findBySelectionAndUser(selection, user));
+        Voter voter = this.repository.require(() -> this.repository.findBySelectionAndUser(selection, user));
 
         if (voter.getVotes().contains(anime)) {
             voter.getVotes().remove(anime);
-            this.getRepository().save(voter);
+            this.repository.save(voter);
             return;
         }
 
@@ -46,12 +46,12 @@ public class VoterService extends AnisekaiService<Voter, VoterKey, VoterReposito
         }
 
         voter.getVotes().add(anime);
-        this.getRepository().save(voter);
+        this.repository.save(voter);
     }
 
     public List<Voter> getVoters(Selection selection) {
 
-        return this.getRepository().findBySelection(selection);
+        return this.repository.findBySelection(selection);
     }
 
     public List<Voter> createVoters(Selection selection, long maxVote) {
@@ -82,7 +82,7 @@ public class VoterService extends AnisekaiService<Voter, VoterKey, VoterReposito
         voter.setAmount(amount);
         voter.setUser(user);
 
-        return this.getRepository().save(voter);
+        return this.repository.save(voter);
     }
 
 }

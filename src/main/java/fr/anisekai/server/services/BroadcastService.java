@@ -9,8 +9,6 @@ import fr.anisekai.core.internal.plannifier.interfaces.entities.Planifiable;
 import fr.anisekai.core.internal.plannifier.plan.SchedulingAction;
 import fr.anisekai.core.internal.plannifier.plan.SchedulingActionType;
 import fr.anisekai.core.internal.plannifier.plan.SchedulingPlan;
-import fr.anisekai.core.persistence.AnisekaiService;
-import fr.anisekai.core.persistence.EntityEventProcessor;
 import fr.anisekai.discord.tasks.broadcast.cancel.BroadcastCancelFactory;
 import fr.anisekai.discord.tasks.broadcast.schedule.BroadcastScheduleFactory;
 import fr.anisekai.server.domain.entities.Anime;
@@ -30,9 +28,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 @Service
-public class BroadcastService extends AnisekaiService<Broadcast, Long, BroadcastRepository> {
+public class BroadcastService {
 
     public final static List<BroadcastStatus> ACTIVE_STATUSES = Arrays.asList(
             BroadcastStatus.SCHEDULED,
@@ -40,27 +39,54 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
             BroadcastStatus.UNSCHEDULED
     );
 
-    private final TaskService taskService;
+    private final BroadcastRepository repository;
+    private final TaskService         taskService;
 
-    public BroadcastService(BroadcastRepository repository, EntityEventProcessor eventProcessor, TaskService taskService) {
+    public BroadcastService(BroadcastRepository repository, TaskService taskService) {
 
-        super(repository, eventProcessor);
+        this.repository = repository;
         this.taskService = taskService;
+    }
+
+    /**
+     * @deprecated Transition method, prefer declaring dedicated methods.
+     */
+    @Deprecated
+    public Broadcast mod(long id, Consumer<Broadcast> updater) {
+
+        return this.repository.mod(id, updater);
+    }
+
+    /**
+     * @param id
+     *         The entity identifier.
+     *
+     * @return The entity.
+     */
+    @Deprecated
+    public Broadcast requireById(long id) {
+
+        return this.repository.requireById(id);
+    }
+
+    public BroadcastRepository getRepository() {
+
+        return this.repository;
     }
 
     public boolean hasPreviousScheduled(ScheduleSpotData<Anime> broadcast) {
 
-        return this.getRepository()
-                   .countPreviousOf(
-                           broadcast.getWatchTarget().getId(),
-                           broadcast.getStartingAt(),
-                           ACTIVE_STATUSES
-                   ) > 0;
+        return this.repository
+                .countPreviousOf(
+                        broadcast.getWatchTarget().getId(),
+                        broadcast.getStartingAt(),
+                        ACTIVE_STATUSES
+                ) > 0;
     }
 
     private Scheduler<Anime, Broadcast, Long> createScheduler() {
 
-        List<Broadcast> items = this.getRepository().findAllByStatusIn(ACTIVE_STATUSES);
+        List<Broadcast> items = this.repository.findAllByStatusIn(ACTIVE_STATUSES);
 
         return new EventScheduler<>(items, Broadcast::getId);
     }
@@ -139,7 +165,7 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
 
     public int refresh() {
 
-        List<Broadcast> broadcasts = this.getRepository().findAllByStatus(BroadcastStatus.SCHEDULED);
+        List<Broadcast> broadcasts = this.repository.findAllByStatus(BroadcastStatus.SCHEDULED);
 
         for (Broadcast broadcast : broadcasts) {
             this.taskService.getFactory(BroadcastScheduleFactory.class).queue(broadcast);
@@ -150,7 +176,7 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
     @Transactional
     public int cancel() {
 
-        List<Broadcast> broadcasts = this.getRepository().findAllByStatus(BroadcastStatus.ACTIVE);
+        List<Broadcast> broadcasts = this.repository.findAllByStatus(BroadcastStatus.ACTIVE);
 
         for (Broadcast broadcast : broadcasts) {
             String taskName = this.taskService.getFactory(BroadcastCancelFactory.class).asTaskName(broadcast);
@@ -166,7 +192,7 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
                 this.taskService.getFactory(BroadcastCancelFactory.class).queue(broadcast);
             } else {
                 broadcast.setStatus(BroadcastStatus.CANCELED);
-                this.getRepository().save(broadcast);
+                this.repository.save(broadcast);
             }
         }
 
@@ -176,7 +202,7 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
     @Transactional
     public boolean cancel(ScheduledEvent event) {
 
-        Optional<Broadcast> optionalBroadcast = this.getRepository().findByEventId(event.getIdLong());
+        Optional<Broadcast> optionalBroadcast = this.repository.findByEventId(event.getIdLong());
 
         if (optionalBroadcast.isEmpty()) {
             return false;
@@ -191,7 +217,7 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
         }
 
         broadcast.setStatus(BroadcastStatus.CANCELED);
-        this.getRepository().save(broadcast);
+        this.repository.save(broadcast);
         return true;
     }
 
@@ -205,12 +231,12 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
         }
 
         broadcast.setStatus(BroadcastStatus.CANCELED);
-        return this.getRepository().save(broadcast);
+        return this.repository.save(broadcast);
     }
 
     public Optional<Broadcast> find(ScheduledEvent event) {
 
-        return this.getRepository().findByEventId(event.getIdLong());
+        return this.repository.findByEventId(event.getIdLong());
     }
 
 
@@ -222,16 +248,16 @@ public class BroadcastService extends AnisekaiService<Broadcast, Long, Broadcast
                 case SchedulingAction.CreateAction<Long> createAction -> {
                     if (createAction.data() instanceof Planifiable<?> planifiable && planifiable.getWatchTarget() instanceof Anime anime) {
                         Broadcast newBroadcast = createBroadcast(planifiable, anime);
-                        results.add(this.getRepository().save(newBroadcast));
+                        results.add(this.repository.save(newBroadcast));
                     }
                 }
                 case SchedulingAction.UpdateAction<Long> updateAction -> {
-                    Broadcast target = this.requireById(updateAction.targetId());
+                    Broadcast target = this.repository.requireById(updateAction.targetId());
                     updateAction.updateHook().accept(target);
-                    results.add(this.getRepository().save(target));
+                    results.add(this.repository.save(target));
                 }
                 case SchedulingAction.DeleteAction<Long> deleteAction -> {
-                    this.getRepository().deleteById(deleteAction.targetId());
+                    this.repository.deleteById(deleteAction.targetId());
                 }
             }
         }

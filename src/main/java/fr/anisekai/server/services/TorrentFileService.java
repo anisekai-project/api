@@ -1,7 +1,5 @@
 package fr.anisekai.server.services;
 
-import fr.anisekai.core.persistence.AnisekaiService;
-import fr.anisekai.core.persistence.EntityEventProcessor;
 import fr.anisekai.server.domain.entities.Episode;
 import fr.anisekai.server.domain.entities.Torrent;
 import fr.anisekai.server.domain.entities.TorrentFile;
@@ -11,23 +9,49 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 @Service
-public class TorrentFileService extends AnisekaiService<TorrentFile, TorrentKey, TorrentFileRepository> {
+public class TorrentFileService {
 
-    public TorrentFileService(TorrentFileRepository repository, EntityEventProcessor eventProcessor) {
+    private final TorrentFileRepository repository;
 
-        super(repository, eventProcessor);
+    public TorrentFileService(TorrentFileRepository repository) {
+
+        this.repository = repository;
+    }
+
+    /**
+     * @deprecated Transition method, prefer declaring dedicated methods.
+     */
+    @Deprecated
+    public TorrentFile mod(TorrentKey id, Consumer<TorrentFile> updater) {
+
+        return this.repository.mod(id, updater);
+    }
+
+    /**
+     * @return The entity.
+     */
+    @Deprecated
+    public TorrentFile requireById(TorrentKey id) {
+
+        return this.repository.requireById(id);
+    }
+
+    public TorrentFileRepository getRepository() {
+
+        return this.repository;
     }
 
     public List<TorrentFile> getFiles(Torrent torrent) {
 
-        return this.getRepository().findAllByTorrent(torrent);
+        return this.repository.findAllByTorrent(torrent);
     }
 
     public Optional<TorrentFile> getFile(Episode episode) {
 
-        return this.getRepository().findByEpisode(episode);
+        return this.repository.findByEpisode(episode);
     }
 
 }

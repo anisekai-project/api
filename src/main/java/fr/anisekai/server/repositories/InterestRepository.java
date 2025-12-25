@@ -1,6 +1,6 @@
 package fr.anisekai.server.repositories;
 
-import fr.anisekai.core.persistence.interfaces.AnisekaiRepository;
+import fr.anisekai.core.persistence.repository.AnisekaiRepository;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.entities.Interest;

@@ -12,7 +12,6 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.buttons.ButtonStyle;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.utils.messages.MessageRequest;
@@ -29,18 +28,6 @@ public class SelectionMessage implements MessageRequestResponse {
 
         this.selection = selection;
         this.voters    = voters;
-    }
-
-    /**
-     * Check if instead of sending a new message, the original {@link Message} on which the {@link Button} has been
-     * clicked should be edited.
-     *
-     * @return True if the original {@link Message} should be edited, false otherwise.
-     */
-    @Override
-    public boolean shouldEditOriginalMessage() {
-
-        return true;
     }
 
     /**

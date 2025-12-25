@@ -1,7 +1,7 @@
 package fr.anisekai.core.persistence.annotations;
 
 
-import fr.anisekai.core.persistence.events.EntityPropertyChangedEvent;
+import fr.anisekai.core.persistence.events.EntityUpdatedEvent;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -12,6 +12,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 public @interface TriggerEvent {
 
-    Class<? extends EntityPropertyChangedEvent<?, ?>> value();
+    Class<? extends EntityUpdatedEvent<?, ?>> value();
 
 }

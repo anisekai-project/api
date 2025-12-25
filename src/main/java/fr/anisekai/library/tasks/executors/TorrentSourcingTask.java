@@ -17,6 +17,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -116,30 +117,24 @@ public class TorrentSourcingTask implements TaskExecutor {
                     timer.endAction();
 
                     timer.action("saving-entities", "Saving entities to database");
-                    Torrent torrent = this.torrentService.create(
-                            Torrent::new,
-                            entity -> {
-                                entity.setHash(transmissionTorrent.hash());
-                                entity.setName(entry.title());
-                                entity.setStatus(transmissionTorrent.status());
-                                entity.setProgress(transmissionTorrent.percentDone());
-                                entity.setLink(entry.link());
-                                entity.setPriority(priority);
-                                entity.setDownloadDirectory(transmissionTorrent.downloadDir());
-                            }
-                    );
+                    Torrent torrent = this.createTorrent(entity -> {
+                        entity.setHash(transmissionTorrent.hash());
+                        entity.setName(entry.title());
+                        entity.setStatus(transmissionTorrent.status());
+                        entity.setProgress(transmissionTorrent.percentDone());
+                        entity.setLink(entry.link());
+                        entity.setPriority(priority);
+                        entity.setDownloadDirectory(transmissionTorrent.downloadDir());
+                    });
 
                     String file = transmissionTorrent.files().getFirst();
 
-                    this.torrentFileService.create(
-                            TorrentFile::new,
-                            entity -> {
-                                entity.setEpisode(episode);
-                                entity.setTorrent(torrent);
-                                entity.setIndex(0);
-                                entity.setName(file);
-                            }
-                    );
+                    this.createTorrentFile(entity -> {
+                        entity.setEpisode(episode);
+                        entity.setTorrent(torrent);
+                        entity.setIndex(0);
+                        entity.setName(file);
+                    });
 
                     timer.endAction();
                     break;
@@ -148,6 +143,20 @@ public class TorrentSourcingTask implements TaskExecutor {
             timer.endAction();
         }
         timer.endAction();
+    }
+
+    private Torrent createTorrent(Consumer<Torrent> consumer) {
+
+        Torrent torrent = new Torrent();
+        consumer.accept(torrent);
+        return this.torrentService.getRepository().save(torrent);
+    }
+
+    private TorrentFile createTorrentFile(Consumer<TorrentFile> consumer) {
+
+        TorrentFile file = new TorrentFile();
+        consumer.accept(file);
+        return this.torrentFileService.getRepository().save(file);
     }
 
 }

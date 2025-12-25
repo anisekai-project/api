@@ -6,12 +6,12 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.ResolvableTypeProvider;
 
-public class EntityPropertyChangedEvent<E extends Entity<?>, T> extends EntityEvent<E> implements ResolvableTypeProvider {
+public class EntityUpdatedEvent<E extends Entity<?>, T> extends EntityEvent<E> implements ResolvableTypeProvider {
 
     private final T previous;
     private final T next;
 
-    public EntityPropertyChangedEvent(Object source, E entity, T previous, T current) {
+    public EntityUpdatedEvent(Object source, E entity, T previous, T current) {
 
         super(source, entity);
         this.previous = previous;

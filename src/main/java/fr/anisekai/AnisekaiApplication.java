@@ -1,6 +1,6 @@
 package fr.anisekai;
 
-import fr.anisekai.core.persistence.AnisekaiRepositoryImpl;
+import fr.anisekai.core.persistence.repository.AnisekaiRepositoryImpl;
 import fr.anisekai.discord.InteractionService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

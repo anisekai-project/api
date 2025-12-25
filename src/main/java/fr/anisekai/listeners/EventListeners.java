@@ -1,7 +1,7 @@
 package fr.anisekai.listeners;
 
 import fr.anisekai.core.persistence.events.EntityCreatedEvent;
-import fr.anisekai.core.persistence.events.EntityPropertyChangedEvent;
+import fr.anisekai.core.persistence.events.EntityUpdatedEvent;
 import fr.anisekai.discord.tasks.anime.announcement.create.AnnouncementCreateFactory;
 import fr.anisekai.discord.tasks.anime.announcement.update.AnnouncementUpdateFactory;
 import fr.anisekai.discord.tasks.broadcast.schedule.BroadcastScheduleFactory;
@@ -76,7 +76,7 @@ public class EventListeners {
             AnimeTitleUpdatedEvent.class,
             AnimeTotalUpdatedEvent.class,
     })
-    public void onAnimeGenericUpdated(EntityPropertyChangedEvent<Anime, ?> event) {
+    public void onAnimeGenericUpdated(EntityUpdatedEvent<Anime, ?> event) {
 
         if (event.getEntity().getAnnouncementId() != null) {
             this.taskService.getFactory(AnnouncementUpdateFactory.class).queue(event.getEntity());
@@ -87,7 +87,7 @@ public class EventListeners {
             AnimeUrlUpdatedEvent.class,
             AnimeTitleUpdatedEvent.class
     })
-    public void onAnimeDataUpdated(EntityPropertyChangedEvent<Anime, ?> event) {
+    public void onAnimeDataUpdated(EntityUpdatedEvent<Anime, ?> event) {
 
         if (event.getEntity().getList().hasProperty(AnimeList.Property.SHOW)) {
             this.taskService.getFactory(WatchlistUpdateFactory.class).queue(event.getEntity().getList());
@@ -108,7 +108,7 @@ public class EventListeners {
     }
 
     @EventListener({AnimeTotalUpdatedEvent.class, AnimeWatchedUpdatedEvent.class})
-    public void onAnimeEpisodeValueUpdated(EntityPropertyChangedEvent<Anime, Integer> event) {
+    public void onAnimeEpisodeValueUpdated(EntityUpdatedEvent<Anime, Integer> event) {
 
         Anime   anime            = event.getEntity();
         boolean hasBeenFinished  = anime.getWatched() == anime.getTotal();
@@ -184,7 +184,7 @@ public class EventListeners {
             BroadcastStartingAtUpdatedEvent.class,
             BroadcastEpisodeCountUpdatedEvent.class,
     })
-    public void onBroadcastStateUpdated(EntityPropertyChangedEvent<Broadcast, ?> event) {
+    public void onBroadcastStateUpdated(EntityUpdatedEvent<Broadcast, ?> event) {
 
         if (event.getEntity().getStatus() == BroadcastStatus.SCHEDULED) {
             this.taskService.getFactory(BroadcastScheduleFactory.class).queue(event.getEntity());

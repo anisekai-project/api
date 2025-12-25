@@ -1,21 +1,50 @@
 package fr.anisekai.server.services;
 
-import fr.anisekai.core.persistence.AnisekaiService;
-import fr.anisekai.core.persistence.EntityEventProcessor;
 import fr.anisekai.server.domain.entities.Watchlist;
 import fr.anisekai.server.domain.enums.AnimeList;
 import fr.anisekai.server.repositories.WatchlistRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Consumer;
 
 @Service
-public class WatchlistService extends AnisekaiService<Watchlist, AnimeList, WatchlistRepository> {
+@Transactional
+public class WatchlistService {
 
-    public WatchlistService(WatchlistRepository repository, EntityEventProcessor eventProcessor) {
+    private final WatchlistRepository repository;
 
-        super(repository, eventProcessor);
+    public WatchlistService(WatchlistRepository repository) {
+
+        this.repository = repository;
+    }
+
+    public WatchlistRepository getRepository() {
+
+        return this.repository;
+    }
+
+    /**
+     * @deprecated Transition method, prefer declaring dedicated methods.
+     */
+    @Deprecated
+    public Watchlist mod(AnimeList id, Consumer<Watchlist> updater) {
+
+        return this.repository.mod(id, updater);
+    }
+
+    /**
+     * @param id
+     *         The entity identifier.
+     *
+     * @return The entity.
+     */
+    @Deprecated
+    public Watchlist requireById(AnimeList id) {
+
+        return this.repository.requireById(id);
     }
 
     /**
@@ -30,7 +59,7 @@ public class WatchlistService extends AnisekaiService<Watchlist, AnimeList, Watc
 
         Watchlist watchlist = new Watchlist();
         watchlist.setId(list);
-        return this.getRepository().save(watchlist);
+        return this.repository.save(watchlist);
     }
 
     /**
@@ -41,7 +70,7 @@ public class WatchlistService extends AnisekaiService<Watchlist, AnimeList, Watc
      */
     public List<Watchlist> create() {
 
-        List<Watchlist> all = this.getRepository().findAll();
+        List<Watchlist> all = this.repository.findAll();
 
         if (!all.isEmpty()) {
             throw new IllegalStateException("You cannot use create() when there are existing watchlists");
@@ -62,7 +91,7 @@ public class WatchlistService extends AnisekaiService<Watchlist, AnimeList, Watc
      */
     public List<Watchlist> reset() {
 
-        this.getRepository().deleteAll();
+        this.repository.deleteAll();
         return this.create();
     }
 

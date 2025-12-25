@@ -1,8 +1,6 @@
 package fr.anisekai.server.services;
 
 import fr.anisekai.core.internal.plannifier.interfaces.ScheduleSpotData;
-import fr.anisekai.core.persistence.AnisekaiService;
-import fr.anisekai.core.persistence.EntityEventProcessor;
 import fr.anisekai.core.persistence.UpsertResult;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
@@ -20,11 +18,39 @@ import java.util.List;
 import java.util.function.Consumer;
 
 @Service
-public class AnimeService extends AnisekaiService<Anime, Long, AnimeRepository> {
+public class AnimeService {
 
-    public AnimeService(AnimeRepository repository, EntityEventProcessor eventProcessor) {
+    private final AnimeRepository repository;
 
-        super(repository, eventProcessor);
+    public AnimeService(AnimeRepository repository) {
+
+        this.repository = repository;
+    }
+
+    public AnimeRepository getRepository() {
+
+        return this.repository;
+    }
+
+    /**
+     * @deprecated Transition method, prefer declaring dedicated methods.
+     */
+    @Deprecated
+    public Anime mod(long id, Consumer<Anime> updater) {
+
+        return this.repository.mod(id, updater);
+    }
+
+    /**
+     * @param id
+     *         The entity identifier.
+     *
+     * @return The entity.
+     */
+    @Deprecated
+    public Anime requireById(long id) {
+
+        return this.repository.requireById(id);
     }
 
     @Deprecated
@@ -49,9 +75,8 @@ public class AnimeService extends AnisekaiService<Anime, Long, AnimeRepository> 
         String    group           = source.getString("group");
         byte      order           = Byte.parseByte(source.getString("order"));
 
-
-        return this.upsert(
-                repo -> repo.findByUrl(link),
+        return this.repository.upsert(
+                () -> this.repository.findByUrl(link),
                 () -> {
                     Anime anime = new Anime();
                     anime.setAddedBy(sender);
@@ -74,12 +99,12 @@ public class AnimeService extends AnisekaiService<Anime, Long, AnimeRepository> 
 
     public List<Anime> getAnimesAddedBy(DiscordUser user) {
 
-        return this.getRepository().findByAddedBy(user);
+        return this.repository.findByAddedBy(user);
     }
 
     public List<Anime> getOfStatus(AnimeList status) {
 
-        return this.getRepository().findAllByList(status);
+        return this.repository.findAllByList(status);
     }
 
     public List<Anime> getSimulcastsAvailable() {
@@ -89,7 +114,7 @@ public class AnimeService extends AnisekaiService<Anime, Long, AnimeRepository> 
 
     public List<Anime> getAllDownloadable() {
 
-        return this.getRepository().findAllByTitleRegexIsNotNull();
+        return this.repository.findAllByTitleRegexIsNotNull();
     }
 
     @Transactional
@@ -99,9 +124,9 @@ public class AnimeService extends AnisekaiService<Anime, Long, AnimeRepository> 
             return Collections.emptyList();
         }
 
-        List<Anime> animes = this.getRepository().findAllById(ids);
+        List<Anime> animes = this.repository.findAllById(ids);
         animes.forEach(anime -> anime.setList(to));
-        return this.getRepository().saveAll(animes);
+        return this.repository.saveAll(animes);
     }
 
     @Transactional
@@ -109,7 +134,7 @@ public class AnimeService extends AnisekaiService<Anime, Long, AnimeRepository> 
 
         List<Anime> animes = this.getOfStatus(from);
         animes.forEach(anime -> anime.setList(to));
-        return this.getRepository().saveAll(animes);
+        return this.repository.saveAll(animes);
     }
 
     public Consumer<Anime> defineProgression(int progression) {

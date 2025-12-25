@@ -1,9 +1,9 @@
 package fr.anisekai.server.domain.events.voter;
 
-import fr.anisekai.core.persistence.events.EntityPropertyChangedEvent;
+import fr.anisekai.core.persistence.events.EntityUpdatedEvent;
 import fr.anisekai.server.domain.entities.DiscordUser;
 
-public class VoterAmountUpdatedEvent extends EntityPropertyChangedEvent<DiscordUser, Short> {
+public class VoterAmountUpdatedEvent extends EntityUpdatedEvent<DiscordUser, Short> {
 
     public VoterAmountUpdatedEvent(Object source, DiscordUser entity, Short previous, Short current) {
 
