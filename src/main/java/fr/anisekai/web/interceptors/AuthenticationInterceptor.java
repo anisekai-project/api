@@ -6,7 +6,8 @@ import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.web.AuthenticationManager;
 import fr.anisekai.web.annotations.RequireAuth;
 import fr.anisekai.web.enums.TokenType;
-import fr.anisekai.web.exceptions.auth.AuthorizationHeadersMissingException;
+import fr.anisekai.web.exceptions.auth.CookiesMissingException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jetbrains.annotations.NotNull;
@@ -88,15 +89,25 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             return true; // No @RequireAuth — allow
         }
 
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.toLowerCase().startsWith("bearer ")) {
-            LOGGER.trace("[{}] Denied access: No bearer provided", route);
-            throw new AuthorizationHeadersMissingException();
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            throw new CookiesMissingException();
         }
 
-        String       accessToken = authHeader.substring(7).trim();
-        UUID         uuid        = this.manager.getJti(accessToken);
-        SessionToken session     = this.manager.getAccessToken(uuid);
+        String accessToken = null;
+
+        for (Cookie cookie : cookies) {
+            if (cookie.getName().equals("anisekai-access-token")) {
+                accessToken = cookie.getValue();
+            }
+        }
+
+        if (accessToken == null) {
+            throw new CookiesMissingException();
+        }
+
+        UUID         uuid    = this.manager.getJti(accessToken);
+        SessionToken session = this.manager.getAccessToken(uuid);
 
         if (!rule.canAccess(session)) {
             LOGGER.info("[{}] ({}) Denied access: Rules mismatch.", route, session.getOwner().getId());

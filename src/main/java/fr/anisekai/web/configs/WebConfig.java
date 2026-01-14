@@ -51,10 +51,10 @@ public class WebConfig implements WebMvcConfigurer {
         LOGGER.info("CORS: Setting allowed hosts to {},{}", this.config.getWebUrl(), this.config.getAllowedHost());
 
         registry.addMapping("/**") // Allow all endpoints
-                .allowedOrigins("*")
+                .allowedOriginPatterns("http://localhost:*", "https://anisekai.fr")
                 .allowedMethods("GET", "POST", "PATCH", "DELETE") // GET, POST, etc.
                 .allowedHeaders("*")
-                .allowCredentials(false);
+                .allowCredentials(true);
     }
 
     @Override
