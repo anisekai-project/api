@@ -30,7 +30,7 @@ public class UserController {
 
         SessionToken token = this.manager.createApplicationToken(
                 session.getOwner(),
-                Instant.now().plus(1, ChronoUnit.MONTHS)
+                Instant.now().plus(30, ChronoUnit.DAYS)
         );
 
         return ResponseEntity.ok(new ApiKeyData(this.manager.stringify(token)));
