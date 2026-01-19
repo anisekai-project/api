@@ -1,7 +1,7 @@
 package fr.anisekai.discord.exceptions;
 
-import fr.alexpado.jda.interactions.interfaces.DiscordEmbeddable;
 import fr.anisekai.AnisekaiApplication;
+import fr.anisekai.discord.interfaces.DiscordEmbeddable;
 import net.dv8tion.jda.api.EmbedBuilder;
 import org.jetbrains.annotations.NotNull;
 
@@ -39,12 +39,6 @@ public abstract class SilentDiscordException extends RuntimeException implements
                 .setDescription(this.getDiscordMessage())
                 .setColor(Color.RED)
                 .setTimestamp(ZonedDateTime.now());
-    }
-
-    @Override
-    public boolean showToEveryone() {
-
-        return false;
     }
 
 }

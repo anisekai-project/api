@@ -2,7 +2,7 @@ package fr.anisekai.discord;
 
 import fr.alexpado.interactions.interfaces.handlers.ErrorHandler;
 import fr.alexpado.interactions.interfaces.routing.Request;
-import fr.alexpado.jda.interactions.interfaces.DiscordEmbeddable;
+import fr.anisekai.discord.interfaces.DiscordEmbeddable;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.Interaction;

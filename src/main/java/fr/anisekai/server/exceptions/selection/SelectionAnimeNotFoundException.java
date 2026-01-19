@@ -1,6 +1,6 @@
 package fr.anisekai.server.exceptions.selection;
 
-import fr.alexpado.jda.interactions.interfaces.DiscordEmbeddable;
+import fr.anisekai.discord.interfaces.DiscordEmbeddable;
 import net.dv8tion.jda.api.EmbedBuilder;
 
 import java.awt.*;
@@ -25,18 +25,6 @@ public class SelectionAnimeNotFoundException extends RuntimeException implements
     public EmbedBuilder asEmbed() {
 
         return new EmbedBuilder().setDescription("Cet anime ne fait pas parti de la sélection.").setColor(Color.RED);
-    }
-
-    /**
-     * In case this {@link DiscordEmbeddable} is an {@link Exception}, check if the message should be displayed to
-     * everyone. If {@code false}, the message will be ephemeral.
-     *
-     * @return True if public, false otherwise.
-     */
-    @Override
-    public boolean showToEveryone() {
-
-        return false;
     }
 
 }
