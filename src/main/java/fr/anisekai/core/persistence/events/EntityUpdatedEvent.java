@@ -31,9 +31,19 @@ public class EntityUpdatedEvent<E extends Entity<?>, T> extends EntityEvent<E> i
     @Override
     public @Nullable ResolvableType getResolvableType() {
 
+        Class<?> clazz = this.getClass();
+        if (clazz.getTypeParameters().length == 2) {
+            return ResolvableType.forClassWithGenerics(
+                    clazz,
+                    ResolvableType.forInstance(this.getEntity()),
+                    ResolvableType.forInstance(this.getPrevious() != null ? this.getPrevious() : this.getCurrent())
+            );
+        }
+        // Fallback to the base class structure for concrete subclasses
         return ResolvableType.forClassWithGenerics(
-                this.getClass(),
-                ResolvableType.forInstance(this.getEntity())
+                EntityUpdatedEvent.class,
+                ResolvableType.forInstance(this.getEntity()),
+                ResolvableType.forInstance(this.getPrevious() != null ? this.getPrevious() : this.getCurrent())
         );
     }
 
