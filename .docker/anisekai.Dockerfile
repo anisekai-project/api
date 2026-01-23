@@ -7,7 +7,7 @@ COPY gradle ./gradle
 RUN ./gradlew --no-daemon build || return 0
 COPY . .
 RUN ./gradlew clean build --no-daemon -x test
-RUN mv build/libs/*[!-plain].jar /app.jar
+RUN mv build/libs/service-!(*-javadoc|*-plain|*-sources).jar /app.jar
 
 
 FROM debian:bookworm-slim AS ffmpeg
