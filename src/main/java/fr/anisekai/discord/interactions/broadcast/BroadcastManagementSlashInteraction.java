@@ -4,7 +4,7 @@ import fr.alexpado.interactions.annotations.Slash;
 import fr.anisekai.core.internal.plannifier.data.CalibrationResult;
 import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.library.Library;
 import fr.anisekai.server.services.BroadcastService;
@@ -26,7 +26,7 @@ public class BroadcastManagementSlashInteraction {
             description = "\uD83D\uDD12 — Permet de lancer une calibration manuelle des séances."
     )
     @Deprecated
-    public MessageRequestResponse executeCalibrate() {
+    public InteractionResponse executeCalibrate() {
 
         CalibrationResult calibrate = this.service.calibrate();
         return DiscordResponse.success(
@@ -40,7 +40,7 @@ public class BroadcastManagementSlashInteraction {
             name = "broadcast/cancel",
             description = "\uD83D\uDD12 — Annule une séance de visionnage déjà en cours."
     )
-    public MessageRequestResponse executeCancel() {
+    public InteractionResponse executeCancel() {
 
         int amount = this.service.cancel();
 
@@ -56,7 +56,7 @@ public class BroadcastManagementSlashInteraction {
             name = "broadcast/refresh",
             description = "\uD83D\uDD12 — Annule une séance de visionnage déjà en cours."
     )
-    public MessageRequestResponse executeRefresh() {
+    public InteractionResponse executeRefresh() {
 
         int amount = this.service.refresh();
 

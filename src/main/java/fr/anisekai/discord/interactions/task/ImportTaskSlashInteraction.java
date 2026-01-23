@@ -9,7 +9,7 @@ import fr.anisekai.discord.annotations.RequireAdmin;
 import fr.anisekai.discord.completions.AnimeCompletion;
 import fr.anisekai.discord.completions.ImportableDirectoryCompletion;
 import fr.anisekai.discord.completions.ImportableFileCompletion;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.library.Library;
 import fr.anisekai.library.tasks.factories.MediaImportFactory;
@@ -79,7 +79,7 @@ public class ImportTaskSlashInteraction {
                     )
             }
     )
-    public MessageRequestResponse executeFile(DiscordUser user, @Param("anime") long animeId, @Param("file") String file, @Param("episode") long episodeNumber) {
+    public InteractionResponse executeFile(DiscordUser user, @Param("anime") long animeId, @Param("file") String file, @Param("episode") long episodeNumber) {
 
         Anime anime  = this.animeService.requireById(animeId);
         Path  source = this.library.getResolver(Library.IMPORTS).file(file);
@@ -130,7 +130,7 @@ public class ImportTaskSlashInteraction {
                     ),
             }
     )
-    public MessageRequestResponse executeDirectory(DiscordUser user, @Param("anime") long animeId, @Param("directory") String directory) throws IOException {
+    public InteractionResponse executeDirectory(DiscordUser user, @Param("anime") long animeId, @Param("directory") String directory) throws IOException {
 
         Anime anime  = this.animeService.requireById(animeId);
         Path  source = this.library.getResolver(Library.IMPORTS).directory(directory);

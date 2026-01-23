@@ -52,11 +52,11 @@ public class Library extends Sanctum {
         this.registerStore(IMPORTS, StorePolicy.PRIVATE);
     }
 
-    public Optional<IsolationSession> resolveIsolation(SessionToken sessionToken, String isolation) {
+    public Optional<IsolationSession> resolveIsolation(SessionToken sessionToken, UUID isolation) {
 
         if (!this.isolationMap.containsKey(sessionToken)) return Optional.empty();
         return this.isolationMap.get(sessionToken).stream()
-                                .filter(item -> item.name().equals(isolation))
+                                .filter(item -> item.uuid().equals(isolation))
                                 .findFirst();
     }
 

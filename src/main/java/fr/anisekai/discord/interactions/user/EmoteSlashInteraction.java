@@ -4,7 +4,7 @@ import fr.alexpado.interactions.annotations.Option;
 import fr.alexpado.interactions.annotations.Param;
 import fr.alexpado.interactions.annotations.Slash;
 import fr.anisekai.discord.annotations.DiscordBean;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.services.UserService;
@@ -32,7 +32,7 @@ public class EmoteSlashInteraction {
                     )
             }
     )
-    public MessageRequestResponse execute(DiscordUser user, @Param("emote") String emote) {
+    public InteractionResponse execute(DiscordUser user, @Param("emote") String emote) {
 
         if (!this.service.canUseEmote(user, emote)) {
             return DiscordResponse.error("L'emote choisie est déjà utilisée.");

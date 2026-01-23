@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 @Entity
+@Table(name = "session_token")
 public class SessionToken extends UuidEntity {
 
     @ManyToOne(optional = false)
@@ -18,10 +19,10 @@ public class SessionToken extends UuidEntity {
     @Enumerated(EnumType.STRING)
     private TokenType type;
 
-    @Column(nullable = false)
+    @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
-    @Column
+    @Column(name = "revoked_at")
     private Instant revokedAt;
 
     public DiscordUser getOwner() {

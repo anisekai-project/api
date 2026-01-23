@@ -7,7 +7,7 @@ import fr.alexpado.interactions.annotations.Slash;
 import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
 import fr.anisekai.discord.completions.AnimeCompletion;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.discord.responses.messages.AnimeCardMessage;
 import fr.anisekai.discord.tasks.anime.announcement.create.AnnouncementCreateFactory;
@@ -52,7 +52,7 @@ public class AnimeViewSlashInteraction {
                     )
             }
     )
-    public MessageRequestResponse executeCard(@Param("anime") long animeId) {
+    public InteractionResponse executeCard(@Param("anime") long animeId) {
 
         Anime anime = this.service.requireById(animeId);
         return new AnimeCardMessage(anime);
@@ -72,7 +72,7 @@ public class AnimeViewSlashInteraction {
             }
     )
     @RequireAdmin
-    public MessageRequestResponse executeAnnouncement(@Param("anime") long animeId) {
+    public InteractionResponse executeAnnouncement(@Param("anime") long animeId) {
 
         Anime anime = this.service.requireById(animeId);
         this.taskService.getFactory(AnnouncementCreateFactory.class).queue(anime, Task.PRIORITY_MANUAL_LOW);
@@ -104,7 +104,7 @@ public class AnimeViewSlashInteraction {
             }
     )
     @RequireAdmin
-    public MessageRequestResponse execute(@Param("anime") long animeId, @Param("image") Message.Attachment attachment) throws Exception {
+    public InteractionResponse execute(@Param("anime") long animeId, @Param("image") Message.Attachment attachment) throws Exception {
 
 
         if (!attachment.isImage() || !"webp".equals(attachment.getFileExtension())) {

@@ -5,7 +5,7 @@ import fr.alexpado.interactions.annotations.Param;
 import fr.alexpado.interactions.annotations.Slash;
 import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.server.services.SettingService;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -31,7 +31,7 @@ public class TorrentSettingSlashInteraction {
                     required = true
             )
     )
-    public MessageRequestResponse executeDownloadEnabled(@Param("state") boolean value) {
+    public InteractionResponse executeDownloadEnabled(@Param("state") boolean value) {
 
         this.service.setSetting(SettingService.DOWNLOAD_ENABLED, Boolean.toString(value));
         return DiscordResponse.info("Les téléchargements automatiques ont été %s.", value ? "activés" : "désactivés");
@@ -47,7 +47,7 @@ public class TorrentSettingSlashInteraction {
                     required = true
             )
     )
-    public MessageRequestResponse executeDownloadClient(@Param("url") String url) {
+    public InteractionResponse executeDownloadClient(@Param("url") String url) {
 
         // TODO: Try to create a transmission client with the provided url to check for connectivity.
         this.service.setSetting(SettingService.DOWNLOAD_SERVER, url);
@@ -64,7 +64,7 @@ public class TorrentSettingSlashInteraction {
                     required = true
             )
     )
-    public MessageRequestResponse executeDownloadSource(@Param("url") String url) {
+    public InteractionResponse executeDownloadSource(@Param("url") String url) {
 
         // TODO: Try to create an rss client to check for connectivity.
         this.service.setSetting(SettingService.DOWNLOAD_SOURCE, url);
@@ -82,7 +82,7 @@ public class TorrentSettingSlashInteraction {
                     minInt = 0
             )
     )
-    public MessageRequestResponse executeDownloadRetention(@Param("duration") long duration) {
+    public InteractionResponse executeDownloadRetention(@Param("duration") long duration) {
 
         this.service.setSetting(SettingService.DOWNLOAD_RETENTION, String.valueOf(duration));
 

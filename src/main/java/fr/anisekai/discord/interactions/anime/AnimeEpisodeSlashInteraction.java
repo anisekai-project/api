@@ -7,7 +7,7 @@ import fr.alexpado.interactions.annotations.Slash;
 import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
 import fr.anisekai.discord.completions.AnimeCompletion;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.services.AnimeService;
@@ -43,7 +43,7 @@ public class AnimeEpisodeSlashInteraction {
                     )
             }
     )
-    public MessageRequestResponse executeProgress(@Param("anime") long animeId, @Param("progress") long progress) {
+    public InteractionResponse executeProgress(@Param("anime") long animeId, @Param("progress") long progress) {
 
         Anime anime = this.service.mod(animeId, entity -> entity.setWatched((int) progress));
         return DiscordResponse.info(
@@ -72,7 +72,7 @@ public class AnimeEpisodeSlashInteraction {
                     )
             }
     )
-    public MessageRequestResponse executeTotal(@Param("anime") long animeId, @Param("total") long total) {
+    public InteractionResponse executeTotal(@Param("anime") long animeId, @Param("total") long total) {
 
         Anime anime = this.service.mod(animeId, entity -> entity.setTotal((int) total));
         return DiscordResponse.info(
@@ -102,7 +102,7 @@ public class AnimeEpisodeSlashInteraction {
                     )
             }
     )
-    public MessageRequestResponse executeDuration(@Param("anime") long animeId, @Param("duration") long duration) {
+    public InteractionResponse executeDuration(@Param("anime") long animeId, @Param("duration") long duration) {
 
         Anime anime = this.service.mod(animeId, entity -> entity.setEpisodeDuration((int) duration));
         return DiscordResponse.info(

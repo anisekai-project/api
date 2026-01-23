@@ -7,7 +7,7 @@ import fr.alexpado.interactions.annotations.Slash;
 import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
 import fr.anisekai.discord.completions.AnimeCompletion;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
@@ -51,7 +51,7 @@ public class AnimeRegexSlashInteraction {
                     )
             }
     )
-    public MessageRequestResponse registerRegex(DiscordUser user, @Param("anime") long animeId, @Param("regex") String regex) {
+    public InteractionResponse registerRegex(DiscordUser user, @Param("anime") long animeId, @Param("regex") String regex) {
 
         if (!regex.contains("(?<ep>\\d+)")) {
             return DiscordResponse.error(REGEX_MISSING_CAPTURE_GROUP);

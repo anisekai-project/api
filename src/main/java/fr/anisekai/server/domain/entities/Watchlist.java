@@ -7,21 +7,23 @@ import jakarta.persistence.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
 @Entity
+@Table(name = "watchlist")
 public class Watchlist extends BaseEntity<AnimeList> {
 
     @Id
     @Enumerated(EnumType.STRING)
     private AnimeList id;
 
-    @Column
+    @Column(name = "message_id")
     private Long messageId;
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "list")
-    private Set<Anime> animes;
+    private Set<Anime> animes = new LinkedHashSet<>();
 
     @Override
     public AnimeList getId() {

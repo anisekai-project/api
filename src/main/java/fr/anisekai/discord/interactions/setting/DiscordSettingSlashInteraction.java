@@ -5,7 +5,7 @@ import fr.alexpado.interactions.annotations.Param;
 import fr.alexpado.interactions.annotations.Slash;
 import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.server.services.SettingService;
 import net.dv8tion.jda.api.entities.Guild;
@@ -28,7 +28,7 @@ public class DiscordSettingSlashInteraction {
             name = "setting/discord/server",
             description = "\uD83D\uDD12 — Active ou désactive le téléchargement automatique des épisodes."
     )
-    public MessageRequestResponse executeDiscordServer(Guild guild) {
+    public InteractionResponse executeDiscordServer(Guild guild) {
 
         this.service.setSetting(SettingService.SERVER_ID, guild.getId());
         return DiscordResponse.info("Le serveur actif a bien été défini.");
@@ -44,7 +44,7 @@ public class DiscordSettingSlashInteraction {
                     required = true
             )
     )
-    public MessageRequestResponse executeDiscordAudit(@Param("channel") Channel channel) {
+    public InteractionResponse executeDiscordAudit(@Param("channel") Channel channel) {
 
         if (channel.getType() == ChannelType.TEXT) {
             this.service.setSetting(SettingService.AUDIT_CHANNEL, channel.getId());
@@ -67,7 +67,7 @@ public class DiscordSettingSlashInteraction {
                     required = true
             )
     )
-    public MessageRequestResponse executeDiscordWatchlist(@Param("channel") Channel channel) {
+    public InteractionResponse executeDiscordWatchlist(@Param("channel") Channel channel) {
 
         if (channel.getType() == ChannelType.TEXT) {
             this.service.setSetting(SettingService.WATCHLIST_CHANNEL, channel.getId());

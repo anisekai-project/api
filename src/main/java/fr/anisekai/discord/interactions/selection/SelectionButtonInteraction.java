@@ -3,7 +3,7 @@ package fr.anisekai.discord.interactions.selection;
 import fr.alexpado.interactions.annotations.Button;
 import fr.alexpado.interactions.annotations.Param;
 import fr.anisekai.discord.annotations.DiscordBean;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.messages.SelectionMessage;
 import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.entities.Selection;
@@ -26,8 +26,8 @@ public class SelectionButtonInteraction {
         this.voterService = voterService;
     }
 
-    @Button(name = "interest")
-    public MessageRequestResponse execute(DiscordUser user, @Param("selection") long selectionId) {
+    @Button(name = "selection/close")
+    public InteractionResponse execute(DiscordUser user, @Param("selection") long selectionId) {
 
         Selection selection = this.service.mod(
                 selectionId,

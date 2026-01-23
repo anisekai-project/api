@@ -5,7 +5,7 @@ import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
 import fr.anisekai.discord.completions.AnimeCompletion;
 import fr.anisekai.discord.completions.FrequencyCompletion;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.Broadcast;
@@ -71,7 +71,7 @@ public class BroadcastSchedulingSlashInteraction {
             }
     )
     @Deferrable
-    public MessageRequestResponse executeSchedule(@Param("anime") long animeId, @Param("frequency") String frequencyName, @Param("time") String timeParam, @Param("amount") Long amount, @Param("starting") String startingParam) {
+    public InteractionResponse executeSchedule(@Param("anime") long animeId, @Param("frequency") String frequencyName, @Param("time") String timeParam, @Param("amount") Long amount, @Param("starting") String startingParam) {
 
         Anime anime = this.animeService.requireById(animeId);
 
@@ -122,7 +122,7 @@ public class BroadcastSchedulingSlashInteraction {
             }
     )
     @Deferrable
-    public MessageRequestResponse executeDelay(@Param("delay") String delayParam, @Param("range") String rangeParam, @Param("starting") String startingParam) {
+    public InteractionResponse executeDelay(@Param("delay") String delayParam, @Param("range") String rangeParam, @Param("starting") String startingParam) {
 
         Instant starting = DateTimeUtils.of(startingParam, null);
         Duration range = Optional.ofNullable(rangeParam)

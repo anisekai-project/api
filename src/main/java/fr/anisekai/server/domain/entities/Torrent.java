@@ -8,10 +8,12 @@ import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.*;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
 @Entity
+@Table(name = "torrent")
 public class Torrent extends UuidEntity {
 
     @Column(unique = true, nullable = false, length = 40)
@@ -31,14 +33,14 @@ public class Torrent extends UuidEntity {
     @Column(nullable = false)
     private String link;
 
-    @Column(nullable = false)
+    @Column(name = "download_directory", nullable = false)
     private String downloadDirectory;
 
     @Column(nullable = false)
     private byte priority;
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "torrent")
-    private Set<TorrentFile> files;
+    private Set<TorrentFile> files = new LinkedHashSet<>();
 
     public String getHash() {
 

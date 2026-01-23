@@ -5,10 +5,7 @@ import fr.anisekai.core.persistence.domain.IncrementableEntity;
 import fr.anisekai.server.domain.enums.TaskStatus;
 import fr.anisekai.server.types.JSONType;
 import fr.anisekai.utils.EntityUtils;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.*;
 import org.hibernate.annotations.Type;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,6 +14,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 @Entity
+@Table(name = "task")
 public class Task extends IncrementableEntity {
 
     public static final byte PRIORITY_DEFAULT        = 0;
@@ -26,7 +24,7 @@ public class Task extends IncrementableEntity {
     public static final byte PRIORITY_MANUAL_HIGH    = 4;
     public static final byte PRIORITY_URGENT         = 5;
 
-    @Column(nullable = false)
+    @Column(name = "factory_name", nullable = false)
     private String factoryName;
 
     @Column(nullable = false)
@@ -42,13 +40,13 @@ public class Task extends IncrementableEntity {
     @Type(JSONType.class)
     private AnisekaiJson arguments;
 
-    @Column(nullable = false)
+    @Column(name = "failure_count", nullable = false)
     private byte failureCount;
 
-    @Column
+    @Column(name = "started_at")
     private Instant startedAt;
 
-    @Column
+    @Column(name = "completed_at")
     private Instant completedAt;
 
 

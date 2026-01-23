@@ -3,7 +3,7 @@ package fr.anisekai.discord.interactions.user;
 import fr.alexpado.interactions.annotations.Button;
 import fr.alexpado.interactions.annotations.Param;
 import fr.anisekai.discord.annotations.DiscordBean;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.messages.SelectionMessage;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
@@ -32,7 +32,7 @@ public class VoteButtonInteraction {
     }
 
     @Button(name = "vote")
-    public MessageRequestResponse execute(DiscordUser user, @Param("selection") long selectionId, @Param("anime") long animeId) {
+    public InteractionResponse execute(DiscordUser user, @Param("selection") long selectionId, @Param("anime") long animeId) {
 
         Selection selection = this.selectionService.requireById(selectionId);
         Anime     anime     = this.animeService.requireById(animeId);

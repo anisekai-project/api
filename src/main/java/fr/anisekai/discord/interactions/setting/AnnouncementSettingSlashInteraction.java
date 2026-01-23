@@ -5,7 +5,7 @@ import fr.alexpado.interactions.annotations.Param;
 import fr.alexpado.interactions.annotations.Slash;
 import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.server.services.SettingService;
 import net.dv8tion.jda.api.entities.Role;
@@ -34,7 +34,7 @@ public class AnnouncementSettingSlashInteraction {
                     required = true
             )
     )
-    public MessageRequestResponse executeAnnouncementEnabled(@Param("state") boolean value) {
+    public InteractionResponse executeAnnouncementEnabled(@Param("state") boolean value) {
 
         this.service.setSetting(SettingService.ANIME_AUTO_ANNOUNCE, Boolean.toString(value));
         return DiscordResponse.info("Les annonces automatiques ont été %s.", value ? "activés" : "désactivés");
@@ -50,7 +50,7 @@ public class AnnouncementSettingSlashInteraction {
                     required = true
             )
     )
-    public MessageRequestResponse settingAnnouncementChannel(@Param("channel") Channel channel) {
+    public InteractionResponse settingAnnouncementChannel(@Param("channel") Channel channel) {
 
         if (channel.getType() == ChannelType.TEXT) {
             this.service.setSetting(SettingService.ANNOUNCEMENT_CHANNEL, channel.getId());
@@ -70,7 +70,7 @@ public class AnnouncementSettingSlashInteraction {
                     required = true
             )
     )
-    public MessageRequestResponse settingAnnouncementRole(@Param("role") Role role) {
+    public InteractionResponse settingAnnouncementRole(@Param("role") Role role) {
 
         this.service.setSetting(SettingService.ANNOUNCEMENT_ROLE, role.getId());
         return DiscordResponse.info("Le role %s sera utilisé pour les annonces d'anime.", role.getAsMention());

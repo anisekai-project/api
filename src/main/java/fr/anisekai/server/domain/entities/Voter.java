@@ -9,9 +9,11 @@ import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.*;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
+@Table(name = "voter")
 @IdClass(VoterKey.class)
 public class Voter extends BaseEntity<VoterKey> {
 
@@ -29,7 +31,7 @@ public class Voter extends BaseEntity<VoterKey> {
 
     @OneToMany(fetch = FetchType.EAGER)
     @TriggerEvent(VoterVotesUpdatedEvent.class)
-    private Set<Anime> votes;
+    private Set<Anime> votes = new LinkedHashSet<>();
 
     @Override
     public VoterKey getId() {

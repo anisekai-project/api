@@ -1,6 +1,6 @@
 package fr.anisekai.discord.responses.messages;
 
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.embeds.ProfileEmbed;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
@@ -11,7 +11,7 @@ import net.dv8tion.jda.api.utils.messages.MessageRequest;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class ProfileMessage implements MessageRequestResponse {
+public class ProfileMessage implements InteractionResponse {
 
     private final User           user;
     private final DiscordUser    discordUser;

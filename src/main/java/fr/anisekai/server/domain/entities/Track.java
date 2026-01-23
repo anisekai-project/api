@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
 
 @Entity
+@Table(name = "track")
 public class Track extends IncrementableEntity {
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)

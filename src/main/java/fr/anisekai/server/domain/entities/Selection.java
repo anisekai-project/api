@@ -14,6 +14,7 @@ import java.util.Objects;
 import java.util.Set;
 
 @Entity
+@Table(name = "selection")
 public class Selection extends IncrementableEntity {
 
     @Column(nullable = false)
@@ -29,6 +30,11 @@ public class Selection extends IncrementableEntity {
     private SelectionStatus status;
 
     @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "selection_animes",
+            joinColumns = @JoinColumn(name = "selection_id"),
+            inverseJoinColumns = @JoinColumn(name = "animes_id")
+    )
     @TriggerEvent(SelectionAnimesUpdatedEvent.class)
     private Set<Anime> animes;
 

@@ -7,9 +7,9 @@ import fr.alexpado.interactions.providers.interactions.slash.adapters.Autocomple
 import fr.alexpado.interactions.providers.interactions.slash.adapters.SlashSchemeAdapter;
 import fr.anisekai.ApplicationConfiguration;
 import fr.anisekai.BuildInfo;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.resolvers.ButtonInteractionResolver;
 import fr.anisekai.discord.resolvers.SlashInteractionResolver;
-import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.discord.responses.DiscordResponseHandler;
 import fr.anisekai.utils.ReflectionUtils;
 import io.sentry.Sentry;
@@ -66,7 +66,7 @@ public class InteractionService extends ListenerAdapter {
         this.manager.registerAdapter(CommandAutoCompleteInteraction.class, new AutocompleteSchemeAdapter());
 
         this.manager.setErrorHandler(new InteractionErrorHandler());
-        this.manager.getResponseManager().registerHandler(DiscordResponse.class, new DiscordResponseHandler());
+        this.manager.getResponseManager().registerHandler(InteractionResponse.class, new DiscordResponseHandler());
 
         LOGGER.info("Found {} interceptors.", interceptors.size());
         interceptors.stream()

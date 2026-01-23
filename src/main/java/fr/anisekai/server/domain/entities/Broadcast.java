@@ -17,16 +17,18 @@ import java.time.Instant;
 import java.util.Objects;
 
 @Entity
+@Table(name = "broadcast")
 public class Broadcast extends IncrementableEntity implements Planifiable<Anime> {
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "watch_target_id")
     private Anime watchTarget;
 
-    @Column(nullable = false)
+    @Column(name = "starting_at", nullable = false)
     @TriggerEvent(BroadcastStartingAtUpdatedEvent.class)
     private Instant startingAt;
 
-    @Column
+    @Column(name = "event_id")
     private Long eventId;
 
     @Column(nullable = false)
@@ -34,15 +36,16 @@ public class Broadcast extends IncrementableEntity implements Planifiable<Anime>
     @TriggerEvent(BroadcastStatusUpdatedEvent.class)
     private BroadcastStatus status;
 
-    @Column(nullable = false)
+
+    @Column(name = "episode_count", nullable = false)
     @TriggerEvent(BroadcastEpisodeCountUpdatedEvent.class)
     private int episodeCount;
 
-    @Column(nullable = false)
+    @Column(name = "first_episode", nullable = false)
     @TriggerEvent(BroadcastFirstEpisodeUpdatedEvent.class)
     private int firstEpisode;
 
-    @Column(nullable = false)
+    @Column(name = "skip_enabled", nullable = false)
     private boolean skipEnabled;
 
     @Override

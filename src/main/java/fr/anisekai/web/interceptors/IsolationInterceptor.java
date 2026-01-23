@@ -15,6 +15,7 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class IsolationInterceptor implements HandlerInterceptor {
@@ -68,7 +69,20 @@ public class IsolationInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        Optional<IsolationSession> optionalIsolation = this.library.resolveIsolation(sessionToken, isolation);
+        UUID uuid;
+
+        try {
+            uuid = UUID.fromString(isolation);
+        } catch (Exception e) {
+            LOGGER.warn("[{}] Can't provide isolation context: Unable to parse isolation context id", route);
+            response.sendError(
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    "Unable to parse the isolation context id from headers"
+            );
+            return false;
+        }
+
+        Optional<IsolationSession> optionalIsolation = this.library.resolveIsolation(sessionToken, uuid);
 
         if (optionalIsolation.isEmpty()) {
             LOGGER.warn("[{}] Can't provide isolation context: No matching isolation", route);

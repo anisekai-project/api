@@ -4,7 +4,7 @@ import fr.alexpado.interactions.annotations.Option;
 import fr.alexpado.interactions.annotations.Param;
 import fr.alexpado.interactions.annotations.Slash;
 import fr.anisekai.discord.annotations.DiscordBean;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.messages.ProfileMessage;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
@@ -43,7 +43,7 @@ public class ProfileSlashInteraction {
                     )
             }
     )
-    public MessageRequestResponse execute(User sender, @Param("user") Member member) {
+    public InteractionResponse execute(User sender, @Param("user") Member member) {
 
         User           effectiveUser        = member == null ? sender : member.getUser();
         DiscordUser    effectiveDiscordUser = this.userService.of(effectiveUser);

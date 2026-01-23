@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Objects;
 
 @Entity
+@Table(name = "interest")
 @IdClass(InterestKey.class)
 public class Interest extends BaseEntity<InterestKey> {
 

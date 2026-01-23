@@ -1,6 +1,6 @@
 package fr.anisekai.discord.responses.messages;
 
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.ButtonResponse;
 import fr.anisekai.discord.responses.embeds.selections.SelectionAnimeEmbed;
 import fr.anisekai.discord.responses.embeds.selections.SelectionClosedEmbed;
 import fr.anisekai.discord.responses.embeds.selections.SelectionVoterEmbed;
@@ -19,7 +19,7 @@ import net.dv8tion.jda.api.utils.messages.MessageRequest;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class SelectionMessage implements MessageRequestResponse {
+public class SelectionMessage implements ButtonResponse {
 
     private final Selection         selection;
     private final Collection<Voter> voters;

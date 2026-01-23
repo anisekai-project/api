@@ -13,13 +13,11 @@ import jakarta.persistence.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
 @Entity
+@Table(name = "anime")
 public class Anime extends IncrementableEntity implements WatchTarget, ScopedEntity, Comparable<Anime> {
 
     @NotNull
@@ -49,11 +47,11 @@ public class Anime extends IncrementableEntity implements WatchTarget, ScopedEnt
     @Column
     @Convert(converter = StringListConverter.class)
     @TriggerEvent(AnimeTagsUpdatedEvent.class)
-    private List<String> tags;
+    private List<String> tags = new ArrayList<>();
 
     @Nullable
-    @Column
     @TriggerEvent(AnimeThumbnailUpdatedEvent.class)
+    @Column(name = "thumbnail_url")
     private String thumbnailUrl;
 
     @NotNull
@@ -62,7 +60,7 @@ public class Anime extends IncrementableEntity implements WatchTarget, ScopedEnt
     private String url;
 
     @Nullable
-    @Column
+    @Column(name = "title_regex")
     @Convert(converter = PatternConverter.class)
     private Pattern titleRegex;
 
@@ -74,24 +72,25 @@ public class Anime extends IncrementableEntity implements WatchTarget, ScopedEnt
     @TriggerEvent(AnimeTotalUpdatedEvent.class)
     private int total = 0;
 
-    @Column
+    @Column(name = "episode_duration")
     private int episodeDuration = 0;
 
     @NotNull
+    @JoinColumn(name = "added_by_id")
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     private DiscordUser addedBy;
 
     @Nullable
-    @Column
+    @Column(name = "anilist_id")
     private Long anilistId;
 
     @Nullable
-    @Column
+    @Column(name = "announcement_id")
     private Long announcementId;
 
     @NotNull
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "anime")
-    private Set<Episode> episodes;
+    private Set<Episode> episodes = new LinkedHashSet<>();
 
     public @NotNull String getGroup() {
 

@@ -5,7 +5,7 @@ import fr.alexpado.interactions.annotations.Param;
 import fr.alexpado.interactions.annotations.Slash;
 import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.library.tasks.factories.TorrentSourcingFactory;
 import fr.anisekai.server.services.SettingService;
@@ -36,7 +36,7 @@ public class DownloadTaskSlashInteraction {
                     type = OptionType.STRING
             )
     )
-    public MessageRequestResponse execute(@Param("url") String url) {
+    public InteractionResponse execute(@Param("url") String url) {
 
         Optional<String> optionalUserSource    = Optional.ofNullable(url);
         Optional<String> optionalDefaultSource = this.settingService.getDownloadSource();

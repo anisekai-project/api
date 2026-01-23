@@ -4,7 +4,7 @@ import net.dv8tion.jda.api.utils.messages.MessageRequest;
 
 import java.util.function.Consumer;
 
-public interface MessageRequestResponse {
+public interface InteractionResponse {
 
     /**
      * Retrieve the {@link MessageRequest} {@link Consumer} that should set the response content.

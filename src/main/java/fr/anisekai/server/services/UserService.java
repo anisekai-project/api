@@ -55,12 +55,6 @@ public class UserService {
 
     }
 
-    @Deprecated
-    public Optional<DiscordUser> getByApiKey(String apiKey) {
-
-        return this.repository.findByApiKey(apiKey);
-    }
-
     public boolean canUseEmote(DiscordUser requestingUser, String emote) {
 
         return this.repository.findAll()

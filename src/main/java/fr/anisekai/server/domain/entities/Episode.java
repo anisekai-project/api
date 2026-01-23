@@ -7,10 +7,12 @@ import jakarta.persistence.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
 @Entity
+@Table(name = "episode")
 public class Episode extends IncrementableEntity implements ScopedEntity, Comparable<Episode> {
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
@@ -23,7 +25,7 @@ public class Episode extends IncrementableEntity implements ScopedEntity, Compar
     private boolean ready = false;
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "episode")
-    private Set<Track> tracks;
+    private Set<Track> tracks = new LinkedHashSet<>();
 
     public @NotNull Anime getAnime() {
 

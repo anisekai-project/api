@@ -9,12 +9,14 @@ import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
-@Entity(name = "user")
+@Entity
+@Table(name = "user")
 public class DiscordUser extends BaseEntity<Long> {
 
     @Id
@@ -27,7 +29,7 @@ public class DiscordUser extends BaseEntity<Long> {
     @Column(nullable = false)
     private String nickname;
 
-    @Column
+    @Column(name = "avatar_url")
     private String avatarUrl;
 
     @Column
@@ -43,10 +45,6 @@ public class DiscordUser extends BaseEntity<Long> {
 
     @Column(nullable = false)
     private boolean guest = true;
-
-    @Column
-    @Deprecated
-    private String apiKey;
 
     @Override
     public Long getId() {
@@ -128,18 +126,6 @@ public class DiscordUser extends BaseEntity<Long> {
     public void setGuest(boolean guest) {
 
         this.guest = guest;
-    }
-
-    @Deprecated
-    public @Nullable String getApiKey() {
-
-        return this.apiKey;
-    }
-
-    @Deprecated
-    public void setApiKey(String apiKey) {
-
-        this.apiKey = apiKey;
     }
 
     @Override

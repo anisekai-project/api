@@ -16,11 +16,11 @@ import java.util.Objects;
 public abstract class BaseEntity<PK extends Serializable> implements Entity<PK> {
 
     @CreatedDate
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @LastModifiedDate
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
     @Override

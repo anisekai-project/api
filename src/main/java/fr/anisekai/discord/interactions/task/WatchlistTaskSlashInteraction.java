@@ -2,7 +2,7 @@ package fr.anisekai.discord.interactions.task;
 
 import fr.alexpado.interactions.annotations.Slash;
 import fr.anisekai.discord.annotations.DiscordBean;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.discord.tasks.watchlist.create.WatchlistCreateFactory;
 import fr.anisekai.server.domain.entities.Task;
@@ -33,7 +33,7 @@ public class WatchlistTaskSlashInteraction {
             name = "task/watchlist/reset",
             description = "\uD83D\uDD12 — Créé les watchlist dans le salon configuré."
     )
-    public MessageRequestResponse executeReset() {
+    public InteractionResponse executeReset() {
 
         if (this.settingService.getWatchlistChannel().isEmpty()) {
             return DiscordResponse.error("Le salon des watchlist n'a pas été configuré.");
@@ -49,7 +49,7 @@ public class WatchlistTaskSlashInteraction {
             name = "task/watchlist/refresh",
             description = "\uD83D\uDD12 — Force l'actualisation des listes."
     )
-    public MessageRequestResponse executeRefresh() {
+    public InteractionResponse executeRefresh() {
 
         List<Watchlist>       lists    = this.watchlistService.getRepository().findAll();
         Collection<AnimeList> statuses = AnimeList.collect(AnimeList.Property.SHOW);

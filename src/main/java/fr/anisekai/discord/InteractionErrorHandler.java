@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.*;
+import java.util.Optional;
 
 public class InteractionErrorHandler implements ErrorHandler {
 
@@ -48,8 +49,10 @@ public class InteractionErrorHandler implements ErrorHandler {
 
     private MessageEmbed getEmbedFor(Throwable throwable) {
 
-        if (throwable instanceof DiscordEmbeddable embeddable) {
-            return embeddable.asEmbed().build();
+        Optional<DiscordEmbeddable> optionalEmbeddable = this.findEmbeddable(throwable);
+
+        if (optionalEmbeddable.isPresent()) {
+            return optionalEmbeddable.get().asEmbed().build();
         }
 
         EmbedBuilder builder = new EmbedBuilder();
@@ -62,4 +65,18 @@ public class InteractionErrorHandler implements ErrorHandler {
         return builder.build();
     }
 
+    private Optional<DiscordEmbeddable> findEmbeddable(Throwable throwable) {
+
+        if (throwable instanceof DiscordEmbeddable embeddable) {
+            return Optional.of(embeddable);
+        }
+
+        Throwable cause = throwable.getCause();
+
+        if (cause != null) {
+            return this.findEmbeddable(cause);
+        }
+
+        return Optional.empty();
+    }
 }

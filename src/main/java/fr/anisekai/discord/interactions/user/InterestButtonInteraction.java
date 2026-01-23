@@ -3,7 +3,7 @@ package fr.anisekai.discord.interactions.user;
 import fr.alexpado.interactions.annotations.Button;
 import fr.alexpado.interactions.annotations.Param;
 import fr.anisekai.discord.annotations.DiscordBean;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
@@ -31,7 +31,7 @@ public class InterestButtonInteraction {
     }
 
     @Button(name = "interest")
-    public MessageRequestResponse execute(DiscordUser user, @Param("anime") long animeId, @Param("interest") long interest) {
+    public InteractionResponse execute(DiscordUser user, @Param("anime") long animeId, @Param("interest") long interest) {
 
         if (user.getEmote() == null) {
             return DiscordResponse.privateError(

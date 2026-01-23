@@ -9,7 +9,7 @@ import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
 import fr.anisekai.discord.completions.AnimeCompletion;
 import fr.anisekai.discord.completions.WatchlistCompletion;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.enums.AnimeList;
@@ -49,7 +49,7 @@ public class AnimeStatusSlashInteraction {
                     )
             }
     )
-    public MessageRequestResponse execute(@Param("anime") long animeId, @Param("watchlist") AnimeList status) {
+    public InteractionResponse execute(@Param("anime") long animeId, @Param("watchlist") AnimeList status) {
 
         Anime anime = this.service.mod(animeId, entity -> entity.setList(status));
         return DiscordResponse.info(
@@ -80,7 +80,7 @@ public class AnimeStatusSlashInteraction {
                     )
             }
     )
-    public MessageRequestResponse execute(@Param("source") AnimeList source, @Param("destination") AnimeList destination) {
+    public InteractionResponse execute(@Param("source") AnimeList source, @Param("destination") AnimeList destination) {
 
         List<Anime> animes = this.service.move(source, destination);
 

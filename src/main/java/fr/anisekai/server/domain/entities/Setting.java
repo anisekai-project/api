@@ -5,11 +5,13 @@ import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
 @Entity
+@Table(name = "setting")
 public class Setting extends BaseEntity<String> {
 
     @Id

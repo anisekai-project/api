@@ -6,7 +6,7 @@ import fr.alexpado.interactions.annotations.Param;
 import fr.alexpado.interactions.annotations.Slash;
 import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.messages.SelectionMessage;
 import fr.anisekai.server.domain.entities.Selection;
 import fr.anisekai.server.domain.entities.Voter;
@@ -43,7 +43,7 @@ public class SelectionSlashInteraction {
             }
     )
     @Deferrable
-    public MessageRequestResponse executeSchedule(@Param("votes") Long votesParam) {
+    public InteractionResponse executeSchedule(@Param("votes") Long votesParam) {
 
         long        votes     = Optional.ofNullable(votesParam).orElse(8L);
         Selection   selection = this.service.createSelection(votes);

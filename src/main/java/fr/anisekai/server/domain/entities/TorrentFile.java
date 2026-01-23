@@ -9,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Objects;
 
 @Entity
+@Table(name = "torrent_file")
 @IdClass(TorrentKey.class)
 public class TorrentFile extends BaseEntity<TorrentKey> {
 

@@ -1,13 +1,13 @@
 package fr.anisekai.discord.responses;
 
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.InteractionResponse;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageRequest;
 
 import java.awt.*;
 import java.util.function.Consumer;
 
-public class DiscordResponse implements MessageRequestResponse {
+public class DiscordResponse implements InteractionResponse {
 
     private final EmbedBuilder builder;
     private final boolean      edit;

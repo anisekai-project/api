@@ -1,6 +1,6 @@
 package fr.anisekai.discord.responses.messages;
 
-import fr.anisekai.discord.interfaces.MessageRequestResponse;
+import fr.anisekai.discord.interfaces.ButtonResponse;
 import fr.anisekai.discord.responses.embeds.AnimeCardEmbed;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.Interest;
@@ -14,7 +14,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.function.Consumer;
 
-public class AnimeCardMessage implements MessageRequestResponse {
+public class AnimeCardMessage implements ButtonResponse {
 
     private final Anime                anime;
     private final Collection<Interest> interests;
