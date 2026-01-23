@@ -2,12 +2,17 @@ FROM gradle:9-jdk25-alpine AS build
 
 WORKDIR /home/gradle/project
 
-COPY build.gradle settings.gradle gradlew* ./
+COPY gradlew gradlew.bat ./
 COPY gradle ./gradle
-RUN ./gradlew --no-daemon build || return 0
+COPY build.gradle settings.gradle ./
+RUN ./gradlew dependencies --no-daemon
 COPY . .
 RUN ./gradlew clean build --no-daemon -x test
-RUN mv build/libs/service-!(*-javadoc|*-plain|*-sources).jar /app.jar
+RUN find build/libs -name "service-*.jar" \
+      ! -name "*-javadoc.jar" \
+      ! -name "*-sources.jar" \
+      ! -name "*-plain.jar" \
+      -exec mv {} /app.jar \;
 
 
 FROM debian:bookworm-slim AS ffmpeg
