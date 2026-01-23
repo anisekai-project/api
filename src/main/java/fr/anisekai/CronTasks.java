@@ -2,7 +2,6 @@ package fr.anisekai;
 
 import fr.anisekai.core.internal.json.AnisekaiJson;
 import fr.anisekai.core.internal.sentry.NoopTimedAction;
-import fr.anisekai.discord.tasks.broadcast.cleaning.BroadcastCleaningFactory;
 import fr.anisekai.library.tasks.executors.TorrentSourcingTask;
 import fr.anisekai.library.tasks.factories.TorrentRetentionControlFactory;
 import fr.anisekai.library.tasks.factories.TorrentSourcingFactory;
@@ -33,9 +32,9 @@ public class CronTasks {
     @Scheduled(cron = "0 0 4 * * *")
     public void runCleaning() throws Exception {
 
-        this.service.getFactory(BroadcastCleaningFactory.class)
-                    .create()
-                    .execute(new NoopTimedAction(), new AnisekaiJson());
+//        this.service.getFactory(BroadcastCleaningFactory.class)
+//                    .create()
+//                    .execute(new NoopTimedAction(), new AnisekaiJson());
 
         this.service.getFactory(TorrentRetentionControlFactory.class)
                     .create()
