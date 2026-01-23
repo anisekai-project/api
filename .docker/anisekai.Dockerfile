@@ -1,4 +1,4 @@
-FROM gradle:9-jdk24-alpine AS build
+FROM gradle:9-jdk25-alpine AS build
 
 WORKDIR /home/gradle/project
 
@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y curl xz-utils && \
     mv ffmpeg-*-amd64-static /ffmpeg && \
     rm -rf /var/lib/apt/lists/* /tmp/*
 
-FROM openjdk:24-bookworm AS service
+FROM openjdk:25-ea-1-bookworm AS service
 LABEL authors="anisekai"
 
 WORKDIR /app
