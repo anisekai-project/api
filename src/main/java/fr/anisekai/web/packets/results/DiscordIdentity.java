@@ -14,7 +14,7 @@ public class DiscordIdentity {
 
         this.id            = Long.parseLong(json.getString("id"));
         this.username      = json.getString("username");
-        this.discriminator = json.getString("discriminator");
+        this.discriminator = json.optString("discriminator", null);
         this.globalName    = json.getString("global_name");
         this.avatar        = json.getString("avatar");
     }
@@ -42,6 +42,23 @@ public class DiscordIdentity {
     public String getAvatar() {
 
         return this.avatar;
+    }
+
+    public String getEffectiveAvatarUrl() {
+
+        if (this.avatar != null && !this.avatar.isEmpty()) {
+            String extension = this.avatar.startsWith("a_") ? "gif" : "png";
+            return String.format("https://cdn.discordapp.com/avatars/%d/%s.%s", this.id, this.avatar, extension);
+        }
+
+        long index;
+        if (this.discriminator == null) {
+            index = (this.id >> 22) % 6;
+        } else {
+            index = Long.parseLong(this.discriminator) % 5;
+        }
+
+        return String.format("https://cdn.discordapp.com/embed/avatars/%d.png", index);
     }
 
     @Override

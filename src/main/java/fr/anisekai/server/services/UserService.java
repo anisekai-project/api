@@ -48,7 +48,7 @@ public class UserService {
                 },
                 discordUser -> {
                     discordUser.setUsername(identity.getUsername());
-                    discordUser.setAvatarUrl(identity.getAvatar());
+                    discordUser.setAvatarUrl(identity.getEffectiveAvatarUrl());
                     discordUser.setNickname(identity.getUsername());
                 }
         ).entity();
