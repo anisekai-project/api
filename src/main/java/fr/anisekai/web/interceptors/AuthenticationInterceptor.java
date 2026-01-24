@@ -6,7 +6,9 @@ import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.web.AuthenticationManager;
 import fr.anisekai.web.annotations.RequireAuth;
 import fr.anisekai.web.enums.TokenType;
-import fr.anisekai.web.exceptions.auth.CookiesMissingException;
+import fr.anisekai.web.exceptions.auth.AuthenticationMissingException;
+import fr.anisekai.web.exceptions.auth.MalformedAuthorizationException;
+import fr.anisekai.web.exceptions.auth.RouteAccessDeniedException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,6 +22,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -74,6 +77,40 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         this.manager = manager;
     }
 
+    private Optional<String> getTokenFromCookie(HttpServletRequest request) {
+
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return Optional.empty();
+        }
+
+        String accessToken = null;
+
+        for (Cookie cookie : cookies) {
+            if (cookie.getName().equals("anisekai-access-token")) {
+                accessToken = cookie.getValue();
+            }
+        }
+
+        return Optional.ofNullable(accessToken);
+    }
+
+    private Optional<String> getTokenFromAuthorization(String route, HttpServletRequest request) {
+
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null) {
+            return Optional.empty();
+        }
+
+        if (!authHeader.toLowerCase().startsWith("bearer ")) {
+            LOGGER.trace("[{}] Denied access: Invalid authorization header.", route);
+            throw new MalformedAuthorizationException();
+        }
+
+        return Optional.of(authHeader.substring(7).trim());
+    }
+
     @Override
     public boolean preHandle(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull Object handler) throws Exception {
 
@@ -89,30 +126,17 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             return true; // No @RequireAuth — allow
         }
 
-        Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
-            throw new CookiesMissingException();
-        }
 
-        String accessToken = null;
-
-        for (Cookie cookie : cookies) {
-            if (cookie.getName().equals("anisekai-access-token")) {
-                accessToken = cookie.getValue();
-            }
-        }
-
-        if (accessToken == null) {
-            throw new CookiesMissingException();
-        }
+        String accessToken = this.getTokenFromCookie(request)
+                                 .or(() -> this.getTokenFromAuthorization(route, request))
+                                 .orElseThrow(AuthenticationMissingException::new);
 
         UUID         uuid    = this.manager.getJti(accessToken);
         SessionToken session = this.manager.getAccessToken(uuid);
 
         if (!rule.canAccess(session)) {
             LOGGER.info("[{}] ({}) Denied access: Rules mismatch.", route, session.getOwner().getId());
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
-            return false;
+            throw new RouteAccessDeniedException(route, session.getOwner());
         }
 
         // Optionally store session for later use

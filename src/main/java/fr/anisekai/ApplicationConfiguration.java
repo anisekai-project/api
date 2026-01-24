@@ -33,40 +33,7 @@ public class ApplicationConfiguration {
 
     public static class Api {
 
-        private String allowedHost;
-        private String webUrl;
-        private String baseUrl;
         private String signingKey;
-
-        public String getAllowedHost() {
-
-            return this.allowedHost;
-        }
-
-        public void setAllowedHost(String allowedHost) {
-
-            this.allowedHost = allowedHost;
-        }
-
-        public String getWebUrl() {
-
-            return this.webUrl;
-        }
-
-        public void setWebUrl(String webUrl) {
-
-            this.webUrl = webUrl;
-        }
-
-        public String getBaseUrl() {
-
-            return this.baseUrl;
-        }
-
-        public void setBaseUrl(String baseUrl) {
-
-            this.baseUrl = baseUrl;
-        }
 
         public String getSigningKey() {
 

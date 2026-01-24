@@ -48,11 +48,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(@NotNull CorsRegistry registry) {
 
-        LOGGER.info("CORS: Setting allowed hosts to {},{}", this.config.getWebUrl(), this.config.getAllowedHost());
-
-        registry.addMapping("/**") // Allow all endpoints
-                .allowedOriginPatterns("http://localhost:*", "https://anisekai.fr")
-                .allowedMethods("GET", "POST", "PATCH", "DELETE") // GET, POST, etc.
+        registry.addMapping("/**")
+                .allowedOriginPatterns("*")
+                .allowedMethods("GET", "POST", "PATCH", "DELETE", "PUT")
                 .allowedHeaders("*")
                 .allowCredentials(true);
     }

@@ -31,9 +31,6 @@ sentry:
 
 anisekai:
   api:
-    base-url:     ${API_URL}
-    web-url:      ${WEB_URL}
-    allowed-host: ${CORS_ALLOWED_HOST}
     signing-key:  ${JWT_SIGNING_KEY}
   library:
     path: ${LIBRARY_PATH:/app/data/library}
