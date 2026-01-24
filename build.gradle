@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.spring.dependencyManagement)
     alias(libs.plugins.catalogUpdater)
     alias(libs.plugins.reckon)
+    alias(libs.plugins.sentry)
 }
 
 group = 'fr.anisekai'
@@ -30,7 +31,6 @@ dependencies {
 
     testImplementation(libs.testing.springframework.test)
 
-    implementation(libs.stats.sentry.spring)
     implementation(libs.springdoc.openapi)
 
     implementation(libs.security.uuid)
@@ -61,4 +61,24 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+sentry {
+    includeSourceContext = true
+
+    org = 'anisekai'
+    projectName = 'service'
+    authToken = providers.gradleProperty('sentry.authToken')
+            .orElse(providers.environmentVariable('SENTRY_AUTH_TOKEN'))
+            .getOrNull()
+}
+
+// Thanks, Sentry (pls fix your plugin idk)
+tasks.named('sourcesJar') {
+    dependsOn('generateSentryDebugMetaPropertiesjava')
+    dependsOn('collectExternalDependenciesForSentry')
+}
+
+tasks.matching { it.name.contains("sentry") || it.name.contains("Sentry") }.configureEach {
+    mustRunAfter('generateJava')
 }

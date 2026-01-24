@@ -28,10 +28,13 @@ sentry:
   environment:              ${ENVIRONMENT}
   traces-sample-rate:       ${SENTRY_SERVICE_SAMPLE_RATE:0.1}
   exception-resolver-order: -2147483647
+  send-default-pii: true
+  logs:
+    enabled: true
 
 anisekai:
   api:
-    signing-key:  ${JWT_SIGNING_KEY}
+    signing-key: ${JWT_SIGNING_KEY}
   library:
     path: ${LIBRARY_PATH:/app/data/library}
   discord:
