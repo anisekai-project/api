@@ -1,7 +1,7 @@
 package fr.anisekai.server.domain.enums;
 
 /**
- * Represents the status of a scheduled task during its lifecycle.
+ * Represents the list of a scheduled task during its lifecycle.
  */
 public enum TaskStatus {
 

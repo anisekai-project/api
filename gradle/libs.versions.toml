@@ -1,6 +1,6 @@
 [versions]
 anisekai-ffmpeg = "1.0.0"
-anisekai-proxy = "1.0.0"
+anisekai-proxy = "1.2.1"
 anisekai-sanctum = "1.1.0"
 anisekai-wireless = "3.1.1"
 catalogUpdater = "1.0.1"
@@ -44,6 +44,8 @@ springframework-data-jpa = { module = "org.springframework.boot:spring-boot-star
 springframework-jdbc = { module = "org.springframework.boot:spring-boot-starter-jdbc" }
 springframework-web = { module = "org.springframework.boot:spring-boot-starter-web" }
 testing-springframework-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+testing-springframework-data-jpa-test = { module = "org.springframework.boot:spring-boot-data-jpa-test" }
+testing-h2 = { module = "com.h2database:h2" }
 util-http-client = { module = "fr.alexpado:simple-http-client", version.ref = "simple-http" }
 util-json = { module = "org.json:json", version.ref = "json" }
 util-jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
@@ -53,6 +55,6 @@ util-slugify = { module = "com.github.slugify:slugify", version.ref = "slugify" 
 [plugins]
 catalogUpdater = { id = "nl.littlerobots.version-catalog-update", version.ref = "catalogUpdater" }
 reckon = { id = "org.ajoberstar.reckon", version.ref = "reckon" }
+sentry = { id = "io.sentry.jvm.gradle", version.ref = "sentry" }
 spring-dependencyManagement = { id = "io.spring.dependency-management", version.ref = "springboot-dependency-management" }
 spring-framework = { id = "org.springframework.boot", version.ref = "springboot-framework" }
-sentry = { id = "io.sentry.jvm.gradle", version.ref = "sentry" }

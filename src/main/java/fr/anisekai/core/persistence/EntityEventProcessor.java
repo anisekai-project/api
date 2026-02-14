@@ -1,91 +1,129 @@
 package fr.anisekai.core.persistence;
 
+import fr.anisekai.core.persistence.annotations.TriggerEvent;
 import fr.anisekai.core.persistence.domain.Entity;
 import fr.anisekai.core.persistence.events.EntityCreatedEvent;
 import fr.anisekai.core.persistence.events.EntityDeletedEvent;
-import org.hibernate.event.spi.*;
-import org.hibernate.persister.entity.EntityPersister;
+import fr.anisekai.core.persistence.events.EntityModifiedEvent;
+import fr.anisekai.core.persistence.events.EntityUpdatedEvent;
+import fr.anisekai.proxy.reflection.Property;
+import fr.anisekai.utils.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Map;
+import java.util.Optional;
 
-@Component
-public class EntityEventProcessor implements PostInsertEventListener, PostUpdateEventListener, PostDeleteEventListener {
+@Service
+public class EntityEventProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EntityEventProcessor.class);
 
-    private final TriggerEventCache cache;
     private final ApplicationEventPublisher publisher;
 
-    public EntityEventProcessor(TriggerEventCache cache, ApplicationEventPublisher publisher) {
+    public EntityEventProcessor(ApplicationEventPublisher publisher) {
 
-        this.cache = cache;
         this.publisher = publisher;
     }
 
-    @Override
-    public void onPostInsert(PostInsertEvent event) {
+    public <T extends Entity<?>> void sendCreatedEvent(Object source, T entity) {
 
-        if (event.getEntity() instanceof Entity<?> entity) {
-            this.publisher.publishEvent(new EntityCreatedEvent<>(this, entity));
+        this.publisher.publishEvent(new EntityCreatedEvent<>(source, entity));
+    }
+
+    public <T extends Entity<?>> void sendDeletedEvent(Object source, T entity) {
+
+        this.publisher.publishEvent(new EntityDeletedEvent<>(source, entity));
+
+    }
+
+    public <T extends Entity<?>> void sendModifiedEvent(Object source, T entity, Map<Property, Object> originalState, Map<Property, Object> differentialState) {
+
+        if (differentialState.isEmpty()) {
+            return;
+        }
+
+        this.publisher.publishEvent(new EntityModifiedEvent<>(
+                source,
+                entity,
+                originalState,
+                differentialState
+        ));
+
+        for (Map.Entry<Property, Object> entry : differentialState.entrySet()) {
+            createEntryEvent(entry, source, entity).ifPresent(this.publisher::publishEvent);
         }
     }
 
-    @Override
-    public void onPostDelete(PostDeleteEvent event) {
+    @SuppressWarnings("unchecked")
+    private static <T extends Entity<?>> Optional<EntityUpdatedEvent<T, ?>> createEntryEvent(Map.Entry<Property, Object> entry, Object source, T instance) {
 
-        if (event.getEntity() instanceof Entity<?> entity) {
-            this.publisher.publishEvent(new EntityDeletedEvent<>(this, entity));
+        Property     property     = entry.getKey();
+        TriggerEvent triggerEvent = property.getField().getAnnotation(TriggerEvent.class);
+
+        if (triggerEvent == null) {
+            return Optional.empty();
         }
-    }
 
-    @Override
-    public void onPostUpdate(PostUpdateEvent event) {
-
-        Object entity = event.getEntity();
-
-        // Only process our base Entity types
-        if (!(entity instanceof Entity)) return;
-
-        EntityPersister persister       = event.getPersister();
-        String[]        propertyNames   = persister.getPropertyNames();
-        int[]           dirtyProperties = event.getDirtyProperties();
-        Object[]        oldState        = event.getOldState();
-        Object[]        newState        = event.getState();
-
-        // If no properties changed, or oldState is unavailable (detached entities sometimes), skip.
-        if (dirtyProperties == null || oldState == null) return;
-
-        for (int index : dirtyProperties) {
-            String propertyName = propertyNames[index];
-            Object oldValue     = oldState[index];
-            Object newValue     = newState[index];
-
-            this.processPropertyChange(entity, propertyName, oldValue, newValue);
-        }
-    }
-
-    private void processPropertyChange(Object entity, String propertyName, Object oldVal, Object newVal) {
-
-        Constructor<?> constructor = this.cache.getEventConstructor(entity.getClass(), propertyName);
-        if (constructor == null) return;
+        Object oldValue = entry.getValue();
+        Object currentValue;
 
         try {
-            // Arguments: Source (this), Entity, OldValue, NewValue
-            Object event = constructor.newInstance(this, entity, oldVal, newVal);
-            this.publisher.publishEvent(event);
-        } catch (Exception e) {
-            LOGGER.error("Unable to send EntityUpdatedEvent", e);
+            currentValue = property.getGetter().invoke(instance);
+        } catch (InvocationTargetException | IllegalAccessException e) {
+            LOGGER.warn(
+                    "Ignoring trigger event on property {}: Could not invoke getter.",
+                    property.getName(),
+                    e
+            );
+            return Optional.empty();
         }
-    }
 
-    @Override
-    public boolean requiresPostCommitHandling(EntityPersister persister) {
+        Class<? extends EntityUpdatedEvent<?, ?>> eventClass = triggerEvent.value();
 
-        return false; // We want to fire immediately after SQL update, inside the transaction
+        Optional<Constructor<? extends EntityUpdatedEvent<?, ?>>> optionalConstructor = ReflectionUtils
+                .findAdequateConstructor(
+                        eventClass,
+                        Object.class,
+                        instance.getClass(),
+                        oldValue.getClass(),
+                        currentValue.getClass()
+                );
+
+        if (optionalConstructor.isEmpty()) {
+            LOGGER.warn(
+                    "Ignoring trigger event on property {}: Could not find any constructor matching ({}, {}, {}, {}).",
+                    property.getName(),
+                    Object.class.getSimpleName(),
+                    instance.getClass().getSimpleName(),
+                    oldValue.getClass().getSimpleName(),
+                    currentValue.getClass().getSimpleName()
+            );
+            return Optional.empty();
+        }
+
+        Constructor<? extends EntityUpdatedEvent<?, ?>> constructor = optionalConstructor.get();
+        LOGGER.debug("Triggering event {}", eventClass);
+
+        try {
+            return Optional.of((EntityUpdatedEvent<T, ?>) constructor.newInstance(
+                    source,
+                    instance,
+                    oldValue,
+                    currentValue
+            ));
+        } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
+            LOGGER.warn(
+                    "Ignoring trigger event on property {}: Could not invoke constructor.",
+                    property.getName(),
+                    e
+            );
+            return Optional.empty();
+        }
     }
 
 }

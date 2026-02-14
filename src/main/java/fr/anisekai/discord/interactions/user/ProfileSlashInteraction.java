@@ -12,7 +12,6 @@ import fr.anisekai.server.domain.entities.Interest;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.InterestService;
 import fr.anisekai.server.services.UserService;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 
@@ -43,9 +42,9 @@ public class ProfileSlashInteraction {
                     )
             }
     )
-    public InteractionResponse execute(User sender, @Param("user") Member member) {
+    public InteractionResponse execute(User sender, @Param("user") User user) {
 
-        User           effectiveUser        = member == null ? sender : member.getUser();
+        User effectiveUser = user == null ? sender : user;
         DiscordUser    effectiveDiscordUser = this.userService.of(effectiveUser);
         List<Anime>    animes               = this.animeService.getRepository().findByAddedBy(effectiveDiscordUser);
         List<Interest> interests            = this.interestService.getInterests(effectiveDiscordUser);

@@ -10,9 +10,11 @@ import fr.anisekai.server.domain.enums.AnimeList;
 import fr.anisekai.server.domain.events.anime.*;
 import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.sql.Types;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -38,8 +40,9 @@ public class Anime extends IncrementableEntity implements WatchTarget, ScopedEnt
     @TriggerEvent(AnimeListUpdatedEvent.class)
     private AnimeList list;
 
+    @Lob
     @Nullable
-    @Column(columnDefinition = "TEXT")
+    @JdbcTypeCode(Types.LONGVARCHAR)
     @TriggerEvent(AnimeSynopsisUpdatedEvent.class)
     private String synopsis;
 
@@ -91,6 +94,15 @@ public class Anime extends IncrementableEntity implements WatchTarget, ScopedEnt
     @NotNull
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "anime")
     private Set<Episode> episodes = new LinkedHashSet<>();
+
+    public Anime() {
+
+    }
+
+    public Anime(@NotNull DiscordUser addedBy) {
+
+        this.addedBy = addedBy;
+    }
 
     public @NotNull String getGroup() {
 

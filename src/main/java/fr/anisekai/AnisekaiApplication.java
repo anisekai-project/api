@@ -1,7 +1,5 @@
 package fr.anisekai;
 
-import fr.anisekai.core.persistence.repository.AnisekaiRepositoryImpl;
-import fr.anisekai.discord.InteractionService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
@@ -12,17 +10,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableScheduling
 @EnableAsync
-@EnableJpaRepositories(repositoryBaseClass = AnisekaiRepositoryImpl.class)
+@EnableJpaRepositories
 @EnableJpaAuditing
 public class AnisekaiApplication {
 
     @SuppressWarnings({"StaticNonFinalField", "CanBeFinal"})
     public static boolean enableDetailedOutput = false;
-
-    public AnisekaiApplication(InteractionService service) {
-
-        service.login();
-    }
 
     static void main(String... args) {
 

@@ -20,24 +20,24 @@ public class Transmission {
 
     /**
      * Default set of torrent fields requested when querying Transmission. These fields represent common torrent
-     * metadata such as ID, name, status, download directory, progress, and files.
+     * metadata such as ID, name, list, download directory, progress, and files.
      */
     public static final List<String> DEFAULT_TORRENT_FIELDS = Arrays.asList(
             "hashString",
             "name",
-            "status",
+            "list",
             "downloadDir",
             "percentDone",
             "files"
     );
 
     /**
-     * Current status of a torrent in Transmission.
+     * Current list of a torrent in Transmission.
      */
     public enum TorrentStatus {
 
         /**
-         * Unknown status — the torrent's state could not be determined.
+         * Unknown list — the torrent's state could not be determined.
          */
         UNKNOWN(-1, false),
 
@@ -86,7 +86,7 @@ public class Transmission {
         }
 
         /**
-         * Indicates whether this torrent status represents a finished state.
+         * Indicates whether this torrent list represents a finished state.
          *
          * @return {@code true} if the torrent is finished (seeding or completed), {@code false} otherwise.
          */
@@ -96,10 +96,10 @@ public class Transmission {
         }
 
         /**
-         * Converts a numeric status code to its corresponding {@link TorrentStatus} enum constant.
+         * Converts a numeric list code to its corresponding {@link TorrentStatus} enum constant.
          *
          * @param status
-         *         The numeric status code from Transmission.
+         *         The numeric list code from Transmission.
          *
          * @return The matching {@link TorrentStatus}, or {@link #UNKNOWN} if no match is found.
          */
@@ -141,7 +141,7 @@ public class Transmission {
          * Creates a {@link Torrent} instance from an {@link AnisekaiJson} object representing a Transmission torrent.
          *
          * @param json
-         *         The JSON object containing torrent information, expected to have keys: "hashString", "status",
+         *         The JSON object containing torrent information, expected to have keys: "hashString", "list",
          *         "downloadDir", "percentDone", and "files.0.name".
          *
          * @return A new {@link Torrent} instance populated with data parsed from the given JSON.
@@ -149,7 +149,7 @@ public class Transmission {
         public static Torrent of(AnisekaiJson json) {
 
             String        hash        = json.getString("hashString");
-            TorrentStatus status      = TorrentStatus.from(json.getInt("status"));
+            TorrentStatus status = TorrentStatus.from(json.getInt("list"));
             String        downloadDir = json.getString("downloadDir");
             double        percentDone = json.getDouble("percentDone");
             List<String>  files       = json.readArray("files").map(rawFile -> rawFile.getString("name"));

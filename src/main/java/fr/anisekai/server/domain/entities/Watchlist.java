@@ -25,6 +25,15 @@ public class Watchlist extends BaseEntity<AnimeList> {
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "list")
     private Set<Anime> animes = new LinkedHashSet<>();
 
+    public Watchlist() {
+
+    }
+
+    public Watchlist(AnimeList id) {
+
+        this.id = id;
+    }
+
     @Override
     public AnimeList getId() {
 

@@ -1,9 +1,12 @@
 package fr.anisekai.server.services;
 
+import fr.anisekai.core.persistence.AnisekaiService;
+import fr.anisekai.core.persistence.EntityEventProcessor;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.entities.Selection;
 import fr.anisekai.server.domain.entities.Voter;
+import fr.anisekai.server.domain.keys.VoterKey;
 import fr.anisekai.server.exceptions.selection.SelectionAnimeNotFoundException;
 import fr.anisekai.server.exceptions.voter.VoterMaxReachedException;
 import fr.anisekai.server.repositories.VoterRepository;
@@ -16,14 +19,13 @@ import java.util.Map;
 
 @Service
 @Transactional
-public class VoterService {
+public class VoterService extends AnisekaiService<Voter, VoterKey, VoterRepository> {
 
-    private final VoterRepository repository;
-    private final UserService     userService;
+    private final UserService userService;
 
-    public VoterService(VoterRepository repository, UserService userService) {
+    public VoterService(VoterRepository repository, EntityEventProcessor eventProcessor, UserService userService) {
 
-        this.repository = repository;
+        super(repository, eventProcessor);
         this.userService = userService;
     }
 
@@ -33,11 +35,11 @@ public class VoterService {
             throw new SelectionAnimeNotFoundException();
         }
 
-        Voter voter = this.repository.require(() -> this.repository.findBySelectionAndUser(selection, user));
+        Voter voter = this.require(repository -> repository.findBySelectionAndUser(selection, user));
 
         if (voter.getVotes().contains(anime)) {
             voter.getVotes().remove(anime);
-            this.repository.save(voter);
+            this.getRepository().save(voter);
             return;
         }
 
@@ -46,12 +48,12 @@ public class VoterService {
         }
 
         voter.getVotes().add(anime);
-        this.repository.save(voter);
+        this.getRepository().save(voter);
     }
 
     public List<Voter> getVoters(Selection selection) {
 
-        return this.repository.findBySelection(selection);
+        return this.getRepository().findBySelection(selection);
     }
 
     public List<Voter> createVoters(Selection selection, long maxVote) {
@@ -82,7 +84,7 @@ public class VoterService {
         voter.setAmount(amount);
         voter.setUser(user);
 
-        return this.repository.save(voter);
+        return this.getRepository().save(voter);
     }
 
 }

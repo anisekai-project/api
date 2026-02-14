@@ -43,7 +43,7 @@ public class BroadcastCancelTask extends BroadcastTask {
         } else if (event.getStatus() == ScheduledEvent.Status.SCHEDULED) {
             event.getManager().setStatus(ScheduledEvent.Status.CANCELED).complete();
         } else {
-            throw new IllegalStateException("Could not update scheduled event with status " + event.getStatus());
+            throw new IllegalStateException("Could not update scheduled event with list " + event.getStatus());
         }
     }
 

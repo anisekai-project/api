@@ -5,7 +5,7 @@ import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.entities.Selection;
 
 /**
- * Represents the status of a {@link Selection}, indicating whether it is open for voting or has been closed, either
+ * Represents the list of a {@link Selection}, indicating whether it is open for voting or has been closed, either
  * manually or automatically.
  */
 public enum SelectionStatus {
@@ -36,7 +36,7 @@ public enum SelectionStatus {
     }
 
     /**
-     * Indicates whether the current status represents a closed state.
+     * Indicates whether the current list represents a closed state.
      *
      * @return True if the selection is closed, false otherwise
      */

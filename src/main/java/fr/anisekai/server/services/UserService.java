@@ -1,5 +1,7 @@
 package fr.anisekai.server.services;
 
+import fr.anisekai.core.persistence.AnisekaiService;
+import fr.anisekai.core.persistence.EntityEventProcessor;
 import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.repositories.UserRepository;
 import fr.anisekai.web.packets.results.DiscordIdentity;
@@ -11,19 +13,17 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Service
-public class UserService {
+public class UserService extends AnisekaiService<DiscordUser, Long, UserRepository> {
 
-    private final UserRepository repository;
+    public UserService(UserRepository repository, EntityEventProcessor eventProcessor) {
 
-    public UserService(UserRepository repository) {
-
-        this.repository = repository;
+        super(repository, eventProcessor);
     }
 
     public DiscordUser of(User user) {
 
-        return this.repository.upsert(
-                () -> this.repository.findById(user.getIdLong()),
+        return this.upsert(
+                repository -> repository.findById(user.getIdLong()),
                 () -> {
                     DiscordUser discordUser = new DiscordUser();
                     discordUser.setId(user.getIdLong());
@@ -39,8 +39,8 @@ public class UserService {
 
     public DiscordUser ensureUserExists(DiscordIdentity identity) {
 
-        return this.repository.upsert(
-                () -> this.repository.findById(identity.getId()),
+        return this.upsert(
+                repository -> this.getRepository().findById(identity.getId()),
                 () -> {
                     DiscordUser discordUser = new DiscordUser();
                     discordUser.setId(identity.getId());
@@ -57,27 +57,27 @@ public class UserService {
 
     public boolean canUseEmote(DiscordUser requestingUser, String emote) {
 
-        return this.repository.findAll()
-                              .stream()
-                              .filter(user -> !Objects.isNull(user.getEmote()))
-                              .filter(user -> !Objects.equals(user.getId(), requestingUser.getId()))
-                              .noneMatch(user -> user.getEmote().equals(emote));
+        return this.getRepository().findAll()
+                   .stream()
+                   .filter(user -> !Objects.isNull(user.getEmote()))
+                   .filter(user -> !Objects.equals(user.getId(), requestingUser.getId()))
+                   .noneMatch(user -> user.getEmote().equals(emote));
     }
 
     public DiscordUser useEmote(DiscordUser requestingUser, String emote) {
 
         requestingUser.setEmote(emote);
-        return this.repository.save(requestingUser);
+        return this.getRepository().save(requestingUser);
     }
 
     public List<DiscordUser> getActiveUsers() {
 
-        return this.repository.findAllByActiveIsTrue();
+        return this.getRepository().findAllByActiveIsTrue();
     }
 
     public Optional<DiscordUser> findFromIdentity(DiscordIdentity identity) {
 
-        return this.repository.findById(identity.getId());
+        return this.getRepository().findById(identity.getId());
     }
 
 }

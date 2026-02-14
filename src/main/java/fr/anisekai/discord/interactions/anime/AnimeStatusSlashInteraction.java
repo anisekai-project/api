@@ -30,7 +30,7 @@ public class AnimeStatusSlashInteraction {
     }
 
     @Slash(
-            name = "anime/status",
+            name = "anime/list",
             description = "\uD83D\uDD12 — Change à quelle watchlist appartient un anime.",
             options = {
                     @Option(
@@ -61,7 +61,7 @@ public class AnimeStatusSlashInteraction {
 
 
     @Slash(
-            name = "anime/bulk-status",
+            name = "anime/bulk-list",
             description = "\uD83D\uDD12 — Déplace tous les animes d'une liste à une autre.",
             options = {
                     @Option(

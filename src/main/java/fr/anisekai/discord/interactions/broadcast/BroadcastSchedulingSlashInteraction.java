@@ -86,7 +86,7 @@ public class BroadcastSchedulingSlashInteraction {
                 anime,
                 starting,
                 frequency,
-                Optional.of(amount).map(Long::intValue).orElse(1)
+                Optional.ofNullable(amount).map(Long::intValue).orElse(1)
         );
 
         return DiscordResponse.info(switch (scheduled.size()) {

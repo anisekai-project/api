@@ -2,7 +2,7 @@ package fr.anisekai.core.persistence.events;
 
 
 import fr.anisekai.core.persistence.domain.Entity;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.ResolvableTypeProvider;
 

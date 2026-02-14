@@ -1,11 +1,15 @@
 package fr.anisekai.server.services;
 
 import fr.anisekai.core.internal.plannifier.interfaces.ScheduleSpotData;
+import fr.anisekai.core.persistence.AnisekaiService;
+import fr.anisekai.core.persistence.EntityEventProcessor;
 import fr.anisekai.core.persistence.UpsertResult;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.enums.AnimeList;
+import fr.anisekai.server.exceptions.anime.AnimePermissionException;
 import fr.anisekai.server.repositories.AnimeRepository;
+import fr.anisekai.web.dto.AnimeRequestData;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
@@ -18,39 +22,47 @@ import java.util.List;
 import java.util.function.Consumer;
 
 @Service
-public class AnimeService {
+public class AnimeService extends AnisekaiService<Anime, Long, AnimeRepository> {
 
-    private final AnimeRepository repository;
+    public AnimeService(AnimeRepository repository, EntityEventProcessor eventProcessor) {
 
-    public AnimeService(AnimeRepository repository) {
-
-        this.repository = repository;
+        super(repository, eventProcessor);
     }
 
-    public AnimeRepository getRepository() {
+    private Consumer<Anime> applyRequestData(AnimeRequestData data) {
 
-        return this.repository;
+        return anime -> {
+            anime.setGroup(data.group());
+            anime.setOrder(data.order());
+            anime.setTitle(data.title());
+            anime.setList(data.list());
+            anime.setSynopsis(data.synopsis());
+            anime.setTags(data.tags());
+            anime.setThumbnailUrl(data.image());
+            anime.setUrl(data.link());
+            anime.setTotal(data.total());
+            anime.setEpisodeDuration(data.episodeDuration());
+        };
     }
 
-    /**
-     * @deprecated Transition method, prefer declaring dedicated methods.
-     */
-    @Deprecated
-    public Anime mod(long id, Consumer<Anime> updater) {
+    @Transactional
+    public Anime createAnime(DiscordUser sender, AnimeRequestData data) {
 
-        return this.repository.mod(id, updater);
+        this.forbid(repository -> repository.findByUrl(data.link()));
+        return this.create(() -> new Anime(sender), this.applyRequestData(data));
     }
 
-    /**
-     * @param id
-     *         The entity identifier.
-     *
-     * @return The entity.
-     */
-    @Deprecated
-    public Anime requireById(long id) {
+    @Transactional
+    public Anime updateAnime(DiscordUser sender, long id, AnimeRequestData data) {
 
-        return this.repository.requireById(id);
+        Anime anime = this.requireById(id);
+
+        if (!sender.isAdministrator()) {
+            throw new AnimePermissionException("You don't have the permission required to modify this anime.");
+        }
+
+        this.applyRequestData(data).accept(anime);
+        return this.getRepository().save(anime);
     }
 
     @Deprecated
@@ -75,13 +87,9 @@ public class AnimeService {
         String    group           = source.getString("group");
         byte      order           = Byte.parseByte(source.getString("order"));
 
-        return this.repository.upsert(
-                () -> this.repository.findByUrl(link),
-                () -> {
-                    Anime anime = new Anime();
-                    anime.setAddedBy(sender);
-                    return anime;
-                },
+        return this.upsert(
+                repository -> repository.findByUrl(link),
+                () -> new Anime(sender),
                 anime -> {
                     anime.setGroup(group);
                     anime.setOrder(order);
@@ -97,14 +105,9 @@ public class AnimeService {
         );
     }
 
-    public List<Anime> getAnimesAddedBy(DiscordUser user) {
-
-        return this.repository.findByAddedBy(user);
-    }
-
     public List<Anime> getOfStatus(AnimeList status) {
 
-        return this.repository.findAllByList(status);
+        return this.getRepository().findAllByList(status);
     }
 
     public List<Anime> getSimulcastsAvailable() {
@@ -114,7 +117,7 @@ public class AnimeService {
 
     public List<Anime> getAllDownloadable() {
 
-        return this.repository.findAllByTitleRegexIsNotNull();
+        return this.getRepository().findAllByTitleRegexIsNotNull();
     }
 
     @Transactional
@@ -124,9 +127,9 @@ public class AnimeService {
             return Collections.emptyList();
         }
 
-        List<Anime> animes = this.repository.findAllById(ids);
+        List<Anime> animes = this.getRepository().findAllById(ids);
         animes.forEach(anime -> anime.setList(to));
-        return this.repository.saveAll(animes);
+        return this.getRepository().saveAll(animes);
     }
 
     @Transactional
@@ -134,7 +137,7 @@ public class AnimeService {
 
         List<Anime> animes = this.getOfStatus(from);
         animes.forEach(anime -> anime.setList(to));
-        return this.repository.saveAll(animes);
+        return this.getRepository().saveAll(animes);
     }
 
     public Consumer<Anime> defineProgression(int progression) {

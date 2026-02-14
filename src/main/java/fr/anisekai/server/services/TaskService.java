@@ -3,6 +3,8 @@ package fr.anisekai.server.services;
 import fr.anisekai.core.annotations.FatalTask;
 import fr.anisekai.core.internal.json.exceptions.JSONValidationException;
 import fr.anisekai.core.internal.sentry.ITimedAction;
+import fr.anisekai.core.persistence.AnisekaiService;
+import fr.anisekai.core.persistence.EntityEventProcessor;
 import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.domain.enums.TaskStatus;
 import fr.anisekai.server.enums.TaskPipeline;
@@ -24,17 +26,16 @@ import java.time.Instant;
 import java.util.*;
 
 @Service
-public class TaskService {
+public class TaskService extends AnisekaiService<Task, Long, TaskRepository> {
 
     private final static Logger LOGGER           = LoggerFactory.getLogger(TaskService.class);
     private final static int    MAX_TASK_FAILURE = 3;
 
     private final Map<TaskPipeline, Collection<TaskFactory<?>>> factoryPipelines = new HashMap<>();
-    private final TaskRepository repository;
 
-    public TaskService(TaskRepository repository) {
+    public TaskService(TaskRepository repository, EntityEventProcessor eventProcessor) {
 
-        this.repository = repository;
+        super(repository, eventProcessor);
     }
 
     /**
@@ -91,11 +92,11 @@ public class TaskService {
      */
     public void cancel(String name) {
 
-        List<Task> tasks = this.repository.findAllByNameAndStatus(name, TaskStatus.SCHEDULED);
+        List<Task> tasks = this.getRepository().findAllByNameAndStatus(name, TaskStatus.SCHEDULED);
         for (Task task : tasks) {
             task.setStatus(TaskStatus.CANCELED);
         }
-        this.repository.saveAll(tasks);
+        this.getRepository().saveAll(tasks);
     }
 
     /**
@@ -108,7 +109,7 @@ public class TaskService {
      */
     public Optional<Task> find(String name) {
 
-        return this.repository.findByNameAndStatusIn(name, List.of(TaskStatus.SCHEDULED));
+        return this.getRepository().findByNameAndStatusIn(name, List.of(TaskStatus.SCHEDULED));
     }
 
     /**
@@ -167,14 +168,14 @@ public class TaskService {
                 );
 
                 task.setPriority(builder.getPriority());
-                return this.repository.save(task);
+                return this.getRepository().save(task);
             }
         }
 
         LOGGER.info("Queuing task '{}' with a priority of {}.", builder.getName(), builder.getPriority());
         LOGGER.debug(" :: Arguments = {}", builder.getArgs());
 
-        return this.repository.save(builder.build());
+        return this.getRepository().save(builder.build());
     }
 
     @Scheduled(cron = "0 * * * * *")
@@ -198,14 +199,14 @@ public class TaskService {
     @PostConstruct
     private void controlData() {
 
-        List<Task> tasks = this.repository.findAllByStatus(TaskStatus.EXECUTING);
+        List<Task> tasks = this.getRepository().findAllByStatus(TaskStatus.EXECUTING);
 
         for (Task task : tasks) {
             LOGGER.warn("Task {} was still running when the application stopped.", task.getId());
             task.setStatus(TaskStatus.SCHEDULED);
         }
 
-        this.repository.saveAll(tasks);
+        this.getRepository().saveAll(tasks);
     }
 
     /**
@@ -229,7 +230,7 @@ public class TaskService {
 
         Collection<String> factoryNames = factories.stream().map(TaskFactory::getName).toList();
 
-        return this.repository.findNextOf(TaskStatus.SCHEDULED, factoryNames);
+        return this.getRepository().findNextOf(TaskStatus.SCHEDULED, factoryNames);
     }
 
     /**
@@ -312,7 +313,7 @@ public class TaskService {
             timer.endAction();
         }
 
-        this.repository.save(task);
+        this.getRepository().save(task);
     }
 
     private void flagExecuting(Task entity) {

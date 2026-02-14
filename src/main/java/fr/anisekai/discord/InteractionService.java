@@ -7,6 +7,7 @@ import fr.alexpado.interactions.providers.interactions.slash.adapters.Autocomple
 import fr.alexpado.interactions.providers.interactions.slash.adapters.SlashSchemeAdapter;
 import fr.anisekai.ApplicationConfiguration;
 import fr.anisekai.BuildInfo;
+import fr.anisekai.core.persistence.EventContextRegistry;
 import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.resolvers.ButtonInteractionResolver;
 import fr.anisekai.discord.resolvers.SlashInteractionResolver;
@@ -14,6 +15,7 @@ import fr.anisekai.discord.responses.DiscordResponseHandler;
 import fr.anisekai.utils.ReflectionUtils;
 import io.sentry.Sentry;
 import io.sentry.SentryLevel;
+import jakarta.annotation.Priority;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
@@ -30,6 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.core.Ordered;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -44,6 +47,7 @@ public class InteractionService extends ListenerAdapter {
     private final InteractionManager       manager;
     private final ApplicationConfiguration configuration;
     private final ListableBeanFactory      factory;
+    private final EventContextRegistry eventContextRegistry;
 
     private final SlashInteractionResolver slashResolver;
 
@@ -52,11 +56,13 @@ public class InteractionService extends ListenerAdapter {
             ButtonInteractionResolver buttonResolver,
             List<Interceptor> interceptors,
             ApplicationConfiguration configuration,
-            ListableBeanFactory factory
+            ListableBeanFactory factory,
+            EventContextRegistry eventContextRegistry
     ) {
 
-        this.factory = factory;
-        this.manager = new InteractionManager();
+        this.factory              = factory;
+        this.eventContextRegistry = eventContextRegistry;
+        this.manager              = new InteractionManager();
 
         this.manager.getRouter().registerResolver(slashResolver);
         this.manager.getRouter().registerResolver(buttonResolver);
@@ -95,6 +101,7 @@ public class InteractionService extends ListenerAdapter {
         return true;
     }
 
+    @Priority(Ordered.LOWEST_PRECEDENCE)
     public void login() {
 
         ApplicationConfiguration.Discord     discord = this.configuration.getDiscord();
@@ -138,19 +145,25 @@ public class InteractionService extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
 
-        this.manager.processEvent(event.getInteraction());
+        this.eventContextRegistry.withEventContext(() -> {
+            this.manager.processEvent(event.getInteraction());
+        });
     }
 
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
 
-        this.manager.processEvent(event.getInteraction());
+        this.eventContextRegistry.withEventContext(() -> {
+            this.manager.processEvent(event.getInteraction());
+        });
     }
 
     @Override
     public void onCommandAutoCompleteInteraction(@NotNull CommandAutoCompleteInteractionEvent event) {
 
-        this.manager.processEvent(event.getInteraction());
+        this.eventContextRegistry.withEventContext(() -> {
+            this.manager.processEvent(event.getInteraction());
+        });
     }
 
 }

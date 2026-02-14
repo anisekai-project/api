@@ -1,5 +1,7 @@
 package fr.anisekai.server.services;
 
+import fr.anisekai.core.persistence.AnisekaiService;
+import fr.anisekai.core.persistence.EntityEventProcessor;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.entities.Interest;
@@ -11,36 +13,34 @@ import java.util.Collection;
 import java.util.List;
 
 @Service
-public class InterestService {
+public class InterestService extends AnisekaiService<Interest, InterestKey, InterestRepository> {
 
-    private final InterestRepository repository;
+    public InterestService(InterestRepository repository, EntityEventProcessor eventProcessor) {
 
-    public InterestService(InterestRepository repository) {
-
-        this.repository = repository;
+        super(repository, eventProcessor);
     }
 
     public List<Interest> getInterests(Anime anime) {
 
-        return this.repository.findByAnime(anime);
+        return this.getRepository().findByAnime(anime);
     }
 
     public List<Interest> getInterests(Collection<Anime> animes) {
 
-        return this.repository.findByAnimeIn(animes);
+        return this.getRepository().findByAnimeIn(animes);
     }
 
     public List<Interest> getInterests(DiscordUser user) {
 
-        return this.repository.findByUser(user);
+        return this.getRepository().findByUser(user);
     }
 
     public void setInterest(DiscordUser user, Anime anime, byte level) {
 
         InterestKey key = new InterestKey(anime.getId(), user.getId());
 
-        this.repository.upsert(
-                () -> this.repository.findById(key),
+        this.upsert(
+                repository -> repository.findById(key),
                 () -> {
                     Interest entity = new Interest();
                     entity.setUser(user);
