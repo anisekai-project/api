@@ -39,7 +39,7 @@ public final class WebFile {
         }
         if (!Files.isRegularFile(path)) {
             LOGGER.warn("Could not serve '{}': The path does not lead to a file.", filePathLog);
-            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).build();
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).build();
         }
 
         InputStreamResource resource;
@@ -50,7 +50,7 @@ public final class WebFile {
             contentLength = Files.size(path);
         } catch (IOException e) {
             LOGGER.error("Could not serve file '{}': Encountered exception when opening the file.", filePathLog, e);
-            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).build();
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).build();
         }
         ContentDisposition.Builder contentDisposition = ContentDisposition.inline();
 
