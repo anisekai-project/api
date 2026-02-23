@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -98,7 +98,7 @@ public class CronTasks {
         LOGGER.debug("Running expired task recovery job...");
         List<Task> expiredTasks = this.service
                 .getRepository()
-                .findAllByStatusAndExpiresAtBefore(TaskStatus.EXECUTING, ZonedDateTime.now());
+                .findAllByStatusAndExpiresAtBefore(TaskStatus.EXECUTING, Instant.now());
 
         if (expiredTasks.isEmpty()) {
             LOGGER.debug("No expired tasks found.");

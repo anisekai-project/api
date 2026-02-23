@@ -7,7 +7,7 @@ import fr.anisekai.server.domain.enums.TaskStatus;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +26,6 @@ public interface TaskRepository extends AnisekaiRepository<Task, Long> {
 
     Optional<Task> findByWorkerAndStatus(Worker worker, TaskStatus status);
 
-    List<Task> findAllByStatusAndExpiresAtBefore(TaskStatus taskStatus, ZonedDateTime when);
+    List<Task> findAllByStatusAndExpiresAtBefore(TaskStatus taskStatus, Instant when);
 
 }
