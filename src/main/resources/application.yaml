@@ -1,4 +1,7 @@
 spring:
+  application:
+    name: service
+
   datasource:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
