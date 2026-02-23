@@ -127,8 +127,8 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         }
 
 
-        String accessToken = this.getTokenFromCookie(request)
-                                 .or(() -> this.getTokenFromAuthorization(route, request))
+        String accessToken = this.getTokenFromAuthorization(route, request)
+                                 .or(() -> this.getTokenFromCookie(request))
                                  .orElseThrow(AuthenticationMissingException::new);
 
         UUID         uuid    = this.manager.getJti(accessToken);

@@ -9,7 +9,7 @@ import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.enums.AnimeList;
 import fr.anisekai.server.exceptions.anime.AnimePermissionException;
 import fr.anisekai.server.repositories.AnimeRepository;
-import fr.anisekai.web.dto.AnimeRequestData;
+import fr.anisekai.web.api.requests.entities.AnimeImportRequest;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
@@ -29,7 +29,7 @@ public class AnimeService extends AnisekaiService<Anime, Long, AnimeRepository> 
         super(repository, eventProcessor);
     }
 
-    private Consumer<Anime> applyRequestData(AnimeRequestData data) {
+    private Consumer<Anime> applyRequestData(AnimeImportRequest data) {
 
         return anime -> {
             anime.setGroup(data.group());
@@ -46,14 +46,14 @@ public class AnimeService extends AnisekaiService<Anime, Long, AnimeRepository> 
     }
 
     @Transactional
-    public Anime createAnime(DiscordUser sender, AnimeRequestData data) {
+    public Anime createAnime(DiscordUser sender, AnimeImportRequest data) {
 
         this.forbid(repository -> repository.findByUrl(data.link()));
         return this.create(() -> new Anime(sender), this.applyRequestData(data));
     }
 
     @Transactional
-    public Anime updateAnime(DiscordUser sender, long id, AnimeRequestData data) {
+    public Anime updateAnime(DiscordUser sender, long id, AnimeImportRequest data) {
 
         Anime anime = this.requireById(id);
 

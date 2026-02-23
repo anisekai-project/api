@@ -1,6 +1,7 @@
 package fr.anisekai.web.exceptions;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpStatus;
 
 import java.time.ZonedDateTime;
@@ -11,12 +12,22 @@ public class WebException extends RuntimeException {
 
     @Schema(name = "WebException", description = "Used when something isn't going how it is supposed to go.")
     public record Dto(
-            @Schema(description = "Time at which the error has been generated.")
-            ZonedDateTime timestamp,
-            @Schema(description = "Status code for the error.", minimum = "100", maximum = "511")
-            int status,
-            @Schema(description = "Friendly message for the error.")
-            String message
+            @Schema(
+                    description = "Time at which the error has been generated.",
+                    requiredMode = Schema.RequiredMode.REQUIRED
+            ) @NotNull ZonedDateTime timestamp,
+
+            @Schema(
+                    description = "Status code for the error.",
+                    requiredMode = Schema.RequiredMode.REQUIRED,
+                    minimum = "100",
+                    maximum = "511"
+            ) int status,
+
+            @Schema(
+                    description = "Friendly message for the error.",
+                    requiredMode = Schema.RequiredMode.REQUIRED
+            ) @NotNull String message
     ) {
 
         public static Dto from(WebException ex, boolean details) {

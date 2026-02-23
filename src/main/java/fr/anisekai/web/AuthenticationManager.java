@@ -222,7 +222,7 @@ public class AuthenticationManager {
         return this.createToken(TokenType.APPLICATION, user, expiresAt);
     }
 
-    public AuthData authenticate(String code) throws Exception {
+    public AuthData exchange(String code) throws Exception {
 
         LOGGER.info("Authentication request using {}", code);
         AuthTokenPacket authTokenPacket = new AuthTokenPacket(this.oauthConfiguration, code);
@@ -241,7 +241,7 @@ public class AuthenticationManager {
         return new AuthData(accessToken, refreshToken);
     }
 
-    public AuthData exchange(String jwt) {
+    public AuthData refresh(String jwt) {
 
         UUID         uuid  = this.getJti(jwt);
         SessionToken token = this.getRefreshToken(uuid);

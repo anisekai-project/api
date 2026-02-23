@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,7 +24,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v3/worker")
-@Tag(name = "Worker", description = "Endpoints for distributed task workers.")
+@Tag(name = "Workers", description = "Endpoints for distributed task workers.")
 public class WorkerController {
 
     private final WorkerService workerService;
@@ -38,7 +39,7 @@ public class WorkerController {
     @PostMapping("/register")
     @RequireAuth(scopes = {TokenScope.WORKER})
     @Operation(summary = "Register a new worker instance")
-    public ResponseEntity<WorkerRegistrationResponse> register(SessionToken session, @RequestBody(required = false) WorkerRegistrationRequest request) {
+    public ResponseEntity<WorkerRegistrationResponse> registerWorker(SessionToken session, @RequestBody(required = false) WorkerRegistrationRequest request) {
 
         String hostname = (request != null) ? request.hostname() : null;
         Worker worker   = this.workerService.registerWorker(session, hostname);
@@ -49,10 +50,10 @@ public class WorkerController {
     @RequireAuth(scopes = {TokenScope.WORKER})
     @Operation(summary = "Send a heartbeat", description = "Allows a worker to signal it is still alive and processing its task, extending the task's expiration lease.")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Heartbeat acknowledged."),
-            @ApiResponse(responseCode = "404", description = "Worker has no active task to extend.")
+            @ApiResponse(responseCode = "204", description = "Heartbeat acknowledged, but no task lease available to extend."),
+            @ApiResponse(responseCode = "200", description = "Task lease of the current worker has been extended.")
     })
-    public ResponseEntity<Void> heartbeat(SessionToken session, @PathVariable UUID workerId) {
+    public ResponseEntity<Void> doWorkerHeartbeat(SessionToken session, @PathVariable UUID workerId) {
 
         Worker worker = this.workerService.requireWorkerOwnership(workerId, session);
         worker.setLastHeartbeat(Instant.now());
@@ -64,9 +65,9 @@ public class WorkerController {
 
         if (optionalTask.isPresent()) {
             this.taskService.extendTaskLease(optionalTask.get());
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.status(HttpStatus.OK).build();
         } else {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.noContent().build();
         }
     }
 

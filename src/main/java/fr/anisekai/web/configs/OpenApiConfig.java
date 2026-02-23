@@ -2,8 +2,13 @@ package fr.anisekai.web.configs;
 
 import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.web.annotations.RequireAuth;
+import fr.anisekai.web.exceptions.WebException;
+import io.swagger.v3.core.converter.ModelConverters;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
@@ -13,11 +18,30 @@ import org.springdoc.core.customizers.ParameterCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Configuration
 public class OpenApiConfig {
+
+    private static Content createErrorContent(int status) {
+
+        Map<String, Object> exampleValues = new LinkedHashMap<>();
+        exampleValues.put("timestamp", ZonedDateTime.now().truncatedTo(ChronoUnit.SECONDS).toString());
+        exampleValues.put("status", status);
+        exampleValues.put("message", "An explanation message about the error here.");
+
+        return new Content().addMediaType(
+                "application/json",
+                new MediaType()
+                        .schema(new Schema<>().$ref("#/components/schemas/WebException"))
+                        .example(exampleValues)
+        );
+    }
 
     @Bean
     public OperationCustomizer customizeOperation() {
@@ -27,37 +51,59 @@ public class OpenApiConfig {
             RequireAuth auth = handlerMethod.getMethodAnnotation(RequireAuth.class);
             if (auth == null) return operation;
 
-            operation.addSecurityItem(new SecurityRequirement().addList("bearerAuth"));
+            operation.setSecurity(List.of(
+                    new SecurityRequirement().addList("bearerAuth"),
+                    new SecurityRequirement().addList("cookieAuth")
+            ));
 
             ApiResponses responses = operation.getResponses();
 
             responses.addApiResponse(
                     "401",
-                    new ApiResponse().description("Unauthorized \u0080\u0093 missing or invalid authorization header")
+                    new ApiResponse()
+                            .description("Unauthorized – missing or invalid authorization header/cookie")
+                            .content(createErrorContent(401))
             );
 
             responses.addApiResponse(
-                    "403",
-                    new ApiResponse()
-                            .description(
-                                    "Forbidden \u0080\u0093 not enough permissions (e.g., not admin, guest not allowed, etc.)")
+                    "403", new ApiResponse()
+                            .description("Forbidden – not enough permissions (e.g., not admin, guest not allowed, etc.)")
+                            .content(createErrorContent(403))
             );
-            StringBuilder desc = new StringBuilder("\u009F\u0094\u0090 **Authorization Required**\n\n");
+
+            responses.addApiResponse(
+                    "500", new ApiResponse()
+                            .description("Internal Server Error – Something went very wrong with the server.")
+                            .content(createErrorContent(500))
+            );
+
+            StringBuilder desc = new StringBuilder("**Authorization Required**\n\n");
 
             if (auth.requireAdmin()) {
-                desc.append("\u0083 Requires **admin** privileges\n");
+                desc.append("Requires **admin** privileges\n\n");
             }
             if (!auth.allowGuests()) {
-                desc.append("\u0083 Guests are **not allowed**\n");
+                desc.append("Guests are **not allowed**\n\n");
             }
 
             List<String> types = Arrays.stream(auth.allowedSessionTypes())
                                        .map(Enum::name)
                                        .toList();
 
-            desc.append("\u0083 Allowed session types: `")
+            List<String> scopes = Arrays.stream(auth.scopes())
+                                        .map(Enum::name)
+                                        .toList();
+
+
+            desc.append("Allowed session types: `")
                 .append(String.join(", ", types))
-                .append("`\n");
+                .append("`\n\n");
+
+            if (!scopes.isEmpty()) {
+                desc.append("Required token scopes: `")
+                    .append(String.join(", ", scopes))
+                    .append("`\n\n");
+            }
 
             operation.setDescription(desc.toString());
 
@@ -80,16 +126,27 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI customOpenAPI() {
 
+        var schemaMap = ModelConverters.getInstance().read(WebException.Dto.class);
+
         return new OpenAPI()
-                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
-                .components(new Components().addSecuritySchemes(
-                        "bearerAuth",
-                        new SecurityScheme()
-                                .name("Authorization")
-                                .type(SecurityScheme.Type.HTTP)
-                                .scheme("bearer")
-                                .bearerFormat("anisekai-token")// Customize this
-                ));
+                .components(new Components()
+                                    .addSchemas("WebException", schemaMap.get("Dto"))
+
+                                    .addSecuritySchemes(
+                                            "bearerAuth", new SecurityScheme()
+                                                    .name("Authorization")
+                                                    .type(SecurityScheme.Type.HTTP)
+                                                    .scheme("bearer")
+                                                    .bearerFormat("anisekai-token")
+                                    )
+
+                                    .addSecuritySchemes(
+                                            "cookieAuth", new SecurityScheme()
+                                                    .name("anisekai-access-token") // The cookie name
+                                                    .type(SecurityScheme.Type.APIKEY)
+                                                    .in(SecurityScheme.In.COOKIE)
+                                    )
+                );
     }
 
 }

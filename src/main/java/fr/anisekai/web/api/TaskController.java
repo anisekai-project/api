@@ -13,6 +13,7 @@ import fr.anisekai.web.dto.worker.TaskFailureRequest;
 import fr.anisekai.web.dto.worker.tasks.MediaTaskDetails;
 import fr.anisekai.web.dto.worker.tasks.TaskCompletionRequest;
 import fr.anisekai.web.enums.TokenScope;
+import fr.anisekai.web.enums.TokenType;
 import fr.anisekai.web.exceptions.WebException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -65,7 +66,7 @@ public class TaskController {
     }
 
     @GetMapping("/next")
-    @RequireAuth(scopes = {TokenScope.WORKER})
+    @RequireAuth(allowedSessionTypes = TokenType.APPLICATION, scopes = TokenScope.WORKER)
     @Operation(summary = "Request the next available task")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "A task was successfully acquired."),
@@ -88,7 +89,7 @@ public class TaskController {
     }
 
     @PostMapping("/{taskId}/complete")
-    @RequireAuth(scopes = {TokenScope.WORKER})
+    @RequireAuth(allowedSessionTypes = TokenType.APPLICATION, scopes = TokenScope.WORKER)
     public ResponseEntity<Void> completeTask(
             SessionToken session,
             @RequestHeader("X-Worker-ID") UUID workerId,
@@ -112,7 +113,7 @@ public class TaskController {
     }
 
     @PostMapping("/{taskId}/fail")
-    @RequireAuth(scopes = {TokenScope.WORKER})
+    @RequireAuth(allowedSessionTypes = TokenType.APPLICATION, scopes = TokenScope.WORKER)
     @Operation(summary = "Report task failure", description = "Called by a worker when it encounters an unrecoverable error during processing.")
     public ResponseEntity<Void> failTask(SessionToken session, @RequestHeader("X-Worker-ID") UUID workerId, @PathVariable Long taskId, @RequestBody(required = false) TaskFailureRequest request) {
 

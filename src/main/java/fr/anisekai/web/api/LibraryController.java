@@ -17,6 +17,7 @@ import fr.anisekai.web.annotations.RequireAuth;
 import fr.anisekai.web.annotations.RequireIsolation;
 import fr.anisekai.web.enums.TokenScope;
 import fr.anisekai.web.exceptions.WebException;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,6 +32,7 @@ import java.nio.file.Path;
 
 @RestController
 @RequestMapping("/api/v3/library")
+@Tag(name = "Library", description = "Everything related to the library content.")
 public class LibraryController {
 
     private static final MediaType DEFAULT = MediaType.APPLICATION_OCTET_STREAM;
