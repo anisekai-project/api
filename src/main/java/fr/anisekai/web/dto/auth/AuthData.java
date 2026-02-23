@@ -2,12 +2,14 @@ package fr.anisekai.web.dto.auth;
 
 import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.web.AuthenticationManager;
+import fr.anisekai.web.api.responses.authentication.AuthenticationResponse;
+import jakarta.validation.constraints.NotNull;
 
-public record AuthData(SessionToken accessToken, SessionToken refreshToken) {
+public record AuthData(@NotNull SessionToken accessToken, @NotNull SessionToken refreshToken) {
 
-    public AuthResponse toResponse(AuthenticationManager manager) {
+    public AuthenticationResponse toResponse(AuthenticationManager manager) {
 
-        return new AuthResponse(manager.stringify(this.accessToken), manager.stringify(this.refreshToken));
+        return new AuthenticationResponse(manager.stringify(this.accessToken), manager.stringify(this.refreshToken));
     }
 
 }

@@ -31,7 +31,7 @@ public interface AnimeRepository extends AnisekaiRepository<Anime, Long> {
                     where e.anime = a and e.ready = true
                 )
             """)
-    List<Anime> findByEpisodeReady();
+    List<Anime> findAllWatchable();
 
 
 }
