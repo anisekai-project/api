@@ -6,6 +6,7 @@ import fr.anisekai.server.domain.entities.Voter;
 import net.dv8tion.jda.api.EmbedBuilder;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 public class SelectionVoterEmbed extends EmbedBuilder {
@@ -17,6 +18,11 @@ public class SelectionVoterEmbed extends EmbedBuilder {
         this.appendDescription("\n\n");
 
         String participants = voters.stream()
+                                    .sorted(
+                                            Comparator.comparingInt(Voter::getAmount)
+                                                      .reversed()
+                                                      .thenComparing(voter -> voter.getUser().getUsername())
+                                    )
                                     .map(voter -> String.format(
                                             "【 %s 】— %s vote(s) (<@%s>)",
                                             voter.getUser().getEmote(),
