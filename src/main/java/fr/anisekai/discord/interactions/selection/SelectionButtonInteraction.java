@@ -3,9 +3,9 @@ package fr.anisekai.discord.interactions.selection;
 import fr.alexpado.interactions.annotations.Button;
 import fr.alexpado.interactions.annotations.Param;
 import fr.anisekai.discord.annotations.DiscordBean;
+import fr.anisekai.discord.annotations.RequireAdmin;
 import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.messages.SelectionMessage;
-import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.entities.Selection;
 import fr.anisekai.server.domain.entities.Voter;
 import fr.anisekai.server.domain.enums.SelectionStatus;
@@ -27,7 +27,8 @@ public class SelectionButtonInteraction {
     }
 
     @Button(name = "selection/close")
-    public InteractionResponse execute(DiscordUser user, @Param("selection") long selectionId) {
+    @RequireAdmin
+    public InteractionResponse execute(@Param("selection") long selectionId) {
 
         Selection selection = this.service.mod(
                 selectionId,
