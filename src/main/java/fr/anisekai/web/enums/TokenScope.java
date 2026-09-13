@@ -8,8 +8,8 @@ import java.util.Set;
 /**
  * Catalog of OAuth-style scopes granted to {@code APPLICATION} tokens.
  * <p>
- * The catalog intentionally covers <b>write</b> operations only. Read operations will be scoped later, when the
- * current permission system is replaced.
+ * The catalog intentionally covers <b>write</b> operations only. Read operations will be scoped later, when the current
+ * permission system is replaced.
  * <p>
  * Scope names use the standard {@code scp} JWT claim (space-delimited) so a future OpenID-compliant authentication
  * solution can map upstream scopes to these values without changing route annotations.

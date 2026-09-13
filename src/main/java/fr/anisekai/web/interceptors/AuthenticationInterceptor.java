@@ -20,89 +20,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Component
 public class AuthenticationInterceptor implements HandlerInterceptor {
 
-    /**
-     * Represents the authentication and authorization policy of a route based on the {@link RequireAuth} annotation.
-     */
-    private static class RouteRule {
-
-        private final boolean            authRequired;
-        private       boolean            adminRequired     = false;
-        private       boolean            guestsAllowed     = true;
-        private       EnumSet<TokenType> tokenTypesAllowed = EnumSet.of(TokenType.USER, TokenType.APPLICATION);
-        private       Set<String>        requiredScopes    = Set.of();
-
-        public RouteRule(@Nullable RequireAuth auth) {
-
-            this.authRequired = auth != null;
-
-            if (this.authRequired) {
-                this.adminRequired     = auth.requireAdmin();
-                this.guestsAllowed     = auth.allowGuests();
-                this.tokenTypesAllowed = EnumSet.noneOf(TokenType.class);
-                Collections.addAll(this.tokenTypesAllowed, auth.allowedSessionTypes());
-                this.requiredScopes = Set.of(auth.scopes());
-            }
-        }
-
-        public boolean isAuthRequired() {
-
-            return this.authRequired;
-        }
-
-        public boolean canAccess(SessionToken sessionToken) {
-
-            DiscordUser user = sessionToken.getOwner();
-
-            boolean guestCheckPass = !user.isGuest() || this.guestsAllowed;
-            boolean adminCheckPass = user.isAdministrator() || !this.adminRequired;
-            boolean typeCheckPass  = this.tokenTypesAllowed.contains(sessionToken.getType());
-            boolean scopeCheckPass = hasRequiredScopes(sessionToken);
-
-            return guestCheckPass && adminCheckPass && typeCheckPass && scopeCheckPass;
-        }
-
-        /**
-         * Check the {@code APPLICATION} token scopes required by the route.
-         * <p>
-         * TRANSITIONAL: {@code USER} sessions bypass scope checks. {@code USER} tokens will disappear once every token
-         * is an {@code APPLICATION} token (possibly behind an OpenID-compliant solution); remove this bypass then.
-         *
-         * @param sessionToken
-         *         The resolved session.
-         *
-         * @return {@code true} when no scope is required or every required scope is granted.
-         */
-        static boolean hasRequiredScopes(SessionToken sessionToken, Set<String> requiredScopes) {
-
-            if (requiredScopes == null || requiredScopes.isEmpty()) {
-                return true;
-            }
-            if (sessionToken.getType() == TokenType.USER) {
-                return true;
-            }
-            Set<String> granted = sessionToken.getScopes();
-            return granted != null && granted.containsAll(requiredScopes);
-        }
-
-        private boolean hasRequiredScopes(SessionToken sessionToken) {
-
-            return hasRequiredScopes(sessionToken, this.requiredScopes);
-        }
-
-    }
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationInterceptor.class);
-
-    private final AuthenticationManager manager;
+    private static final Logger                LOGGER = LoggerFactory.getLogger(AuthenticationInterceptor.class);
+    private final        AuthenticationManager manager;
 
     public AuthenticationInterceptor(AuthenticationManager manager, ApplicationConfiguration configuration) {
 
@@ -144,7 +68,7 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public boolean preHandle(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull Object handler) throws Exception {
+    public boolean preHandle(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull Object handler) {
 
         if (!(handler instanceof HandlerMethod method)) {
             return true; // Not a controller method — allow
@@ -175,6 +99,77 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         request.setAttribute("session", session);
         LOGGER.trace("[{}] ({}) Accessed secured resource.", route, session.getOwner().getId());
         return true; // Allow
+    }
+
+    /**
+     * Represents the authentication and authorization policy of a route based on the {@link RequireAuth} annotation.
+     */
+    private static class RouteRule {
+
+        private final boolean            authRequired;
+        private       boolean            adminRequired     = false;
+        private       boolean            guestsAllowed     = true;
+        private       EnumSet<TokenType> tokenTypesAllowed = EnumSet.of(TokenType.USER, TokenType.APPLICATION);
+        private       Set<String>        requiredScopes    = Set.of();
+
+        public RouteRule(@Nullable RequireAuth auth) {
+
+            this.authRequired = auth != null;
+
+            if (this.authRequired) {
+                this.adminRequired     = auth.requireAdmin();
+                this.guestsAllowed     = auth.allowGuests();
+                this.tokenTypesAllowed = EnumSet.noneOf(TokenType.class);
+                Collections.addAll(this.tokenTypesAllowed, auth.allowedSessionTypes());
+                this.requiredScopes = Set.of(auth.scopes());
+            }
+        }
+
+        /**
+         * Check the {@code APPLICATION} token scopes required by the route.
+         * <p>
+         * TRANSITIONAL: {@code USER} sessions bypass scope checks. {@code USER} tokens will disappear once every token
+         * is an {@code APPLICATION} token (possibly behind an OpenID-compliant solution); remove this bypass then.
+         *
+         * @param sessionToken
+         *         The resolved session.
+         *
+         * @return {@code true} when no scope is required or every required scope is granted.
+         */
+        static boolean hasRequiredScopes(SessionToken sessionToken, Collection<String> requiredScopes) {
+
+            if (requiredScopes == null || requiredScopes.isEmpty()) {
+                return true;
+            }
+            if (sessionToken.getType() == TokenType.USER) {
+                return true;
+            }
+            Set<String> granted = sessionToken.getScopes();
+            return granted != null && granted.containsAll(requiredScopes);
+        }
+
+        public boolean isAuthRequired() {
+
+            return this.authRequired;
+        }
+
+        public boolean canAccess(SessionToken sessionToken) {
+
+            DiscordUser user = sessionToken.getOwner();
+
+            boolean guestCheckPass = !user.isGuest() || this.guestsAllowed;
+            boolean adminCheckPass = user.isAdministrator() || !this.adminRequired;
+            boolean typeCheckPass  = this.tokenTypesAllowed.contains(sessionToken.getType());
+            boolean scopeCheckPass = this.hasRequiredScopes(sessionToken);
+
+            return guestCheckPass && adminCheckPass && typeCheckPass && scopeCheckPass;
+        }
+
+        private boolean hasRequiredScopes(SessionToken sessionToken) {
+
+            return hasRequiredScopes(sessionToken, this.requiredScopes);
+        }
+
     }
 
 }

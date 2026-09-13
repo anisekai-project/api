@@ -9,7 +9,6 @@ import fr.anisekai.scheduler.tasking.data.TaskFailedPacket;
 import fr.anisekai.scheduler.tasking.data.TaskMeta;
 import fr.anisekai.scheduler.tasking.enums.TaskStatus;
 import fr.anisekai.scheduler.tasking.interfaces.factories.Factory;
-import fr.anisekai.scheduler.tasking.interfaces.factories.FactoryRegistry;
 import fr.anisekai.scheduler.tasking.interfaces.factories.ServerFactory;
 import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.exceptions.task.TaskNotFoundException;
@@ -27,9 +26,9 @@ import java.util.*;
 @Service
 public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
 
-    private final ServerOrchestrator serverOrchestrator;
+    private final ServerOrchestrator    serverOrchestrator;
     private final ServerFactoryRegistry serverFactory;
-    private final DatabaseLockService  databaseLockService;
+    private final DatabaseLockService   databaseLockService;
 
     public TaskService(
             TaskRepository repository,
@@ -40,8 +39,8 @@ public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
     ) {
 
         super(repository, eventProcessor);
-        this.serverOrchestrator = serverOrchestrator;
-        this.serverFactory      = serverFactory;
+        this.serverOrchestrator  = serverOrchestrator;
+        this.serverFactory       = serverFactory;
         this.databaseLockService = databaseLockService;
     }
 
@@ -93,7 +92,7 @@ public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
     public <F extends ServerFactory<Task, I, ?>, I> Task queueOne(@NotNull Class<F> factoryClass, @NotNull I argument, byte priority) {
 
         this.databaseLockService.lock(DatabaseLockService.TASK_QUEUE);
-        F factory = this.serverFactory.query(factoryClass);
+        F      factory  = this.serverFactory.query(factoryClass);
         String taskName = factory.getTaskName(argument);
         Optional<Task> active = this.getRepository().findFirstByFactoryNameAndNameAndStatusIn(
                 factory.getName(),
@@ -111,7 +110,8 @@ public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
                            taskName,
                            List.of(TaskStatus.SCHEDULED)
                    )
-                   .orElseThrow(() -> new IllegalStateException("Scheduler returned an empty plan without an existing task"));
+                   .orElseThrow(() -> new IllegalStateException(
+                           "Scheduler returned an empty plan without an existing task"));
     }
 
     @Transactional
@@ -133,7 +133,8 @@ public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
 
         Task task = this.requireByTaskMeta(meta);
 
-        Exception exception = failure instanceof Exception e ? e : new RuntimeException(failure);
+        Exception exception = failure instanceof Exception e ? e : new RuntimeException(
+                failure);
         TaskFailedPacket<Task>                   packet = new TaskFailedPacket<>(task, exception);
         ActionPlan<UUID, ReservedTaskMeta, Task> plan   = this.serverOrchestrator.resolve(packet);
 

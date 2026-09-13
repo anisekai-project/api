@@ -32,7 +32,7 @@ public class LocalMediaConversionHandler extends MediaConversionHandler {
     @Override
     public Path fetchEpisode(MediaConversionInput.Episode episode) throws IOException {
 
-        Path imports = this.library.getResolver(Library.IMPORTS).directory().toRealPath();
+        Path imports   = this.library.getResolver(Library.IMPORTS).directory().toRealPath();
         Path candidate = imports.resolve(episode.sourceReference()).normalize();
 
         if (!candidate.startsWith(imports)) {
@@ -55,7 +55,7 @@ public class LocalMediaConversionHandler extends MediaConversionHandler {
 
         Episode entity = this.episodeService.requireById(episode.id());
         this.episodeScope = new AccessScope(Library.EPISODES, entity.getScopedName());
-        this.isolation = this.library.createIsolation(Set.of(this.episodeScope));
+        this.isolation    = this.library.createIsolation(Set.of(this.episodeScope));
         return this.isolation.requestTemporaryFile("mkv");
     }
 
@@ -78,7 +78,7 @@ public class LocalMediaConversionHandler extends MediaConversionHandler {
     public void cleanupEpisode(MediaConversionInput.Episode episode, @Nullable Path source, @Nullable Path destination) {
 
         IsolationSession attempt = this.isolation;
-        this.isolation = null;
+        this.isolation    = null;
         this.episodeScope = null;
 
         if (attempt != null) attempt.close();

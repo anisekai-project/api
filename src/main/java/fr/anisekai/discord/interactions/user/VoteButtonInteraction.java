@@ -21,6 +21,7 @@ public class VoteButtonInteraction {
     private final AnimeService     animeService;
     private final SelectionService selectionService;
     private final VoterService     voterService;
+
     public VoteButtonInteraction(AnimeService animeService, SelectionService selectionService, VoterService voterService) {
 
         this.animeService     = animeService;

@@ -21,7 +21,7 @@ public class BroadcastCancelTask implements TaskHandler<BroadcastCancelTaskInput
     }
 
     @Override
-    public @NonNull Nothing handle(@NonNull BroadcastCancelTaskInput arguments) throws Exception {
+    public @NonNull Nothing handle(@NonNull BroadcastCancelTaskInput arguments) {
 
         Broadcast broadcast = this.service.requireById(arguments.broadcastId());
 

@@ -16,12 +16,12 @@ import java.util.stream.Collectors;
 @Component
 public class ClientFactoryRegistry implements FactoryRegistry<ClientFactory<?, ?>> {
 
-    private final List<ClientFactory<?, ?>> factories;
+    private final List<ClientFactory<?, ?>>        factories;
     private final Map<String, ClientFactory<?, ?>> factoriesByName;
 
     public ClientFactoryRegistry(List<ClientFactory<?, ?>> factories) {
 
-        this.factories = List.copyOf(factories);
+        this.factories       = List.copyOf(factories);
         this.factoriesByName = factories.stream().collect(Collectors.toUnmodifiableMap(
                 ClientFactory::getName,
                 Function.identity()

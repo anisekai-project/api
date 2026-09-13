@@ -1,7 +1,7 @@
 package fr.anisekai.discord.responses.embeds;
 
-import fr.anisekai.server.planifier.CalibrationResult;
 import fr.anisekai.server.domain.entities.Broadcast;
+import fr.anisekai.server.planifier.CalibrationResult;
 import fr.anisekai.utils.StringUtils;
 import net.dv8tion.jda.api.EmbedBuilder;
 

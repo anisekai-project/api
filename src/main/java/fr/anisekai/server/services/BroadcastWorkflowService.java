@@ -76,8 +76,8 @@ public class BroadcastWorkflowService {
 
     public Broadcast cancel(Broadcast broadcast) {
 
-        BroadcastCancelTaskInput input = new BroadcastCancelTaskInput(broadcast.getId());
-        String taskName = this.cancelFactory.getTaskName(input);
+        BroadcastCancelTaskInput input    = new BroadcastCancelTaskInput(broadcast.getId());
+        String                   taskName = this.cancelFactory.getTaskName(input);
         if (this.taskService.hasScheduled(taskName)) this.taskService.cancel(taskName);
 
         broadcast.setStatus(BroadcastStatus.CANCELED);

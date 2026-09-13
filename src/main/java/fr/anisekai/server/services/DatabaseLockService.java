@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 public class DatabaseLockService {
 
     public static final String BROADCAST_SCHEDULE = "broadcast-schedule";
-    public static final String TASK_QUEUE = "task-queue";
+    public static final String TASK_QUEUE         = "task-queue";
 
     private final JdbcClient jdbc;
 

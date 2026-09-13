@@ -35,7 +35,7 @@ public class AnnouncementTask implements TaskHandler<AnnouncementTaskInput, Anno
     }
 
     @Override
-    public @NonNull AnnouncementTaskOutput handle(@NonNull AnnouncementTaskInput arguments) throws Exception {
+    public @NonNull AnnouncementTaskOutput handle(@NonNull AnnouncementTaskInput arguments) {
 
         TextChannel         channel         = this.store.requireAnnouncementChannel();
         Role                role            = this.store.requireAnnouncementRole();

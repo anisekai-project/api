@@ -34,7 +34,7 @@ public class ServerOrchestrator extends AbstractServerOrchestrator<Task> {
     public boolean claim(@NotNull Task task, @NotNull TaskClient client) {
 
         Instant startedAt = Instant.now();
-        int updated = this.repository.claim(task.getId(), TaskStatus.SCHEDULED, TaskStatus.EXECUTING, startedAt);
+        int     updated   = this.repository.claim(task.getId(), TaskStatus.SCHEDULED, TaskStatus.EXECUTING, startedAt);
         if (updated == 0) return false;
 
         task.setStatus(TaskStatus.EXECUTING);

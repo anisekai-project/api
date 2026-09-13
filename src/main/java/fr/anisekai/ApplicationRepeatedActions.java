@@ -32,7 +32,7 @@ public class ApplicationRepeatedActions {
     }
 
     @Scheduled(cron = "0 0 4 * * *")
-    public void runCleaning() throws Exception {
+    public void runCleaning() {
 
         Optional<Long> downloadRetention = this.settingService.getDownloadRetention();
 
@@ -40,13 +40,13 @@ public class ApplicationRepeatedActions {
         long days = downloadRetention.get();
         if (days == 0) return;
 
-        Duration                    retention = Duration.ofDays(days);
-        TorrentRetentionInput       input     = new TorrentRetentionInput(retention);
+        Duration              retention = Duration.ofDays(days);
+        TorrentRetentionInput input     = new TorrentRetentionInput(retention);
         this.service.queueOne(TorrentRetentionTaskFactory.class, input, Task.PRIORITY_AUTOMATIC_LOW);
     }
 
     @Scheduled(cron = "0/1 * * * * *")
-    public void runTorrentSync() throws Exception {
+    public void runTorrentSync() {
 
         if (!this.settingService.isDownloadEnabled()) {
             return;
@@ -68,7 +68,7 @@ public class ApplicationRepeatedActions {
     }
 
     @Scheduled(cron = "0 */15 * * * *")
-    private void runTorrentSourcing() throws Exception {
+    private void runTorrentSourcing() {
 
         if (!this.settingService.isDownloadEnabled()) {
             return;
@@ -87,8 +87,8 @@ public class ApplicationRepeatedActions {
             return;
         }
 
-        String                     source  = optionalSource.get();
-        TorrentSourcingTaskInput   input   = new TorrentSourcingTaskInput(source, Task.PRIORITY_AUTOMATIC_LOW);
+        String                   source = optionalSource.get();
+        TorrentSourcingTaskInput input  = new TorrentSourcingTaskInput(source, Task.PRIORITY_AUTOMATIC_LOW);
         this.service.queueOne(TorrentSourcingTaskFactory.class, input, Task.PRIORITY_AUTOMATIC_LOW);
     }
 

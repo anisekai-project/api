@@ -32,8 +32,8 @@ public class EntityUpdatedEvent<E extends Entity<?>, T> extends EntityEvent<E> i
     @Override
     public @Nullable ResolvableType getResolvableType() {
 
-        Class<?> clazz = this.getClass();
-        Object entity = this.getEntity() instanceof State<?> state ? state.getInstance() : this.getEntity();
+        Class<?> clazz  = this.getClass();
+        Object   entity = this.getEntity() instanceof State<?> state ? state.getInstance() : this.getEntity();
 
         if (clazz.getTypeParameters().length == 2) {
             return ResolvableType.forClassWithGenerics(

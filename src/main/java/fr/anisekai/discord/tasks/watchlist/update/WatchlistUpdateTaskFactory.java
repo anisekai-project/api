@@ -8,7 +8,6 @@ import fr.anisekai.scheduler.tasking.interfaces.factories.ClientFactory;
 import fr.anisekai.scheduler.tasking.interfaces.factories.ServerFactory;
 import fr.anisekai.scheduler.tasking.interfaces.structure.TaskHandler;
 import fr.anisekai.server.domain.entities.Task;
-import fr.anisekai.server.domain.enums.AnimeList;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.InterestService;
 import fr.anisekai.server.services.WatchlistService;

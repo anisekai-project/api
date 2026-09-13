@@ -1,8 +1,8 @@
 package fr.anisekai.discord.responses.messages;
 
-import fr.anisekai.discord.interfaces.ButtonResponse;
 import fr.anisekai.discord.interactions.selection.SelectionButtonInteraction;
 import fr.anisekai.discord.interactions.user.VoteButtonInteraction;
+import fr.anisekai.discord.interfaces.ButtonResponse;
 import fr.anisekai.discord.responses.embeds.selections.SelectionAnimeEmbed;
 import fr.anisekai.discord.responses.embeds.selections.SelectionClosedEmbed;
 import fr.anisekai.discord.responses.embeds.selections.SelectionVoterEmbed;

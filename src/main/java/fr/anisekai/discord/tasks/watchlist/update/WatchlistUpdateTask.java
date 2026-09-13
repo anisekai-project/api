@@ -35,7 +35,7 @@ public class WatchlistUpdateTask implements TaskHandler<WatchlistUpdateTaskInput
     }
 
     @Override
-    public @NonNull Nothing handle(@NonNull WatchlistUpdateTaskInput arguments) throws Exception {
+    public @NonNull Nothing handle(@NonNull WatchlistUpdateTaskInput arguments) {
 
         MessageChannel channel   = this.store.requireWatchlistChannel();
         Watchlist      watchlist = this.service.requireById(arguments.list());

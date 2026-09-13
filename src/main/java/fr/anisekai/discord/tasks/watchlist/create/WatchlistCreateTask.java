@@ -36,7 +36,7 @@ public class WatchlistCreateTask implements TaskHandler<Nothing, WatchlistCreate
     }
 
     @Override
-    public @NonNull WatchlistCreateTaskOutput handle(@NonNull Nothing arguments) throws Exception {
+    public @NonNull WatchlistCreateTaskOutput handle(@NonNull Nothing arguments) {
 
         MessageChannel  channel    = this.store.requireWatchlistChannel();
         List<Watchlist> watchlists = this.service.reset();

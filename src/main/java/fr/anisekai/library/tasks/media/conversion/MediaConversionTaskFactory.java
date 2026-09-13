@@ -52,10 +52,11 @@ public class MediaConversionTaskFactory implements ServerFactory<Task, MediaConv
         Objects.requireNonNull(source, "source");
 
         try {
-            Path imports = library.getResolver(Library.IMPORTS).directory().toRealPath();
+            Path imports        = library.getResolver(Library.IMPORTS).directory().toRealPath();
             Path resolvedSource = source.toRealPath();
 
-            if (!resolvedSource.startsWith(imports) || resolvedSource.equals(imports) || !Files.isRegularFile(resolvedSource)) {
+            if (!resolvedSource.startsWith(imports) || resolvedSource.equals(imports) || !Files.isRegularFile(
+                    resolvedSource)) {
                 throw new IllegalArgumentException("Conversion source must be a regular file under Library.IMPORTS");
             }
 
@@ -97,8 +98,8 @@ public class MediaConversionTaskFactory implements ServerFactory<Task, MediaConv
     @Override
     public void onSuccess(@NotNull TaskExecutedPacket<Task, MediaConversionOutput> packet) {
 
-        MediaConversionInput input = this.getArgumentsSerializer().deserialize(packet.task().getArguments());
-        Episode episode = this.episodeService.requireById(input.episode().id());
+        MediaConversionInput input   = this.getArgumentsSerializer().deserialize(packet.task().getArguments());
+        Episode              episode = this.episodeService.requireById(input.episode().id());
 
         this.trackService.setFromConversionResults(episode, packet.result().tracks());
         this.eventPublisher.publishEvent(new MediaConversionCompletedEvent(episode.getId()));

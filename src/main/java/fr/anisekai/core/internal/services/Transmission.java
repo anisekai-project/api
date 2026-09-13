@@ -30,135 +30,6 @@ public class Transmission {
             "percentDone",
             "files"
     );
-
-    /**
-     * Current status of a torrent in Transmission.
-     */
-    public enum TorrentStatus {
-
-        /**
-         * Unknown status — the torrent's state could not be determined.
-         */
-        UNKNOWN(-1, false),
-
-        /**
-         * Torrent is stopped and not actively downloading or seeding.
-         */
-        STOPPED(0, false),
-
-        /**
-         * Torrent verification is queued but not yet started.
-         */
-        VERIFY_QUEUED(1, false),
-
-        /**
-         * Torrent is currently verifying existing data.
-         */
-        VERIFYING(2, false),
-
-        /**
-         * Torrent is queued and waiting to start downloading.
-         */
-        DOWNLOAD_QUEUED(3, false),
-
-        /**
-         * Torrent is actively downloading data.
-         */
-        DOWNLOADING(4, false),
-
-        /**
-         * Torrent is queued and waiting to start seeding.
-         */
-        SEED_QUEUED(5, true),
-
-        /**
-         * Torrent is actively seeding (uploading to peers).
-         */
-        SEEDING(6, true);
-
-        private final int     id;
-        private final boolean finished;
-
-        TorrentStatus(int id, boolean finished) {
-
-            this.id       = id;
-            this.finished = finished;
-        }
-
-        /**
-         * Indicates whether this torrent status represents a finished state.
-         *
-         * @return {@code true} if the torrent is finished (seeding or completed), {@code false} otherwise.
-         */
-        public boolean isFinished() {
-
-            return this.finished;
-        }
-
-        /**
-         * Converts a numeric status code to its corresponding {@link TorrentStatus} enum constant.
-         *
-         * @param status
-         *         The numeric status code from Transmission.
-         *
-         * @return The matching {@link TorrentStatus}, or {@link #UNKNOWN} if no match is found.
-         */
-        public static TorrentStatus from(int status) {
-
-            for (TorrentStatus value : values()) {
-                if (value.id == status) {
-                    return value;
-                }
-            }
-            return UNKNOWN;
-        }
-
-    }
-
-    /**
-     * Represents a Transmission torrent with basic metadata.
-     *
-     * @param hash
-     *         The {@link Torrent}'s hash.
-     * @param status
-     *         The {@link Torrent}'s {@link TorrentStatus}.
-     * @param downloadDir
-     *         The {@link Torrent}'s download directory
-     * @param percentDone
-     *         The {@link Torrent}'s download progress (0 to 1)
-     * @param files
-     *         The {@link Torrent}'s file names.
-     */
-    public record Torrent(
-            String hash,
-            TorrentStatus status,
-            String downloadDir,
-            double percentDone,
-            List<String> files
-    ) {
-
-        /**
-         * Creates a {@link Torrent} instance from an {@link AnisekaiJson} object representing a Transmission torrent.
-         *
-         * @param json
-         *         The JSON object containing torrent information, expected to have keys: "hashString", "status",
-         *         "downloadDir", "percentDone", and "files.0.name".
-         *
-         * @return A new {@link Torrent} instance populated with data parsed from the given JSON.
-         */
-        public static Torrent of(AnisekaiJson json) {
-
-            String        hash        = json.getString("hashString");
-            TorrentStatus status = TorrentStatus.from(json.getInt("status"));
-            String        downloadDir = json.getString("downloadDir");
-            double        percentDone = json.getDouble("percentDone");
-            List<String>  files       = json.readArray("files").map(rawFile -> rawFile.getString("name"));
-
-            return new Torrent(hash, status, downloadDir, percentDone, files);
-        }
-
-    }
-
     private final String endpoint;
     private       String sessionId = null;
 
@@ -409,6 +280,134 @@ public class Transmission {
         if (!result.equals("success")) {
             throw new IllegalStateException("Transmission client failed to delete torrent");
         }
+    }
+
+    /**
+     * Current status of a torrent in Transmission.
+     */
+    public enum TorrentStatus {
+
+        /**
+         * Unknown status — the torrent's state could not be determined.
+         */
+        UNKNOWN(-1, false),
+
+        /**
+         * Torrent is stopped and not actively downloading or seeding.
+         */
+        STOPPED(0, false),
+
+        /**
+         * Torrent verification is queued but not yet started.
+         */
+        VERIFY_QUEUED(1, false),
+
+        /**
+         * Torrent is currently verifying existing data.
+         */
+        VERIFYING(2, false),
+
+        /**
+         * Torrent is queued and waiting to start downloading.
+         */
+        DOWNLOAD_QUEUED(3, false),
+
+        /**
+         * Torrent is actively downloading data.
+         */
+        DOWNLOADING(4, false),
+
+        /**
+         * Torrent is queued and waiting to start seeding.
+         */
+        SEED_QUEUED(5, true),
+
+        /**
+         * Torrent is actively seeding (uploading to peers).
+         */
+        SEEDING(6, true);
+
+        private final int     id;
+        private final boolean finished;
+
+        TorrentStatus(int id, boolean finished) {
+
+            this.id       = id;
+            this.finished = finished;
+        }
+
+        /**
+         * Converts a numeric status code to its corresponding {@link TorrentStatus} enum constant.
+         *
+         * @param status
+         *         The numeric status code from Transmission.
+         *
+         * @return The matching {@link TorrentStatus}, or {@link #UNKNOWN} if no match is found.
+         */
+        public static TorrentStatus from(int status) {
+
+            for (TorrentStatus value : values()) {
+                if (value.id == status) {
+                    return value;
+                }
+            }
+            return UNKNOWN;
+        }
+
+        /**
+         * Indicates whether this torrent status represents a finished state.
+         *
+         * @return {@code true} if the torrent is finished (seeding or completed), {@code false} otherwise.
+         */
+        public boolean isFinished() {
+
+            return this.finished;
+        }
+
+    }
+
+    /**
+     * Represents a Transmission torrent with basic metadata.
+     *
+     * @param hash
+     *         The {@link Torrent}'s hash.
+     * @param status
+     *         The {@link Torrent}'s {@link TorrentStatus}.
+     * @param downloadDir
+     *         The {@link Torrent}'s download directory
+     * @param percentDone
+     *         The {@link Torrent}'s download progress (0 to 1)
+     * @param files
+     *         The {@link Torrent}'s file names.
+     */
+    public record Torrent(
+            String hash,
+            TorrentStatus status,
+            String downloadDir,
+            double percentDone,
+            List<String> files
+    ) {
+
+        /**
+         * Creates a {@link Torrent} instance from an {@link AnisekaiJson} object representing a Transmission torrent.
+         *
+         * @param json
+         *         The JSON object containing torrent information, expected to have keys: "hashString", "status",
+         *         "downloadDir", "percentDone", and "files.0.name".
+         *
+         * @return A new {@link Torrent} instance populated with data parsed from the given JSON.
+         */
+        public static Torrent of(AnisekaiJson json) {
+
+            String        hash        = json.getString("hashString");
+            TorrentStatus status      = TorrentStatus.from(json.getInt("status"));
+            String        downloadDir = json.getString("downloadDir");
+            double        percentDone = json.getDouble("percentDone");
+            List<String>  files       = json.readArray("files").map(rawFile -> rawFile.getString("name"));
+
+            return new Torrent(hash, status, downloadDir, percentDone, files);
+        }
+
     }
 
 

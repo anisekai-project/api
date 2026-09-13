@@ -17,7 +17,7 @@ import java.util.UUID;
 public class InterestButtonInteraction {
 
     private final InterestService interestService;
-    private final AnimeService animeService;
+    private final AnimeService    animeService;
 
     public InterestButtonInteraction(AnimeService animeService, InterestService interestService) {
 

@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class TaskPollingRunner {
 
-    private final ClientOrchestrator orchestrator;
-    private volatile boolean ready;
+    private final    ClientOrchestrator orchestrator;
+    private volatile boolean            ready;
 
     public TaskPollingRunner(ClientOrchestrator orchestrator) {
 

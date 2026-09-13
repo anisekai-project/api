@@ -7,7 +7,10 @@ import fr.anisekai.scheduler.tasking.interfaces.factories.ClientFactory;
 import fr.anisekai.scheduler.tasking.interfaces.factories.ServerFactory;
 import fr.anisekai.scheduler.tasking.interfaces.structure.TaskHandler;
 import fr.anisekai.server.domain.entities.Task;
-import fr.anisekai.server.services.*;
+import fr.anisekai.server.services.AnimeService;
+import fr.anisekai.server.services.EpisodeService;
+import fr.anisekai.server.services.TorrentFileService;
+import fr.anisekai.server.services.TorrentService;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 

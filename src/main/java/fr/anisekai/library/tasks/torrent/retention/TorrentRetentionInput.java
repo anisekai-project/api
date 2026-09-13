@@ -5,4 +5,5 @@ import java.time.Duration;
 public record TorrentRetentionInput(
         Duration retentionDuration
 ) {
+
 }
