@@ -1,9 +1,9 @@
 package fr.anisekai.server.domain.entities;
 
-import fr.anisekai.core.internal.plannifier.interfaces.entities.WatchTarget;
 import fr.anisekai.core.persistence.annotations.TriggerEvent;
-import fr.anisekai.core.persistence.domain.IncrementableEntity;
+import fr.anisekai.core.persistence.domain.UuidEntity;
 import fr.anisekai.sanctum.interfaces.ScopedEntity;
+import fr.anisekai.scheduler.event.interfaces.entities.WatchTarget;
 import fr.anisekai.server.domain.converters.PatternConverter;
 import fr.anisekai.server.domain.converters.StringListConverter;
 import fr.anisekai.server.domain.enums.AnimeList;
@@ -20,21 +20,18 @@ import java.util.regex.Pattern;
 
 @Entity
 @Table(name = "anime")
-public class Anime extends IncrementableEntity implements WatchTarget, ScopedEntity, Comparable<Anime> {
+public class Anime extends UuidEntity implements WatchTarget, ScopedEntity, Comparable<Anime> {
 
-    @NotNull
     @Column(nullable = false)
     private String group;
 
     @Column(nullable = false)
     private byte order = 1;
 
-    @NotNull
     @Column(nullable = false, unique = true)
     @TriggerEvent(AnimeTitleUpdatedEvent.class)
     private String title;
 
-    @NotNull
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     @TriggerEvent(AnimeListUpdatedEvent.class)
@@ -57,7 +54,6 @@ public class Anime extends IncrementableEntity implements WatchTarget, ScopedEnt
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
 
-    @NotNull
     @Column(nullable = false, unique = true)
     @TriggerEvent(AnimeUrlUpdatedEvent.class)
     private String url;
@@ -94,6 +90,9 @@ public class Anime extends IncrementableEntity implements WatchTarget, ScopedEnt
     @NotNull
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "anime")
     private Set<Episode> episodes = new LinkedHashSet<>();
+
+    @Column(name = "disk_id", unique = true)
+    private Long diskId;
 
     public Anime() {
 
@@ -264,6 +263,11 @@ public class Anime extends IncrementableEntity implements WatchTarget, ScopedEnt
         this.episodes = episodes;
     }
 
+    public Long getDiskId() {
+
+        return this.diskId;
+    }
+
     @Override
     public boolean equals(Object o) {
 
@@ -292,7 +296,7 @@ public class Anime extends IncrementableEntity implements WatchTarget, ScopedEnt
     public @NotNull String getScopedName() {
 
         if (this.isNew()) throw new IllegalStateException("Cannot use a non persisted entity as scoped entity.");
-        return String.valueOf(this.getId());
+        return this.diskId == null ? this.getId().toString() : this.diskId.toString();
     }
 
 }

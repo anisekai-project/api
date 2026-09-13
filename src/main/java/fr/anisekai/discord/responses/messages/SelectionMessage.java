@@ -1,6 +1,8 @@
 package fr.anisekai.discord.responses.messages;
 
 import fr.anisekai.discord.interfaces.ButtonResponse;
+import fr.anisekai.discord.interactions.selection.SelectionButtonInteraction;
+import fr.anisekai.discord.interactions.user.VoteButtonInteraction;
 import fr.anisekai.discord.responses.embeds.selections.SelectionAnimeEmbed;
 import fr.anisekai.discord.responses.embeds.selections.SelectionClosedEmbed;
 import fr.anisekai.discord.responses.embeds.selections.SelectionVoterEmbed;
@@ -62,7 +64,7 @@ public class SelectionMessage implements ButtonResponse {
 
                 List<Button> buttons = this.selection.getAnimes()
                                                      .stream()
-                                                     .sorted(Comparator.comparingLong(Anime::getId))
+                                                     .sorted(Comparator.comparing(Anime::getId))
                                                      .map(anime -> votes.containsKey(anime) ? this.asButton(
                                                              anime,
                                                              votes.get(anime)
@@ -73,7 +75,7 @@ public class SelectionMessage implements ButtonResponse {
 
                 allButtons.add(Button.of(
                         ButtonStyle.DANGER,
-                        String.format("button://selection/close?selection=%s", this.selection.getId()),
+                        SelectionButtonInteraction.of(this.selection),
                         "Clôturer"
                 ));
                 mr.setEmbeds(embeds);
@@ -85,7 +87,7 @@ public class SelectionMessage implements ButtonResponse {
     private Button asButton(Anime anime) {
 
         return Button.primary(
-                String.format("button://vote?selection=%s&anime=%s", this.selection.getId(), anime.getId()),
+                VoteButtonInteraction.of(this.selection, anime),
                 String.valueOf(anime.getId())
         );
     }
@@ -94,7 +96,7 @@ public class SelectionMessage implements ButtonResponse {
 
         return Button.of(
                 ButtonStyle.SECONDARY,
-                String.format("button://vote?selection=%s&anime=%s", this.selection.getId(), anime.getId()),
+                VoteButtonInteraction.of(this.selection, anime),
                 String.valueOf(anime.getId()),
                 Emoji.fromUnicode(Objects.requireNonNull(votedBy.getEmote()))
         );

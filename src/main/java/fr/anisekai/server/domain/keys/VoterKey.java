@@ -2,9 +2,12 @@ package fr.anisekai.server.domain.keys;
 
 import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.entities.Selection;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
+import java.sql.Types;
+import java.util.UUID;
 
 /**
  * A composite key representing a voter's participation in a specific selection, identified by the selection ID and
@@ -15,7 +18,7 @@ import java.io.Serializable;
  * @param user
  *         The ID of the voter (user)
  */
-public record VoterKey(long selection, long user) implements Serializable {
+public record VoterKey(@JdbcTypeCode(Types.BINARY) UUID selection, long user) implements Serializable {
 
     /**
      * Creates a new {@link VoterKey} instance from a {@link Selection} and a {@link DiscordUser}.

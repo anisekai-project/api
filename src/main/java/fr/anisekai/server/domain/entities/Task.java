@@ -1,21 +1,20 @@
 package fr.anisekai.server.domain.entities;
 
-import fr.anisekai.core.internal.json.AnisekaiJson;
-import fr.anisekai.core.persistence.domain.IncrementableEntity;
-import fr.anisekai.server.domain.enums.TaskStatus;
-import fr.anisekai.server.types.JSONType;
+import fr.anisekai.core.persistence.domain.UuidEntity;
+import fr.anisekai.scheduler.tasking.enums.TaskStatus;
+import fr.anisekai.scheduler.tasking.interfaces.structure.TaskInterface;
 import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.*;
-import org.hibernate.annotations.Type;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 
 @Entity
 @Table(name = "task")
-public class Task extends IncrementableEntity {
+public class Task extends UuidEntity implements TaskInterface {
 
     public static final byte PRIORITY_DEFAULT        = 0;
     public static final byte PRIORITY_AUTOMATIC_LOW  = 1;
@@ -37,18 +36,20 @@ public class Task extends IncrementableEntity {
     @Column(nullable = false)
     private byte priority = 0;
 
-    @Type(JSONType.class)
-    private AnisekaiJson arguments;
+    @Column(nullable = false)
+    private String arguments = "{}";
 
     @Column(name = "failure_count", nullable = false)
     private byte failureCount;
+
+    @Column(name = "active_key", unique = true, length = 511)
+    private String activeKey;
 
     @Column(name = "started_at")
     private Instant startedAt;
 
     @Column(name = "completed_at")
     private Instant completedAt;
-
 
     public @NotNull String getFactoryName() {
 
@@ -58,6 +59,7 @@ public class Task extends IncrementableEntity {
     public void setFactoryName(@NotNull String factoryName) {
 
         this.factoryName = factoryName;
+        this.refreshActiveKey();
     }
 
     public @NotNull String getName() {
@@ -68,6 +70,7 @@ public class Task extends IncrementableEntity {
     public void setName(@NotNull String name) {
 
         this.name = name;
+        this.refreshActiveKey();
     }
 
     public @NotNull TaskStatus getStatus() {
@@ -78,6 +81,12 @@ public class Task extends IncrementableEntity {
     public void setStatus(@NotNull TaskStatus status) {
 
         this.status = status;
+        if (status == TaskStatus.SCHEDULED || status == TaskStatus.EXECUTING) {
+            this.completedAt = null;
+        } else if (this.completedAt == null) {
+            this.completedAt = Instant.now();
+        }
+        this.refreshActiveKey();
     }
 
     public byte getPriority() {
@@ -90,12 +99,12 @@ public class Task extends IncrementableEntity {
         this.priority = priority;
     }
 
-    public @NotNull AnisekaiJson getArguments() {
+    public @NotNull String getArguments() {
 
         return this.arguments;
     }
 
-    public void setArguments(@NotNull AnisekaiJson arguments) {
+    public void setArguments(@NotNull String arguments) {
 
         this.arguments = arguments;
     }
@@ -128,6 +137,14 @@ public class Task extends IncrementableEntity {
     public void setCompletedAt(Instant completedAt) {
 
         this.completedAt = completedAt;
+    }
+
+    private void refreshActiveKey() {
+
+        boolean active = this.status == TaskStatus.SCHEDULED || this.status == TaskStatus.EXECUTING;
+        this.activeKey = active && this.factoryName != null && this.name != null
+                ? this.factoryName + ":" + this.name
+                : null;
     }
 
     @Override

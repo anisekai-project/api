@@ -6,7 +6,10 @@ import java.time.format.DateTimeFormatter;
  * This class is automatically updated and compile upon project compilation, and allow to retrieve various information
  * about the build, like the version and the datetime at which the build occurred.
  */
+@SuppressWarnings("SameReturnValue")
 public final class BuildInfo {
+
+    private BuildInfo() {}
 
     /**
      * Retrieve the project version. The version is composed of 3 numbers separated by a dot and prefixed by the letter
@@ -40,7 +43,5 @@ public final class BuildInfo {
 
         return "${date}";
     }
-
-    private BuildInfo() {}
 
 }

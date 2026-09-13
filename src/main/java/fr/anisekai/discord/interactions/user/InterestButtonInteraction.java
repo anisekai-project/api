@@ -11,18 +11,13 @@ import fr.anisekai.server.domain.entities.Selection;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.InterestService;
 
+import java.util.UUID;
+
 @DiscordBean
 public class InterestButtonInteraction {
 
     private final InterestService interestService;
-
-    public static String of(Selection selection, Anime anime) {
-
-        return "button://interest?selection=%s&anime=%s".formatted(selection.getId(), anime.getId());
-    }
-
     private final AnimeService animeService;
-
 
     public InterestButtonInteraction(AnimeService animeService, InterestService interestService) {
 
@@ -30,15 +25,21 @@ public class InterestButtonInteraction {
         this.interestService = interestService;
     }
 
+    public static String of(Selection selection, Anime anime) {
+
+        return "button://interest?selection=%s&anime=%s".formatted(selection.getId(), anime.getId());
+    }
+
     @Button(name = "interest")
-    public InteractionResponse execute(DiscordUser user, @Param("anime") long animeId, @Param("interest") long interest) {
+    public InteractionResponse execute(DiscordUser user, @Param("anime") String animeId, @Param("interest") long interest) {
 
         if (user.getEmote() == null) {
             return DiscordResponse.privateError(
                     "Vous devez définir une emote de vote avant de pouvoir choisir votre intérêt pour un anime.");
         }
 
-        Anime anime = this.animeService.requireById(animeId);
+        UUID  id    = UUID.fromString(animeId);
+        Anime anime = this.animeService.requireById(id);
 
         if (interest < -2 || interest > 2) {
             return DiscordResponse.error("La valeur d'intérêt doit être comprise entre -2 (inclus) et 2 (inclus)");

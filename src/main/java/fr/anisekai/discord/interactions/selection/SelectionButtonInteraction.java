@@ -11,8 +11,10 @@ import fr.anisekai.server.domain.entities.Voter;
 import fr.anisekai.server.domain.enums.SelectionStatus;
 import fr.anisekai.server.services.SelectionService;
 import fr.anisekai.server.services.VoterService;
+import fr.anisekai.utils.UuidCodec;
 
 import java.util.List;
+import java.util.UUID;
 
 @DiscordBean
 public class SelectionButtonInteraction {
@@ -26,12 +28,18 @@ public class SelectionButtonInteraction {
         this.voterService = voterService;
     }
 
+    public static String of(Selection selection) {
+
+        return "button://selection/close?selection=" + UuidCodec.encode(selection.getId());
+    }
+
     @Button(name = "selection/close")
     @RequireAdmin
-    public InteractionResponse execute(@Param("selection") long selectionId) {
+    public InteractionResponse execute(@Param("selection") String selectionId) {
 
+        UUID id = UuidCodec.decode(selectionId);
         Selection selection = this.service.mod(
-                selectionId,
+                id,
                 entity -> entity.setStatus(SelectionStatus.CLOSED)
         );
 

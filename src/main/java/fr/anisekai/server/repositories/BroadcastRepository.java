@@ -11,9 +11,10 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface BroadcastRepository extends AnisekaiRepository<Broadcast, Long> {
+public interface BroadcastRepository extends AnisekaiRepository<Broadcast, UUID> {
 
     List<Broadcast> findAllByStatusIn(Collection<BroadcastStatus> statuses);
 
@@ -24,7 +25,7 @@ public interface BroadcastRepository extends AnisekaiRepository<Broadcast, Long>
     Optional<Broadcast> findByEventId(Long eventId);
 
     @Query("select count(b) from Broadcast b where b.watchTarget.id = :id and b.startingAt < :startingAt and b.status IN :statuses")
-    long countPreviousOf(Long id, Instant startingAt, Collection<BroadcastStatus> statuses);
+    long countPreviousOf(UUID id, Instant startingAt, Collection<BroadcastStatus> statuses);
 
     List<Broadcast> findByWatchTargetAndStartingAtAfterOrderByStartingAtAsc(Anime watchTarget, Instant startingAt);
 

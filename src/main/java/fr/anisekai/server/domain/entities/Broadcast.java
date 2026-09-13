@@ -1,8 +1,8 @@
 package fr.anisekai.server.domain.entities;
 
-import fr.anisekai.core.internal.plannifier.interfaces.entities.Planifiable;
 import fr.anisekai.core.persistence.annotations.TriggerEvent;
-import fr.anisekai.core.persistence.domain.IncrementableEntity;
+import fr.anisekai.core.persistence.domain.UuidEntity;
+import fr.anisekai.scheduler.event.interfaces.entities.Planifiable;
 import fr.anisekai.server.domain.enums.BroadcastStatus;
 import fr.anisekai.server.domain.events.broadcast.BroadcastEpisodeCountUpdatedEvent;
 import fr.anisekai.server.domain.events.broadcast.BroadcastFirstEpisodeUpdatedEvent;
@@ -18,7 +18,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "broadcast")
-public class Broadcast extends IncrementableEntity implements Planifiable<Anime> {
+public class Broadcast extends UuidEntity implements Planifiable<Anime> {
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "watch_target_id")

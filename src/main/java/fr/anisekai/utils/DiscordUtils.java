@@ -1,6 +1,7 @@
 package fr.anisekai.utils;
 
 import fr.anisekai.Texts;
+import fr.anisekai.scheduler.event.interfaces.entities.Planifiable;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.Broadcast;
 import fr.anisekai.server.domain.entities.Selection;
@@ -18,6 +19,7 @@ import org.springframework.context.ApplicationEvent;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Utility class containing various method for Discord formatting
@@ -81,12 +83,12 @@ public final class DiscordUtils {
      *
      * @return A command choice
      */
-    public static Command.Choice asChoice(long id, String name) {
+    public static Command.Choice asChoice(UUID id, String name) {
 
         if (name.length() > 100) {
-            return new Command.Choice(String.format("%s...", name.substring(0, 90)), id);
+            return new Command.Choice(String.format("%s...", name.substring(0, 90)), id.toString());
         }
-        return new Command.Choice(name, id);
+        return new Command.Choice(name, id.toString());
     }
 
     /**
@@ -143,6 +145,27 @@ public final class DiscordUtils {
             throw new IllegalStateException("Broadcast is not scheduled on Discord.");
         }
         return event;
+    }
+
+    public static @NotNull String getEpisodeText(Planifiable<?> broadcast) {
+
+        String episodeText;
+        if (broadcast.getEpisodeCount() == 1) {
+            episodeText = String.format("%02d", broadcast.getFirstEpisode());
+        } else if (broadcast.getEpisodeCount() == 2) {
+            episodeText = String.format(
+                    "%02d et %02d",
+                    broadcast.getFirstEpisode(),
+                    broadcast.getFirstEpisode() + 1
+            );
+        } else {
+            episodeText = String.format(
+                    "%02d à %02d",
+                    broadcast.getFirstEpisode(),
+                    broadcast.getFirstEpisode() + broadcast.getEpisodeCount() - 1
+            );
+        }
+        return episodeText;
     }
 
 }

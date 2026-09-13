@@ -7,9 +7,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface EpisodeRepository extends AnisekaiRepository<Episode, Long> {
+public interface EpisodeRepository extends AnisekaiRepository<Episode, UUID> {
 
     Optional<Episode> findByAnimeAndNumber(Anime anime, int number);
 

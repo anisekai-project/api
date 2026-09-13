@@ -2,10 +2,12 @@ package fr.anisekai.web.dto;
 
 import fr.anisekai.server.domain.entities.Episode;
 
+import java.util.UUID;
+
 public class EpisodeDto {
 
-    public       Long id;
     public final long number;
+    public       UUID id;
 
     public EpisodeDto(Episode episode) {
 
@@ -13,14 +15,14 @@ public class EpisodeDto {
         this.number = episode.getNumber();
     }
 
-    public String getName() {
-
-        return String.format("Épisode %s", this.number);
-    }
-
     public EpisodeDto(long number) {
 
         this.number = number;
+    }
+
+    public String getName() {
+
+        return String.format("Épisode %s", this.number);
     }
 
 }

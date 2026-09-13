@@ -1,12 +1,13 @@
 package fr.anisekai.discord.listeners;
 
-import fr.anisekai.core.internal.plannifier.data.CalibrationResult;
+import fr.anisekai.server.planifier.CalibrationResult;
 import fr.anisekai.core.persistence.EventContextRegistry;
 import fr.anisekai.discord.JDAStore;
 import fr.anisekai.discord.responses.embeds.CalibrationEmbed;
 import fr.anisekai.server.domain.entities.Broadcast;
 import fr.anisekai.server.domain.enums.BroadcastStatus;
 import fr.anisekai.server.services.BroadcastService;
+import fr.anisekai.server.services.BroadcastWorkflowService;
 import net.dv8tion.jda.api.entities.ScheduledEvent;
 import net.dv8tion.jda.api.events.guild.scheduledevent.ScheduledEventDeleteEvent;
 import net.dv8tion.jda.api.events.guild.scheduledevent.update.ScheduledEventUpdateStatusEvent;
@@ -27,12 +28,14 @@ public class DiscordListener extends ListenerAdapter {
     private final EventContextRegistry registry;
     private final JDAStore             store;
     private final BroadcastService     service;
+    private final BroadcastWorkflowService workflowService;
 
-    public DiscordListener(EventContextRegistry registry, JDAStore store, BroadcastService service) {
+    public DiscordListener(EventContextRegistry registry, JDAStore store, BroadcastService service, BroadcastWorkflowService workflowService) {
 
         this.registry = registry;
         this.store    = store;
         this.service  = service;
+        this.workflowService = workflowService;
     }
 
     private void cancel(ScheduledEvent event) {
@@ -42,7 +45,7 @@ public class DiscordListener extends ListenerAdapter {
 
             if (optionalBroadcast.isPresent()) {
                 Broadcast broadcast = optionalBroadcast.get();
-                this.service.cancel(broadcast);
+                this.workflowService.cancel(broadcast);
 
                 CalibrationResult calibrate = this.service.calibrate();
 

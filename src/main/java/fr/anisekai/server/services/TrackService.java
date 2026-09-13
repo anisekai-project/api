@@ -2,17 +2,19 @@ package fr.anisekai.server.services;
 
 import fr.anisekai.core.persistence.AnisekaiService;
 import fr.anisekai.core.persistence.EntityEventProcessor;
-import fr.anisekai.media.MediaFile;
 import fr.anisekai.server.domain.entities.Episode;
 import fr.anisekai.server.domain.entities.Track;
 import fr.anisekai.server.repositories.TrackRepository;
+import fr.anisekai.wireless.tasks.conversion.MediaConversionOutput;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 @Service
-public class TrackService extends AnisekaiService<Track, Long, TrackRepository> {
+public class TrackService extends AnisekaiService<Track, UUID, TrackRepository> {
 
     public TrackService(TrackRepository repository, EntityEventProcessor eventProcessor) {
 
@@ -25,19 +27,20 @@ public class TrackService extends AnisekaiService<Track, Long, TrackRepository> 
     }
 
     @Transactional
-    public List<Track> createFromMediaTrack(Episode episode, MediaFile mediaFile) {
+    public List<Track> setFromConversionResults(Episode episode, Collection<MediaConversionOutput.Track> tracks) {
 
-        return mediaFile
-                .getStreams()
-                .stream()
-                .map(stream -> {
-                    Track track = new Track();
-                    track.setEpisode(episode);
-                    track.setName("Track " + stream.getId());
-                    track.setCodec(stream.getCodec());
-                    track.setLanguage(stream.getMetadata().get("language"));
-                    return this.getRepository().save(track);
-                }).toList();
+        this.clearTracks(episode);
+
+        return tracks.stream().map(item -> {
+            Track track = new Track();
+            track.setId(item.uuid());
+            track.setEpisode(episode);
+            track.setName(item.name());
+            track.setCodec(item.codec());
+            track.setLanguage(item.language());
+            track.setDispositions(item.dispositions());
+            return this.getRepository().save(track);
+        }).toList();
     }
 
     @Transactional

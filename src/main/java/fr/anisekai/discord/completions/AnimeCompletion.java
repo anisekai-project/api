@@ -46,7 +46,7 @@ public class AnimeCompletion implements CompletionProvider {
                                               ),
                                               100, 30
                                       ),
-                                      anime.getId()
+                                      anime.getId().toString()
                               ));
     }
 

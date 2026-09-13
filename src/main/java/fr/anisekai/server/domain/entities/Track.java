@@ -1,6 +1,6 @@
 package fr.anisekai.server.domain.entities;
 
-import fr.anisekai.core.persistence.domain.IncrementableEntity;
+import fr.anisekai.core.persistence.domain.UuidEntity;
 import fr.anisekai.media.enums.Codec;
 import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.*;
@@ -11,7 +11,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "track")
-public class Track extends IncrementableEntity {
+public class Track extends UuidEntity {
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     private Episode episode;
@@ -28,6 +28,9 @@ public class Track extends IncrementableEntity {
 
     @Column(nullable = false)
     private int dispositions;
+
+    @Column(name = "disk_id", unique = true)
+    private Long diskId;
 
     public @NotNull Episode getEpisode() {
 
@@ -79,11 +82,16 @@ public class Track extends IncrementableEntity {
         this.dispositions = dispositions;
     }
 
+    public Long getDiskId() {
+
+        return this.diskId;
+    }
+
     public String asFilename() {
 
         return String.format(
                 "%s.%s",
-                this.getId(),
+                this.diskId == null ? this.getId().toString() : this.diskId.toString(),
                 this.getCodec().getExtension()
         );
     }

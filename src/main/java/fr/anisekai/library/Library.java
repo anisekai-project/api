@@ -30,12 +30,13 @@ public class Library extends Sanctum {
 
     public static final FileStore EVENT_IMAGES = new ScopedFileStorage("event-images", Anime.class, "webp");
 
-    public static final FileStore DOWNLOADS = new RawStorage("downloads");
-    public static final FileStore IMPORTS   = new RawStorage("imports");
+    public static final FileStore DOWNLOADS      = new RawStorage("downloads");
+    public static final FileStore IMPORTS        = new RawStorage("imports");
+    public static final FileStore LEGACY_EPISODE = new ScopedFileStorage("legacy", Episode.class, "mkv");
 
     private final ApplicationConfiguration.Library configuration;
 
-    private final Map<SessionToken, List<IsolationSession>> isolationMap = new HashMap<>();
+    private final Map<SessionToken, List<UUID>> sessionIsolations = new HashMap<>();
 
     public Library(ApplicationConfiguration configuration) {
 
@@ -50,24 +51,28 @@ public class Library extends Sanctum {
 
         this.registerStore(DOWNLOADS, StorePolicy.PRIVATE);
         this.registerStore(IMPORTS, StorePolicy.PRIVATE);
+        this.registerStore(LEGACY_EPISODE, StorePolicy.PRIVATE);
     }
 
-    public Optional<IsolationSession> resolveIsolation(SessionToken sessionToken, UUID isolation) {
+    public Optional<IsolationSession> resolveIsolationSession(SessionToken sessionToken, UUID uuid) {
 
-        if (!this.isolationMap.containsKey(sessionToken)) return Optional.empty();
-        return this.isolationMap.get(sessionToken).stream()
-                                .filter(item -> item.uuid().equals(isolation))
-                                .findFirst();
+        // Middleware
+        List<UUID> allowed = this.sessionIsolations.getOrDefault(sessionToken, Collections.emptyList());
+
+        if (allowed.contains(uuid)) {
+            return Optional.of(this.getIsolatedStorage(uuid, true).context());
+        }
+
+        return Optional.empty();
     }
 
     public IsolationSession createIsolation(SessionToken sessionToken, AccessScope... scopes) {
 
-        IsolationSession isolation = this.createIsolation(scopes);
-        this.isolationMap.computeIfAbsent(sessionToken, item -> new ArrayList<>());
-        this.isolationMap.get(sessionToken).add(isolation);
+        IsolationSession isolation = this.createIsolation(Set.of(scopes));
+        this.sessionIsolations.computeIfAbsent(sessionToken, _ -> new ArrayList<>());
+        this.sessionIsolations.get(sessionToken).add(isolation.uuid());
         return isolation;
     }
-
 
     public Path relativize(Path other) {
 

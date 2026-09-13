@@ -17,6 +17,7 @@ import fr.anisekai.server.services.AnimeService;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 
 import java.util.List;
+import java.util.UUID;
 
 @DiscordBean
 @RequireAdmin
@@ -37,7 +38,7 @@ public class AnimeStatusSlashInteraction {
                             name = "anime",
                             description = "Anime pour lequel la fiche sera envoyée.",
                             required = true,
-                            type = OptionType.INTEGER,
+                            type = OptionType.STRING,
                             completion = @Completion(named = AnimeCompletion.NAME)
                     ),
                     @Option(
@@ -49,9 +50,10 @@ public class AnimeStatusSlashInteraction {
                     )
             }
     )
-    public InteractionResponse execute(@Param("anime") long animeId, @Param("watchlist") AnimeList status) {
+    public InteractionResponse execute(@Param("anime") String animeId, @Param("watchlist") AnimeList status) {
 
-        Anime anime = this.service.mod(animeId, entity -> entity.setList(status));
+        UUID  id    = UUID.fromString(animeId);
+        Anime anime = this.service.mod(id, entity -> entity.setList(status));
         return DiscordResponse.info(
                 "La watchlist de l'anime **%s** a bien été changée.\n%s",
                 anime.getTitle(),

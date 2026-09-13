@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v3/library")
@@ -49,8 +50,8 @@ public class LibraryController {
     }
 
     @RequireAuth(allowGuests = false)
-    @GetMapping("/chunks/{episodeId:[0-9]+}/{name}")
-    public ResponseEntity<InputStreamResource> getChunkItem(@PathVariable long episodeId, @PathVariable String name) {
+    @GetMapping("/chunks/{episodeId:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}}/{name}")
+    public ResponseEntity<InputStreamResource> getChunkItem(@PathVariable UUID episodeId, @PathVariable String name) {
 
         Episode         episode  = this.episodeService.requireById(episodeId);
         StorageResolver resolver = this.library.getResolver(Library.CHUNKS);
@@ -60,8 +61,8 @@ public class LibraryController {
     }
 
     @RequireAuth(allowGuests = false)
-    @GetMapping("/episodes/{episodeId:[0-9]+}")
-    public ResponseEntity<InputStreamResource> getEpisode(@PathVariable long episodeId) {
+    @GetMapping("/episodes/{episodeId:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}}")
+    public ResponseEntity<InputStreamResource> getEpisode(@PathVariable UUID episodeId) {
 
         Episode         episode  = this.episodeService.requireById(episodeId);
         Anime           anime    = episode.getAnime();
@@ -70,12 +71,11 @@ public class LibraryController {
         Path            path     = resolver.file(episode);
 
         return this.webFile.serve(path, MKV, filename);
-
     }
 
     @RequireAuth(allowGuests = false)
-    @GetMapping("/subtitles/{trackId:[0-9]+}")
-    public ResponseEntity<InputStreamResource> getSubtitle(@PathVariable long trackId) {
+    @GetMapping("/subtitles/{trackId:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}}")
+    public ResponseEntity<InputStreamResource> getSubtitle(@PathVariable UUID trackId) {
 
         Track track = this.trackService.requireById(trackId);
         if (track.getCodec().getType() != CodecType.SUBTITLE) return ResponseEntity.badRequest().build();
@@ -86,8 +86,8 @@ public class LibraryController {
         return this.webFile.serve(path, MediaType.parseMediaType(track.getCodec().getMimeType()), null);
     }
 
-    @GetMapping("/event-images/{animeId:[0-9]+}")
-    public ResponseEntity<InputStreamResource> getEventImage(@PathVariable long animeId) {
+    @GetMapping("/event-images/{animeId:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}}")
+    public ResponseEntity<InputStreamResource> getEventImage(@PathVariable UUID animeId) {
 
         Anime anime = this.animeService.requireById(animeId);
 
@@ -105,11 +105,28 @@ public class LibraryController {
     }
 
     @RequireAuth(allowGuests = false)
-    @GetMapping("/downloads/{torrent}/{file:[0-9]*}")
-    public ResponseEntity<InputStreamResource> getDownloadItem(@PathVariable String torrent, @PathVariable int file) {
+    @GetMapping("/downloads/{torrentId:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}}/{file:[0-9]*}")
+    public ResponseEntity<InputStreamResource> getDownloadItem(@PathVariable UUID torrentId, @PathVariable int file) {
 
         //TODO
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
+
+    @RequireAuth(allowGuests = false)
+    @GetMapping("/downloads/{torrentId:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}}/{file}")
+    public ResponseEntity<InputStreamResource> getImportItem(@PathVariable UUID torrentId, @PathVariable int file) {
+
+        //TODO
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    }
+
+    @RequireAuth(allowGuests = false)
+    @GetMapping("/downloads/{torrentId:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}}/{directory}/{file}")
+    public ResponseEntity<InputStreamResource> getImportItem(@PathVariable UUID torrentId, @PathVariable String directory, @PathVariable String file) {
+
+        //TODO
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    }
+
 
 }

@@ -1,6 +1,6 @@
 package fr.anisekai.server.domain.entities;
 
-import fr.anisekai.core.persistence.domain.IncrementableEntity;
+import fr.anisekai.core.persistence.domain.UuidEntity;
 import fr.anisekai.sanctum.interfaces.ScopedEntity;
 import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.*;
@@ -13,7 +13,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "episode")
-public class Episode extends IncrementableEntity implements ScopedEntity, Comparable<Episode> {
+public class Episode extends UuidEntity implements ScopedEntity, Comparable<Episode> {
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     private Anime anime;
@@ -26,6 +26,9 @@ public class Episode extends IncrementableEntity implements ScopedEntity, Compar
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "episode")
     private Set<Track> tracks = new LinkedHashSet<>();
+
+    @Column(name = "disk_id", unique = true)
+    private Long diskId;
 
     public @NotNull Anime getAnime() {
 
@@ -62,6 +65,11 @@ public class Episode extends IncrementableEntity implements ScopedEntity, Compar
         return this.tracks;
     }
 
+    public Long getDiskId() {
+
+        return this.diskId;
+    }
+
     @Override
     public boolean equals(Object o) {
 
@@ -79,7 +87,7 @@ public class Episode extends IncrementableEntity implements ScopedEntity, Compar
     public @NotNull String getScopedName() {
 
         if (this.isNew()) throw new IllegalStateException("Cannot use a non persisted entity as scoped entity.");
-        return String.valueOf(this.getId());
+        return this.diskId == null ? this.getId().toString() : this.diskId.toString();
     }
 
     @Override

@@ -4,17 +4,14 @@ import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.Episode;
 import fr.anisekai.web.enums.AnimeStorageState;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 
 public class AnimeDto {
 
     private static final String IMAGE_URL = "/api/v3/library/event-images/%s";
 
-    public final long              id;
+    public final UUID              id;
     public final String            group;
     public final byte              order;
     public final String            title;

@@ -1,28 +1,46 @@
 package fr.anisekai.server.repositories;
 
 import fr.anisekai.core.persistence.repository.AnisekaiRepository;
+import fr.anisekai.scheduler.tasking.enums.TaskStatus;
 import fr.anisekai.server.domain.entities.Task;
-import fr.anisekai.server.domain.enums.TaskStatus;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface TaskRepository extends AnisekaiRepository<Task, Long> {
+public interface TaskRepository extends AnisekaiRepository<Task, UUID> {
 
-    @Query("SELECT t FROM Task t WHERE t.status = :status AND t.factoryName IN :factoryNames ORDER BY t.priority DESC, t.id LIMIT 1")
-    Optional<Task> findNextOf(TaskStatus status, Collection<String> factoryNames);
+    List<Task> findAllByNameAndStatusIn(String name, List<TaskStatus> scheduled);
 
-    @Query("SELECT t FROM Task t WHERE t.status = :status AND t.factoryName NOT IN :factoryNames ORDER BY t.priority DESC, t.id LIMIT 1")
-    Optional<Task> findNextNotOf(TaskStatus status, Collection<String> factoryNames);
+    List<Task> findAllByStatusOrderByPriorityDescCreatedAtAscIdAsc(TaskStatus status);
 
-    List<Task> findAllByNameAndStatus(String name, TaskStatus status);
+    boolean existsByNameAndStatusIn(String name, Collection<TaskStatus> status);
 
-    Optional<Task> findByNameAndStatusIn(String name, List<TaskStatus> scheduled);
+    Optional<Task> findFirstByFactoryNameAndNameAndStatusIn(String factoryName, String name, Collection<TaskStatus> status);
 
-    List<Task> findAllByStatus(TaskStatus status);
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("""
+            UPDATE Task t
+            SET t.status = :executing, t.startedAt = :startedAt, t.completedAt = NULL
+            WHERE t.id = :id AND t.status = :scheduled
+            """)
+    int claim(UUID id, TaskStatus scheduled, TaskStatus executing, Instant startedAt);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("""
+            UPDATE Task t
+            SET t.status = :scheduled, t.startedAt = NULL
+            WHERE t.status = :executing
+            """)
+    int resetExecuting(TaskStatus executing, TaskStatus scheduled);
 
 }

@@ -82,7 +82,7 @@ public class IsolationInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        Optional<IsolationSession> optionalIsolation = this.library.resolveIsolation(sessionToken, uuid);
+        Optional<IsolationSession> optionalIsolation = this.library.resolveIsolationSession(sessionToken, uuid);
 
         if (optionalIsolation.isEmpty()) {
             LOGGER.warn("[{}] Can't provide isolation context: No matching isolation", route);

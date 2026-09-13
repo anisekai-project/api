@@ -1,9 +1,9 @@
 package fr.anisekai.server.services;
 
-import fr.anisekai.core.internal.plannifier.interfaces.ScheduleSpotData;
 import fr.anisekai.core.persistence.AnisekaiService;
 import fr.anisekai.core.persistence.EntityEventProcessor;
 import fr.anisekai.core.persistence.UpsertResult;
+import fr.anisekai.scheduler.event.interfaces.ScheduleSpotData;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.enums.AnimeList;
@@ -15,14 +15,11 @@ import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
 
 @Service
-public class AnimeService extends AnisekaiService<Anime, Long, AnimeRepository> {
+public class AnimeService extends AnisekaiService<Anime, UUID, AnimeRepository> {
 
     public AnimeService(AnimeRepository repository, EntityEventProcessor eventProcessor) {
 
@@ -53,7 +50,7 @@ public class AnimeService extends AnisekaiService<Anime, Long, AnimeRepository> 
     }
 
     @Transactional
-    public Anime updateAnime(DiscordUser sender, long id, AnimeRequestData data) {
+    public Anime updateAnime(DiscordUser sender, UUID id, AnimeRequestData data) {
 
         Anime anime = this.requireById(id);
 
@@ -121,7 +118,7 @@ public class AnimeService extends AnisekaiService<Anime, Long, AnimeRepository> 
     }
 
     @Transactional
-    public List<Anime> move(Collection<Long> ids, AnimeList to) {
+    public List<Anime> move(Collection<UUID> ids, AnimeList to) {
 
         if (ids.isEmpty()) {
             return Collections.emptyList();

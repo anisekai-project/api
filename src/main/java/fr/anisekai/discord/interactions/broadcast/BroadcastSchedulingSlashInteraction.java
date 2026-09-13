@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @DiscordBean
 @RequireAdmin
@@ -41,7 +42,7 @@ public class BroadcastSchedulingSlashInteraction {
                     @Option(
                             name = "anime",
                             description = "Anime pour lequel la ou les séances seront planifiées.",
-                            type = OptionType.INTEGER,
+                            type = OptionType.STRING,
                             required = true,
                             completion = @Completion(named = AnimeCompletion.NAME)
                     ),
@@ -71,9 +72,10 @@ public class BroadcastSchedulingSlashInteraction {
             }
     )
     @Deferrable
-    public InteractionResponse executeSchedule(@Param("anime") long animeId, @Param("frequency") String frequencyName, @Param("time") String timeParam, @Param("amount") Long amount, @Param("starting") String startingParam) {
+    public InteractionResponse executeSchedule(@Param("anime") String animeId, @Param("frequency") String frequencyName, @Param("time") String timeParam, @Param("amount") Long amount, @Param("starting") String startingParam) {
 
-        Anime anime = this.animeService.requireById(animeId);
+        UUID  id    = UUID.fromString(animeId);
+        Anime anime = this.animeService.requireById(id);
 
         BroadcastFrequency frequency = BroadcastFrequency.from(frequencyName);
         Instant            starting  = DateTimeUtils.of(timeParam, startingParam);

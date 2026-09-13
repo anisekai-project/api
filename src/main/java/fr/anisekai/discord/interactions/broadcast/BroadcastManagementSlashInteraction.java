@@ -1,13 +1,14 @@
 package fr.anisekai.discord.interactions.broadcast;
 
 import fr.alexpado.interactions.annotations.Slash;
-import fr.anisekai.core.internal.plannifier.data.CalibrationResult;
+import fr.anisekai.server.planifier.CalibrationResult;
 import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
 import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.library.Library;
 import fr.anisekai.server.services.BroadcastService;
+import fr.anisekai.server.services.BroadcastWorkflowService;
 import fr.anisekai.utils.StringUtils;
 
 @DiscordBean
@@ -15,10 +16,12 @@ import fr.anisekai.utils.StringUtils;
 public class BroadcastManagementSlashInteraction {
 
     private final BroadcastService service;
+    private final BroadcastWorkflowService workflowService;
 
-    public BroadcastManagementSlashInteraction(BroadcastService service, Library library) {
+    public BroadcastManagementSlashInteraction(BroadcastService service, BroadcastWorkflowService workflowService, Library library) {
 
         this.service = service;
+        this.workflowService = workflowService;
     }
 
     @Slash(
@@ -42,7 +45,7 @@ public class BroadcastManagementSlashInteraction {
     )
     public InteractionResponse executeCancel() {
 
-        int amount = this.service.cancel();
+        int amount = this.workflowService.cancel();
 
         return DiscordResponse.info(StringUtils.count(
                 amount,
@@ -58,7 +61,7 @@ public class BroadcastManagementSlashInteraction {
     )
     public InteractionResponse executeRefresh() {
 
-        int amount = this.service.refresh();
+        int amount = this.workflowService.refresh();
 
         return DiscordResponse.info(StringUtils.count(
                 amount,

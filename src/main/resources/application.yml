@@ -28,7 +28,7 @@ sentry:
   environment:              ${ENVIRONMENT}
   traces-sample-rate:       ${SENTRY_SERVICE_SAMPLE_RATE:0.1}
   exception-resolver-order: -2147483647
-  send-default-pii: true
+  send-default-pii:         true
   logs:
     enabled: true
 

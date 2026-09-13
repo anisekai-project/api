@@ -8,7 +8,8 @@ import fr.anisekai.server.domain.entities.Torrent;
 import fr.anisekai.server.repositories.TorrentRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.ZonedDateTime;
+import java.time.LocalDate;
+import java.time.chrono.ChronoZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -39,7 +40,7 @@ public class TorrentService extends AnisekaiService<Torrent, UUID, TorrentReposi
         return this.getRepository().findByStatusIn(statuses);
     }
 
-    public List<Torrent> getAllFinishedBefore(ZonedDateTime start) {
+    public List<Torrent> getAllFinishedBefore(ChronoZonedDateTime<LocalDate> start) {
 
         List<Transmission.TorrentStatus> statuses = Arrays.stream(Transmission.TorrentStatus.values())
                                                           .filter(Transmission.TorrentStatus::isFinished)

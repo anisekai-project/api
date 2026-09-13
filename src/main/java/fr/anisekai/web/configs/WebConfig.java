@@ -24,11 +24,10 @@ public class WebConfig implements WebMvcConfigurer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WebConfig.class);
 
-    private final SessionArgumentResolver      sessionArgumentResolver;
-    private final IsolationArgumentResolver    isolationArgumentResolver;
-    private final AuthenticationInterceptor    authenticationInterceptor;
-    private final IsolationInterceptor         isolationInterceptor;
-    private final ApplicationConfiguration.Api config;
+    private final SessionArgumentResolver   sessionArgumentResolver;
+    private final IsolationArgumentResolver isolationArgumentResolver;
+    private final AuthenticationInterceptor authenticationInterceptor;
+    private final IsolationInterceptor      isolationInterceptor;
 
     public WebConfig(SessionArgumentResolver sessionArgumentResolver, IsolationArgumentResolver isolationArgumentResolver, AuthenticationInterceptor authenticationInterceptor, IsolationInterceptor isolationInterceptor, ApplicationConfiguration config) {
 
@@ -36,7 +35,6 @@ public class WebConfig implements WebMvcConfigurer {
         this.isolationArgumentResolver = isolationArgumentResolver;
         this.authenticationInterceptor = authenticationInterceptor;
         this.isolationInterceptor      = isolationInterceptor;
-        this.config                    = config.getApi();
     }
 
     @Bean

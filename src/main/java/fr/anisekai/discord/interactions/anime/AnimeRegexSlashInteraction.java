@@ -10,10 +10,10 @@ import fr.anisekai.discord.completions.AnimeCompletion;
 import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.server.domain.entities.Anime;
-import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.services.AnimeService;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 @DiscordBean
@@ -39,7 +39,7 @@ public class AnimeRegexSlashInteraction {
                     @Option(
                             name = "anime",
                             description = "L'anime à modifier",
-                            type = OptionType.INTEGER,
+                            type = OptionType.STRING,
                             required = true,
                             completion = @Completion(named = AnimeCompletion.NAME)
                     ),
@@ -51,7 +51,7 @@ public class AnimeRegexSlashInteraction {
                     )
             }
     )
-    public InteractionResponse registerRegex(DiscordUser user, @Param("anime") long animeId, @Param("regex") String regex) {
+    public InteractionResponse registerRegex(@Param("anime") String animeId, @Param("regex") String regex) {
 
         if (!regex.contains("(?<ep>\\d+)")) {
             return DiscordResponse.error(REGEX_MISSING_CAPTURE_GROUP);
@@ -65,7 +65,8 @@ public class AnimeRegexSlashInteraction {
         }
 
         // TODO: Make title-regex an array.
-        Anime anime = this.service.mod(animeId, entity -> entity.setTitleRegex(pattern));
+        UUID  id    = UUID.fromString(animeId);
+        Anime anime = this.service.mod(id, entity -> entity.setTitleRegex(pattern));
         return DiscordResponse.info("L'anime **%s** a été mis à jour.\nRegex: `%s`", anime.getTitle(), regex);
     }
 

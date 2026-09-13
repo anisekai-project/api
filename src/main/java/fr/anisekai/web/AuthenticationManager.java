@@ -241,7 +241,7 @@ public class AuthenticationManager {
         return new AuthData(accessToken, refreshToken);
     }
 
-    public AuthData exchange(String jwt) {
+    public AuthData exchange(CharSequence jwt) {
 
         UUID         uuid  = this.getJti(jwt);
         SessionToken token = this.getRefreshToken(uuid);

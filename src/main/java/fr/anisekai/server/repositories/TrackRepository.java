@@ -6,9 +6,10 @@ import fr.anisekai.server.domain.entities.Track;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface TrackRepository extends AnisekaiRepository<Track, Long> {
+public interface TrackRepository extends AnisekaiRepository<Track, UUID> {
 
     List<Track> findByEpisode(Episode episode);
 
