@@ -49,4 +49,15 @@ public @interface RequireAuth {
      */
     TokenType[] allowedSessionTypes() default {TokenType.USER, TokenType.APPLICATION};
 
+    /**
+     * Specifies the {@code APPLICATION} token scopes required to access this route. All listed scopes must be granted
+     * (AND semantics). An empty array disables scope checks.
+     * <p>
+     * {@code USER} sessions bypass scope checks. This bypass is transitional: {@code USER} tokens will disappear once
+     * every token is an {@code APPLICATION} token, at which point the bypass must be removed.
+     *
+     * @return The required token scopes for this route.
+     */
+    String[] scopes() default {};
+
 }

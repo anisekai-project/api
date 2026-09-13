@@ -26,6 +26,8 @@ repositories {
 dependencies {
     implementation(libs.bundles.spring)
     testImplementation(libs.testing.springframework.test)
+    testImplementation(libs.testing.h2)
+    testImplementation(libs.testing.springframework.data.jpa.test)
 
     implementation(libs.security.uuid)
     runtimeOnly(libs.database.mariadb.client)

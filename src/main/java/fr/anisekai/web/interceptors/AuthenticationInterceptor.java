@@ -23,6 +23,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Component
@@ -37,6 +38,7 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         private       boolean            adminRequired     = false;
         private       boolean            guestsAllowed     = true;
         private       EnumSet<TokenType> tokenTypesAllowed = EnumSet.of(TokenType.USER, TokenType.APPLICATION);
+        private       Set<String>        requiredScopes    = Set.of();
 
         public RouteRule(@Nullable RequireAuth auth) {
 
@@ -47,6 +49,7 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
                 this.guestsAllowed     = auth.allowGuests();
                 this.tokenTypesAllowed = EnumSet.noneOf(TokenType.class);
                 Collections.addAll(this.tokenTypesAllowed, auth.allowedSessionTypes());
+                this.requiredScopes = Set.of(auth.scopes());
             }
         }
 
@@ -62,8 +65,37 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             boolean guestCheckPass = !user.isGuest() || this.guestsAllowed;
             boolean adminCheckPass = user.isAdministrator() || !this.adminRequired;
             boolean typeCheckPass  = this.tokenTypesAllowed.contains(sessionToken.getType());
+            boolean scopeCheckPass = hasRequiredScopes(sessionToken);
 
-            return guestCheckPass && adminCheckPass && typeCheckPass;
+            return guestCheckPass && adminCheckPass && typeCheckPass && scopeCheckPass;
+        }
+
+        /**
+         * Check the {@code APPLICATION} token scopes required by the route.
+         * <p>
+         * TRANSITIONAL: {@code USER} sessions bypass scope checks. {@code USER} tokens will disappear once every token
+         * is an {@code APPLICATION} token (possibly behind an OpenID-compliant solution); remove this bypass then.
+         *
+         * @param sessionToken
+         *         The resolved session.
+         *
+         * @return {@code true} when no scope is required or every required scope is granted.
+         */
+        static boolean hasRequiredScopes(SessionToken sessionToken, Set<String> requiredScopes) {
+
+            if (requiredScopes == null || requiredScopes.isEmpty()) {
+                return true;
+            }
+            if (sessionToken.getType() == TokenType.USER) {
+                return true;
+            }
+            Set<String> granted = sessionToken.getScopes();
+            return granted != null && granted.containsAll(requiredScopes);
+        }
+
+        private boolean hasRequiredScopes(SessionToken sessionToken) {
+
+            return hasRequiredScopes(sessionToken, this.requiredScopes);
         }
 
     }
