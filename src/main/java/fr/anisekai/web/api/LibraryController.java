@@ -8,9 +8,14 @@ import fr.anisekai.sanctum.interfaces.isolation.IsolationSession;
 import fr.anisekai.sanctum.interfaces.resolvers.StorageResolver;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.Episode;
+import fr.anisekai.server.domain.entities.Torrent;
+import fr.anisekai.server.domain.entities.TorrentFile;
 import fr.anisekai.server.domain.entities.Track;
+import fr.anisekai.server.domain.keys.TorrentKey;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.EpisodeService;
+import fr.anisekai.server.services.TorrentFileService;
+import fr.anisekai.server.services.TorrentService;
 import fr.anisekai.server.services.TrackService;
 import fr.anisekai.web.WebFile;
 import fr.anisekai.web.annotations.RequireAuth;
@@ -55,19 +60,23 @@ public class LibraryController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LibraryController.class);
 
-    private final Library        library;
-    private final WebFile        webFile;
-    private final AnimeService   animeService;
-    private final EpisodeService episodeService;
-    private final TrackService   trackService;
+    private final Library            library;
+    private final WebFile            webFile;
+    private final AnimeService       animeService;
+    private final EpisodeService     episodeService;
+    private final TrackService       trackService;
+    private final TorrentService     torrentService;
+    private final TorrentFileService torrentFileService;
 
-    public LibraryController(Library library, WebFile webFile, AnimeService animeService, EpisodeService episodeService, TrackService trackService) {
+    public LibraryController(Library library, WebFile webFile, AnimeService animeService, EpisodeService episodeService, TrackService trackService, TorrentService torrentService, TorrentFileService torrentFileService) {
 
-        this.library        = library;
-        this.webFile        = webFile;
-        this.animeService   = animeService;
-        this.episodeService = episodeService;
-        this.trackService   = trackService;
+        this.library            = library;
+        this.webFile            = webFile;
+        this.animeService       = animeService;
+        this.episodeService     = episodeService;
+        this.trackService       = trackService;
+        this.torrentService     = torrentService;
+        this.torrentFileService = torrentFileService;
     }
 
     @RequireAuth(allowGuests = false)
@@ -187,28 +196,94 @@ public class LibraryController {
         return this.webFile.serve(path, WEBP, path.getFileName().toString());
     }
 
-    @RequireAuth(allowGuests = false)
+    @RequireAuth(allowedSessionTypes = TokenType.APPLICATION, scopes = TokenScope.WORKER)
+    @GetMapping("/imports/{file}")
+    @Operation(summary = "Download an import source file",
+            description = "Streams a manually imported source file for worker-side conversion. Full read, no isolation required.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Source file served."),
+            @ApiResponse(responseCode = "400", description = "Invalid file name.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
+            @ApiResponse(responseCode = "404", description = "Source file not found.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
+    })
+    public ResponseEntity<InputStreamResource> getImportFile(@PathVariable String file) {
+
+        this.requireImportName(file);
+        StorageResolver resolver = this.library.getResolver(Library.IMPORTS);
+        Path            path;
+
+        try {
+            path = resolver.file(file);
+        } catch (RuntimeException e) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "Unable to resolve import file", e);
+        }
+
+        return this.webFile.serve(path, DEFAULT, file);
+    }
+
+    @RequireAuth(allowedSessionTypes = TokenType.APPLICATION, scopes = TokenScope.WORKER)
+    @GetMapping("/imports/{directory}/{file}")
+    @Operation(summary = "Download an import source file from a directory",
+            description = "Streams a manually imported source file located in an import directory. Full read, no isolation required.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Source file served."),
+            @ApiResponse(responseCode = "400", description = "Invalid directory or file name.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
+            @ApiResponse(responseCode = "404", description = "Source file not found.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
+    })
+    public ResponseEntity<InputStreamResource> getImportFile(@PathVariable String directory, @PathVariable String file) {
+
+        this.requireImportName(directory);
+        this.requireImportName(file);
+        StorageResolver resolver = this.library.getResolver(Library.IMPORTS);
+        Path            path;
+
+        try {
+            Path directoryPath = resolver.directory(directory);
+            Path candidate = directoryPath.resolve(file).normalize();
+            if (!candidate.startsWith(directoryPath)) {
+                throw new WebException(HttpStatus.BAD_REQUEST, "Unable to resolve import file");
+            }
+            path = candidate;
+        } catch (WebException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "Unable to resolve import file", e);
+        }
+
+        return this.webFile.serve(path, DEFAULT, file);
+    }
+
+    @RequireAuth(allowedSessionTypes = TokenType.APPLICATION, scopes = TokenScope.WORKER)
     @GetMapping("/downloads/{torrentId:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}}/{file:[0-9]*}")
+    @Operation(summary = "Download a torrent source file",
+            description = "Streams a fully downloaded torrent file for worker-side conversion. Requires download completion (progress >= 1.0). Full read, no isolation required.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Source file served."),
+            @ApiResponse(responseCode = "404", description = "Torrent, torrent file, or downloaded content not found.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
+            @ApiResponse(responseCode = "422", description = "Torrent download is incomplete.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
+    })
     public ResponseEntity<InputStreamResource> getDownloadItem(@PathVariable UUID torrentId, @PathVariable int file) {
 
-        //TODO
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+        Torrent torrent = this.torrentService.requireById(torrentId);
+        TorrentFile torrentFile = this.torrentFileService.requireById(new TorrentKey(torrentId, file));
+
+        if (torrentFile.isRemoved()) {
+            throw new WebException(HttpStatus.NOT_FOUND, "Torrent file was removed");
+        }
+        if (torrent.getProgress() < 1.0) {
+            throw new WebException(HttpStatus.UNPROCESSABLE_CONTENT, "Torrent download is incomplete");
+        }
+
+        Path path = this.library.findDownload(torrentFile)
+                                .orElseThrow(() -> new WebException(HttpStatus.NOT_FOUND, "Downloaded file not found"));
+
+        return this.webFile.serve(path, DEFAULT, torrentFile.getName());
     }
 
-    @RequireAuth(allowGuests = false)
-    @GetMapping("/downloads/{torrentId:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}}/{file}")
-    public ResponseEntity<InputStreamResource> getImportItem(@PathVariable UUID torrentId, @PathVariable int file) {
+    private void requireImportName(String name) {
 
-        //TODO
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
-    }
-
-    @RequireAuth(allowGuests = false)
-    @GetMapping("/downloads/{torrentId:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}}/{directory}/{file}")
-    public ResponseEntity<InputStreamResource> getImportItem(@PathVariable UUID torrentId, @PathVariable String directory, @PathVariable String file) {
-
-        //TODO
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+        if (name == null || name.isBlank() || name.length() > 100) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "Invalid import name");
+        }
     }
 
 

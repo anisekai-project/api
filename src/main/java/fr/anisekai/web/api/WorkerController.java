@@ -90,7 +90,8 @@ public class WorkerController {
 
         WorkerPingResponse response = new WorkerPingResponse(workerUuid,
                 task != null ? new TaskSummary(task.getId(), task.getFactoryName(), task.getName(),
-                        task.getStatus(), task.getPriority(), task.getActiveKey(), task.getStartedAt(), task.getCompletedAt())
+                        task.getStatus(), task.getPriority(), task.getActiveKey(), task.getStartedAt(), task.getCompletedAt(),
+                        task.getArguments())
                         : null,
                 task != null);
 

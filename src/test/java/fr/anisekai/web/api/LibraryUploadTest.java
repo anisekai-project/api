@@ -7,6 +7,8 @@ import fr.anisekai.sanctum.interfaces.isolation.IsolationSession;
 import fr.anisekai.server.domain.entities.Episode;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.server.services.EpisodeService;
+import fr.anisekai.server.services.TorrentFileService;
+import fr.anisekai.server.services.TorrentService;
 import fr.anisekai.server.services.TrackService;
 import fr.anisekai.web.WebFile;
 import fr.anisekai.web.exceptions.WebException;
@@ -52,7 +54,9 @@ class LibraryUploadTest {
                 mock(WebFile.class),
                 mock(AnimeService.class),
                 episodes,
-                mock(TrackService.class)
+                mock(TrackService.class),
+                mock(TorrentService.class),
+                mock(TorrentFileService.class)
         );
     }
 

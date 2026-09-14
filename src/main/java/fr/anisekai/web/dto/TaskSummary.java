@@ -12,6 +12,7 @@ public record TaskSummary(
         byte priority,
         String activeKey,
         Instant startedAt,
-        Instant completedAt
+        Instant completedAt,
+        String arguments
 ) {
 }

@@ -8,6 +8,7 @@ import fr.anisekai.scheduler.tasking.data.TaskExecutedPacket;
 import fr.anisekai.scheduler.tasking.interfaces.factories.ServerFactory;
 import fr.anisekai.server.domain.entities.Episode;
 import fr.anisekai.server.domain.entities.Task;
+import fr.anisekai.server.domain.entities.TorrentFile;
 import fr.anisekai.server.services.EpisodeService;
 import fr.anisekai.server.services.TrackService;
 import fr.anisekai.utils.IOUtils;
@@ -62,7 +63,46 @@ public class MediaConversionTaskFactory implements ServerFactory<Task, MediaConv
 
             String sourceReference = imports.relativize(resolvedSource).toString();
             return new MediaConversionInput(
-                    new MediaConversionInput.Episode(episode.getId(), sourceReference, IOUtils.hash(resolvedSource)),
+                    new MediaConversionInput.Episode(
+                            episode.getId(),
+                            new MediaConversionInput.Source(MediaConversionInput.Store.IMPORTS, sourceReference),
+                            IOUtils.hash(resolvedSource)
+                    ),
+                    DEFAULT_CONVERSION_OPTION
+            );
+        } catch (IOException e) {
+            throw new UncheckedIOException("Unable to resolve media conversion source", e);
+        }
+    }
+
+    public static MediaConversionInput createInput(Library library, Episode episode, TorrentFile torrentFile) {
+
+        Objects.requireNonNull(library, "library");
+        Objects.requireNonNull(episode, "episode");
+        Objects.requireNonNull(torrentFile, "torrentFile");
+
+        Path source = library.findDownload(torrentFile)
+                             .orElseThrow(() -> new IllegalArgumentException(
+                                     "Conversion source must be a downloaded file resolvable via Library.findDownload"));
+
+        if (!Files.isRegularFile(source)) {
+            throw new IllegalArgumentException("Conversion source must be a regular file under Library.DOWNLOADS");
+        }
+
+        try {
+            Path realSource = source.toRealPath();
+            if (!realSource.startsWith(library.getResolver(Library.DOWNLOADS).directory().toRealPath())) {
+                throw new IllegalArgumentException("Conversion source escapes Library.DOWNLOADS");
+            }
+            return new MediaConversionInput(
+                    new MediaConversionInput.Episode(
+                            episode.getId(),
+                            new MediaConversionInput.Source(
+                                    MediaConversionInput.Store.DOWNLOADS,
+                                    "%s/%d".formatted(torrentFile.getTorrent().getId(), torrentFile.getIndex())
+                            ),
+                            IOUtils.hash(source)
+                    ),
                     DEFAULT_CONVERSION_OPTION
             );
         } catch (IOException e) {
@@ -80,7 +120,12 @@ public class MediaConversionTaskFactory implements ServerFactory<Task, MediaConv
     public @NotNull String getTaskName(@NotNull MediaConversionInput arguments) {
 
         MediaConversionInput.Episode episode = arguments.episode();
-        return "%s:%s:%s".formatted(this.getName(), episode.id(), episode.sourceReference());
+        return "%s:%s:%s:%s".formatted(
+                this.getName(),
+                episode.id(),
+                episode.source().store(),
+                episode.source().reference()
+        );
     }
 
     @Override

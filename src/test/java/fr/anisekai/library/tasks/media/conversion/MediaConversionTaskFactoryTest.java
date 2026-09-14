@@ -17,6 +17,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,10 +43,47 @@ class MediaConversionTaskFactoryTest {
         MediaConversionInput input = MediaConversionTaskFactory.createInput(library, episode, source);
         MediaConversionTaskFactory factory = new MediaConversionTaskFactory(null, null, null, null);
 
-        assertEquals("batch/episode.mkv", input.episode().sourceReference());
+        assertEquals("batch/episode.mkv", input.episode().source().reference());
+        assertEquals(MediaConversionInput.Store.IMPORTS, input.episode().source().store());
         assertTrue(input.episode().hash().matches("[0-9a-f]{64}"));
         assertEquals(
-                "media:convert:%s:batch/episode.mkv".formatted(episode.getId()),
+                "media:convert:%s:IMPORTS:batch/episode.mkv".formatted(episode.getId()),
+                factory.getTaskName(input)
+        );
+    }
+
+    @Test
+    void createsDownloadRelativeInputAndSourceSpecificName() throws Exception {
+
+        Path downloads = Files.createDirectory(this.temporaryDirectory.resolve("downloads"));
+        Path source = Files.writeString(downloads.resolve("episode.mkv"), "episode");
+        UUID torrentId = UUID.randomUUID();
+
+        fr.anisekai.server.domain.entities.Torrent torrent = new fr.anisekai.server.domain.entities.Torrent();
+        torrent.setId(torrentId);
+        torrent.setName("episode");
+
+        fr.anisekai.server.domain.entities.TorrentFile torrentFile =
+                new fr.anisekai.server.domain.entities.TorrentFile();
+        torrentFile.setTorrent(torrent);
+        torrentFile.setIndex(2);
+        torrentFile.setName("episode.mkv");
+
+        Library library = mock(Library.class);
+        when(library.findDownload(torrentFile)).thenReturn(Optional.of(source));
+        var downloadsResolver = mock(fr.anisekai.sanctum.interfaces.resolvers.StorageResolver.class);
+        when(library.getResolver(Library.DOWNLOADS)).thenReturn(downloadsResolver);
+        when(downloadsResolver.directory()).thenReturn(downloads);
+
+        Episode episode = episode();
+        MediaConversionInput input = MediaConversionTaskFactory.createInput(library, episode, torrentFile);
+        MediaConversionTaskFactory factory = new MediaConversionTaskFactory(null, null, null, null);
+
+        assertEquals(torrentId + "/2", input.episode().source().reference());
+        assertEquals(MediaConversionInput.Store.DOWNLOADS, input.episode().source().store());
+        assertTrue(input.episode().hash().matches("[0-9a-f]{64}"));
+        assertEquals(
+                "media:convert:%s:DOWNLOADS:%s/2".formatted(episode.getId(), torrentId),
                 factory.getTaskName(input)
         );
     }
@@ -118,7 +156,11 @@ class MediaConversionTaskFactoryTest {
     private static MediaConversionInput input(UUID episodeId) {
 
         return new MediaConversionInput(
-                new MediaConversionInput.Episode(episodeId, "episode.mkv", "0".repeat(64)),
+                new MediaConversionInput.Episode(
+                        episodeId,
+                        new MediaConversionInput.Source(MediaConversionInput.Store.IMPORTS, "episode.mkv"),
+                        "0".repeat(64)
+                ),
                 MediaConversionTaskFactory.DEFAULT_CONVERSION_OPTION
         );
     }
