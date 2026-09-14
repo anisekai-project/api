@@ -8,16 +8,21 @@ import fr.anisekai.scheduler.tasking.data.TaskExecutedPacket;
 import fr.anisekai.scheduler.tasking.data.TaskFailedPacket;
 import fr.anisekai.scheduler.tasking.data.TaskMeta;
 import fr.anisekai.scheduler.tasking.enums.TaskStatus;
+import fr.anisekai.scheduler.tasking.exceptions.UnknownFactoryException;
 import fr.anisekai.scheduler.tasking.interfaces.factories.Factory;
 import fr.anisekai.scheduler.tasking.interfaces.factories.ServerFactory;
+import fr.anisekai.scheduler.tasking.interfaces.structure.TaskClient;
 import fr.anisekai.server.domain.entities.Task;
+import fr.anisekai.server.domain.entities.Worker;
 import fr.anisekai.server.exceptions.task.TaskNotFoundException;
 import fr.anisekai.server.repositories.TaskRepository;
 import fr.anisekai.server.tasking.server.ServerFactoryRegistry;
 import fr.anisekai.server.tasking.server.ServerOrchestrator;
 import fr.anisekai.utils.DataUtils;
+import fr.anisekai.web.exceptions.WebException;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -157,6 +162,56 @@ public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
         return this.getRepository()
                    .findById(meta.identifier())
                    .orElseThrow(TaskNotFoundException::new);
+    }
+
+    /**
+     * Poll for a task on behalf of a worker, going through the {@link ServerOrchestrator} so factory attribution
+     * callbacks ({@code onAssigningTask}) fire and claiming stays atomic.
+     *
+     * @param worker
+     *         The worker polling for a task. It is recorded on the claimed task for audit and ownership checks.
+     * @param factoryNames
+     *         The compatible factory names declared by the worker. Must not be empty, all names must be known.
+     *
+     * @return The claimed task, if any.
+     */
+    @Transactional
+    public Optional<Task> pollForWorker(@NotNull Worker worker, Collection<String> factoryNames) {
+
+        if (factoryNames == null || factoryNames.isEmpty()) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "Worker must declare compatible factories");
+        }
+
+        List<ServerFactory<Task, ?, ?>> factories = new ArrayList<>(factoryNames.size());
+        for (String factoryName : factoryNames) {
+            try {
+                factories.add(this.serverFactory.query(factoryName));
+            } catch (UnknownFactoryException e) {
+                throw new WebException(HttpStatus.BAD_REQUEST, "Unknown factory: " + factoryName, e);
+            }
+        }
+
+        TaskClient client = new TaskClient() {
+            @Override
+            public UUID getId() {
+
+                return worker.getId();
+            }
+
+            @Override
+            public @NotNull Collection<Factory<?, ?>> getSupportedFactories() {
+
+                return List.copyOf(factories);
+            }
+        };
+
+        Optional<Task> claimed = this.serverOrchestrator.poll(client);
+        if (claimed.isPresent()) {
+            Task task = claimed.get();
+            task.setAssignedWorker(worker);
+            this.getRepository().save(task);
+        }
+        return claimed;
     }
 
     public int recoverExecutingTasks() {

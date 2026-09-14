@@ -122,6 +122,11 @@ public class Task extends UuidEntity implements TaskInterface {
         this.failureCount = failureCount;
     }
 
+    public @Nullable String getActiveKey() {
+
+        return this.activeKey;
+    }
+
     public @Nullable Instant getStartedAt() {
 
         return this.startedAt;
