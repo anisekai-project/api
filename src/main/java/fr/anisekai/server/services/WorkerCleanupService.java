@@ -5,6 +5,8 @@ import fr.anisekai.server.domain.entities.Worker;
 import fr.anisekai.server.repositories.TaskRepository;
 import fr.anisekai.server.repositories.WorkerRepository;
 import fr.anisekai.server.services.TaskService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +15,7 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 
 import static fr.anisekai.scheduler.tasking.enums.TaskStatus.*;
 
@@ -58,6 +61,7 @@ public class WorkerCleanupService {
             for (Task task : staleTasks) {
                 task.setStatus(SCHEDULED);
                 task.setStartedAt(null);
+                task.setAssignedWorker(null);
                 taskRepository.save(task);
                 LOGGER.info("Freed stale task {} from worker {}", task.getId(), worker.getId());
             }

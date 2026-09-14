@@ -50,6 +50,10 @@ public class Task extends UuidEntity implements TaskInterface {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "worker_id")
+    private Worker assignedWorker;
+
     public @NotNull String getFactoryName() {
 
         return this.factoryName;
@@ -136,6 +140,16 @@ public class Task extends UuidEntity implements TaskInterface {
     public void setCompletedAt(Instant completedAt) {
 
         this.completedAt = completedAt;
+    }
+
+    public @Nullable Worker getAssignedWorker() {
+
+        return this.assignedWorker;
+    }
+
+    public void setAssignedWorker(@Nullable Worker assignedWorker) {
+
+        this.assignedWorker = assignedWorker;
     }
 
     private void refreshActiveKey() {

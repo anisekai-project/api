@@ -1,17 +1,23 @@
 package fr.anisekai.web.api;
 
-import fr.anisekai.core.persistence.AnisekaiService;
-import fr.anisekai.server.domain.entities.Task;
+import fr.anisekai.scheduler.tasking.data.TaskMeta;
+import fr.anisekai.scheduler.tasking.enums.TaskStatus;
+import fr.anisekai.scheduler.tasking.exceptions.UnknownFactoryException;
 import fr.anisekai.server.domain.entities.SessionToken;
+import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.domain.entities.Worker;
 import fr.anisekai.server.repositories.TaskRepository;
 import fr.anisekai.server.repositories.WorkerRepository;
 import fr.anisekai.server.services.TaskService;
-import fr.anisekai.scheduler.tasking.data.TaskMeta;
+import fr.anisekai.server.tasking.server.ServerFactoryRegistry;
+import fr.anisekai.web.annotations.RequireAuth;
 import fr.anisekai.web.dto.TaskCompletionRequest;
 import fr.anisekai.web.dto.TaskSummary;
 import fr.anisekai.web.dto.WorkerPingRequest;
 import fr.anisekai.web.dto.WorkerPingResponse;
+import fr.anisekai.web.enums.TokenScope;
+import fr.anisekai.web.enums.TokenType;
+import fr.anisekai.web.exceptions.WebException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -26,12 +32,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
-
-import fr.anisekai.scheduler.tasking.enums.TaskStatus;
-import fr.anisekai.web.enums.TokenType;
-import static fr.anisekai.web.enums.TokenScope.WORKER;
 
 @RestController
 @RequestMapping("/api/v3/workers")
@@ -42,11 +45,14 @@ public class WorkerController {
     private final WorkerRepository workerRepository;
     private final TaskRepository taskRepository;
     private final TaskService taskService;
+    private final ServerFactoryRegistry serverFactoryRegistry;
 
-    public WorkerController(WorkerRepository workerRepository, TaskRepository taskRepository, TaskService taskService) {
+    public WorkerController(WorkerRepository workerRepository, TaskRepository taskRepository, TaskService taskService,
+                            ServerFactoryRegistry serverFactoryRegistry) {
         this.workerRepository = workerRepository;
         this.taskRepository = taskRepository;
         this.taskService = taskService;
+        this.serverFactoryRegistry = serverFactoryRegistry;
     }
 
     @PostMapping(value = "/ping", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -55,7 +61,7 @@ public class WorkerController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Worker registered, task returned.",
                     content = @Content(schema = @Schema(implementation = WorkerPingResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid worker UUID provided.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid worker UUID or missing/unknown factory names.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
     })
     public ResponseEntity<WorkerPingResponse> ping(@RequestBody @Valid WorkerPingRequest request,
                                                  SessionToken session) {
@@ -64,7 +70,7 @@ public class WorkerController {
 
         UUID workerUuid;
         if (request.workerId() != null) {
-            Optional<Worker> existing = workerRepository.findByIdAndSessionTokenId(request.workerId(), sessionUuid);
+            Optional<Worker> existing = workerRepository.findByIdAndSessionToken_Id(request.workerId(), sessionUuid);
             if (existing.isPresent()) {
                 workerUuid = existing.get().getId();
             } else {
@@ -79,7 +85,7 @@ public class WorkerController {
                 .orElseGet(() -> {
                     Worker w = new Worker();
                     w.setId(workerUuid);
-                    w.setSessionTokenId(sessionUuid);
+                    w.setSessionToken(session);
                     w.setLastPing(Instant.now());
                     return w;
                 });
@@ -87,18 +93,27 @@ public class WorkerController {
         worker.setLastPing(Instant.now());
         workerRepository.save(worker);
 
-        String factoryName = request.factoryName();
-        Task task = null;
-        if (factoryName != null) {
-            task = taskRepository.findFirstByFactoryNameAndStatusIn(factoryName,
-                    Arrays.asList(TaskStatus.SCHEDULED, TaskStatus.EXECUTING));
-        } else {
-            task = taskRepository.findFirstByStatusIn(Arrays.asList(TaskStatus.SCHEDULED, TaskStatus.EXECUTING));
+        List<String> factoryNames = request.factoryNames();
+        if (factoryNames == null || factoryNames.isEmpty()) {
+            throw new WebException(HttpStatus.BAD_REQUEST,
+                    "Worker must declare compatible factories");
         }
+        for (String factoryName : factoryNames) {
+            try {
+                serverFactoryRegistry.query(factoryName);
+            } catch (UnknownFactoryException e) {
+                throw new WebException(HttpStatus.BAD_REQUEST,
+                        "Unknown factory: " + factoryName, e);
+            }
+        }
+
+        Task task = taskRepository.findFirstByFactoryNameInAndStatusIn(
+                factoryNames, List.of(TaskStatus.SCHEDULED)).orElse(null);
 
         if (task != null) {
             task.setStatus(TaskStatus.EXECUTING);
             task.setStartedAt(Instant.now());
+            task.setAssignedWorker(worker);
             taskRepository.save(task);
         }
 
@@ -122,9 +137,7 @@ public class WorkerController {
                                          @RequestBody TaskCompletionRequest request,
                                          SessionToken session) {
 
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new WebException(HttpStatus.NOT_FOUND,
-                        "Task not found"));
+        Task task = requireAssignedTask(taskId, request, session);
 
         TaskMeta meta = TaskMeta.of(task);
         taskService.resolveSuccess(meta, request.result());
@@ -143,13 +156,38 @@ public class WorkerController {
                                          @RequestBody TaskCompletionRequest request,
                                          SessionToken session) {
 
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new WebException(HttpStatus.NOT_FOUND,
-                        "Task not found"));
+        Task task = requireAssignedTask(taskId, request, session);
 
         TaskMeta meta = TaskMeta.of(task);
         taskService.resolveFailure(meta, new RuntimeException(request.errorMessage()));
 
         return ResponseEntity.ok().build();
+    }
+
+    private Task requireAssignedTask(UUID taskId, TaskCompletionRequest request, SessionToken session) {
+        if (request.workerId() == null) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "Reporting workerId is required");
+        }
+        if (request.taskId() != null && !request.taskId().equals(taskId)) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "Path taskId does not match body taskId");
+        }
+
+        Worker worker = workerRepository.findByIdAndSessionToken_Id(request.workerId(), session.getId())
+                .orElseThrow(() -> new WebException(HttpStatus.NOT_FOUND,
+                        "Task not found or not assigned to this worker"));
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new WebException(HttpStatus.NOT_FOUND,
+                        "Task not found or not assigned to this worker"));
+
+        Worker assigned = task.getAssignedWorker();
+        if (assigned == null || !assigned.getId().equals(worker.getId())) {
+            LOGGER.warn("Worker {} attempted to report task {} owned by {}", worker.getId(), task.getId(),
+                    assigned == null ? "nobody" : assigned.getId());
+            throw new WebException(HttpStatus.NOT_FOUND,
+                    "Task not found or not assigned to this worker");
+        }
+
+        return task;
     }
 }

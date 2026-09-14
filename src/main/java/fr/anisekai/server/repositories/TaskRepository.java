@@ -23,6 +23,8 @@ public interface TaskRepository extends AnisekaiRepository<Task, UUID> {
 
     Optional<Task> findFirstByFactoryNameAndStatusIn(String factoryName, List<TaskStatus> statuses);
 
+    Optional<Task> findFirstByFactoryNameInAndStatusIn(Collection<String> factoryNames, Collection<TaskStatus> statuses);
+
     boolean existsByNameAndStatusIn(String name, Collection<TaskStatus> status);
 
     Optional<Task> findFirstByFactoryNameAndNameAndStatusIn(String factoryName, String name, Collection<TaskStatus> status);
@@ -40,7 +42,7 @@ public interface TaskRepository extends AnisekaiRepository<Task, UUID> {
     @Transactional
     @Query("""
             UPDATE Task t
-            SET t.status = :scheduled, t.startedAt = NULL
+            SET t.status = :scheduled, t.startedAt = NULL, t.assignedWorker = NULL
             WHERE t.status = :executing
             """)
     int resetExecuting(TaskStatus executing, TaskStatus scheduled);
