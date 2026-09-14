@@ -3,6 +3,7 @@ package fr.anisekai.server.repositories;
 import fr.anisekai.core.persistence.repository.AnisekaiRepository;
 import fr.anisekai.scheduler.tasking.enums.TaskStatus;
 import fr.anisekai.server.domain.entities.Task;
+import fr.anisekai.server.domain.entities.Worker;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -20,6 +21,8 @@ public interface TaskRepository extends AnisekaiRepository<Task, UUID> {
     List<Task> findAllByNameAndStatusIn(String name, List<TaskStatus> scheduled);
 
     List<Task> findAllByStatusOrderByPriorityDescCreatedAtAscIdAsc(TaskStatus status);
+
+    List<Task> findAllByAssignedWorkerAndStatus(Worker worker, TaskStatus status);
 
     Optional<Task> findFirstByFactoryNameAndStatusIn(String factoryName, List<TaskStatus> statuses);
 

@@ -13,6 +13,9 @@ public class Worker extends UuidEntity {
     @Column(name = "last_ping", nullable = false)
     private Instant lastPing;
 
+    @Column(nullable = true)
+    private String name;
+
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "session_token_id", nullable = false)
     private SessionToken sessionToken;
@@ -23,6 +26,14 @@ public class Worker extends UuidEntity {
 
     public void setLastPing(Instant lastPing) {
         this.lastPing = lastPing;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public @NotNull SessionToken getSessionToken() {

@@ -7,6 +7,7 @@ import fr.anisekai.server.domain.entities.Worker;
 import fr.anisekai.server.repositories.TaskRepository;
 import fr.anisekai.server.repositories.WorkerRepository;
 import fr.anisekai.server.services.TaskService;
+import fr.anisekai.server.services.WorkerService;
 import fr.anisekai.web.annotations.RequireAuth;
 import fr.anisekai.web.dto.TaskCompletionRequest;
 import fr.anisekai.web.dto.TaskSummary;
@@ -26,10 +27,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -41,54 +42,42 @@ public class WorkerController {
     private final WorkerRepository workerRepository;
     private final TaskRepository taskRepository;
     private final TaskService taskService;
+    private final WorkerService workerService;
 
-    public WorkerController(WorkerRepository workerRepository, TaskRepository taskRepository, TaskService taskService) {
+    public WorkerController(WorkerRepository workerRepository, TaskRepository taskRepository, TaskService taskService, WorkerService workerService) {
         this.workerRepository = workerRepository;
         this.taskRepository = taskRepository;
         this.taskService = taskService;
+        this.workerService = workerService;
     }
 
     @PostMapping(value = "/ping", produces = MediaType.APPLICATION_JSON_VALUE)
     @RequireAuth(allowedSessionTypes = TokenType.APPLICATION, scopes = TokenScope.WORKER)
-    @Operation(summary = "Worker ping for task assignment", description = "Register or update a worker instance. Returns an available task or indicates no tasks are available.")
+    @Operation(summary = "Worker heartbeat and task assignment", description = "Heartbeat the single worker bound to the session token. Returns an available task or indicates no tasks are available. Rejected when the worker is already active.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Worker registered, task returned.",
+            @ApiResponse(responseCode = "200", description = "Heartbeat recorded, task returned.",
                     content = @Content(schema = @Schema(implementation = WorkerPingResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid worker UUID or missing/unknown factory names.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
+            @ApiResponse(responseCode = "400", description = "No worker provisioned for this session token, or missing/unknown factory names.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
+            @ApiResponse(responseCode = "409", description = "Worker is already active.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
     })
+    @Transactional
     public ResponseEntity<WorkerPingResponse> ping(@RequestBody @Valid WorkerPingRequest request,
-                                                 SessionToken session) {
+                                                  SessionToken session) {
 
-        UUID sessionUuid = session.getId();
+        Worker worker = workerRepository.findForUpdateById(session.getId())
+                .orElseThrow(() -> new WebException(HttpStatus.BAD_REQUEST,
+                        "No worker provisioned for this session token. Reissue an API key with the worker scope."));
 
-        UUID workerUuid;
-        if (request.workerId() != null) {
-            Optional<Worker> existing = workerRepository.findByIdAndSessionToken_Id(request.workerId(), sessionUuid);
-            if (existing.isPresent()) {
-                workerUuid = existing.get().getId();
-            } else {
-                throw new WebException(HttpStatus.BAD_REQUEST,
-                        "Worker UUID not found for this session token");
-            }
-        } else {
-            workerUuid = UUID.randomUUID();
+        if (!workerService.isStale(worker, Instant.now())) {
+            LOGGER.warn("Worker {} ping rejected: worker already active", worker.getId());
+            throw new WebException(HttpStatus.CONFLICT, "Worker is already active");
         }
 
-        Worker worker = workerRepository.findById(workerUuid)
-                .orElseGet(() -> {
-                    Worker w = new Worker();
-                    w.setId(workerUuid);
-                    w.setSessionToken(session);
-                    w.setLastPing(Instant.now());
-                    return w;
-                });
-
-        worker.setLastPing(Instant.now());
-        workerRepository.save(worker);
+        workerService.heartbeat(worker, request.workerName());
 
         Task task = taskService.pollForWorker(worker, request.factoryNames()).orElse(null);
 
-        WorkerPingResponse response = new WorkerPingResponse(workerUuid,
+        WorkerPingResponse response = new WorkerPingResponse(worker.getId(),
                 task != null ? new TaskSummary(task.getId(), task.getFactoryName(), task.getName(),
                         task.getStatus(), task.getPriority(), task.getActiveKey(), task.getStartedAt(), task.getCompletedAt(),
                         task.getArguments())
@@ -106,10 +95,10 @@ public class WorkerController {
             @ApiResponse(responseCode = "404", description = "Task not found or not assigned to this worker.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
     })
     public ResponseEntity<?> reportSuccess(@PathVariable UUID taskId,
-                                         @RequestBody TaskCompletionRequest request,
-                                         SessionToken session) {
+                                          @RequestBody TaskCompletionRequest request,
+                                          SessionToken session) {
 
-        Task task = requireAssignedTask(taskId, request, session);
+        Task task = requireAssignedTask(taskId, session);
 
         TaskMeta meta = TaskMeta.of(task);
         taskService.resolveSuccess(meta, request.result());
@@ -125,10 +114,10 @@ public class WorkerController {
             @ApiResponse(responseCode = "404", description = "Task not found or not assigned to this worker.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
     })
     public ResponseEntity<?> reportFailure(@PathVariable UUID taskId,
-                                         @RequestBody TaskCompletionRequest request,
-                                         SessionToken session) {
+                                          @RequestBody TaskCompletionRequest request,
+                                          SessionToken session) {
 
-        Task task = requireAssignedTask(taskId, request, session);
+        Task task = requireAssignedTask(taskId, session);
 
         TaskMeta meta = TaskMeta.of(task);
         taskService.resolveFailure(meta, new RuntimeException(request.errorMessage()));
@@ -136,15 +125,8 @@ public class WorkerController {
         return ResponseEntity.ok().build();
     }
 
-    private Task requireAssignedTask(UUID taskId, TaskCompletionRequest request, SessionToken session) {
-        if (request.workerId() == null) {
-            throw new WebException(HttpStatus.BAD_REQUEST, "Reporting workerId is required");
-        }
-        if (request.taskId() != null && !request.taskId().equals(taskId)) {
-            throw new WebException(HttpStatus.BAD_REQUEST, "Path taskId does not match body taskId");
-        }
-
-        Worker worker = workerRepository.findByIdAndSessionToken_Id(request.workerId(), session.getId())
+    private Task requireAssignedTask(UUID taskId, SessionToken session) {
+        Worker worker = workerRepository.findById(session.getId())
                 .orElseThrow(() -> new WebException(HttpStatus.NOT_FOUND,
                         "Task not found or not assigned to this worker"));
 
