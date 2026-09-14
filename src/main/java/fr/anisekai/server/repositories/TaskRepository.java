@@ -21,6 +21,8 @@ public interface TaskRepository extends AnisekaiRepository<Task, UUID> {
 
     List<Task> findAllByStatusOrderByPriorityDescCreatedAtAscIdAsc(TaskStatus status);
 
+    Optional<Task> findFirstByFactoryNameAndStatusIn(String factoryName, List<TaskStatus> statuses);
+
     boolean existsByNameAndStatusIn(String name, Collection<TaskStatus> status);
 
     Optional<Task> findFirstByFactoryNameAndNameAndStatusIn(String factoryName, String name, Collection<TaskStatus> status);
