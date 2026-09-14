@@ -121,6 +121,14 @@ class ServerOrchestratorTest {
     }
 
     @Test
+    void activeKeyHoldsTaskNameWithoutFactoryPrefixDuplication() {
+
+        Task task = task("media:convert:0000", TaskStatus.SCHEDULED);
+
+        assertEquals("media:convert:0000", task.getActiveKey());
+    }
+
+    @Test
     void readsOnlyScheduledTasksInDispatchOrder() {
 
         TaskRepository repository = mock(TaskRepository.class);

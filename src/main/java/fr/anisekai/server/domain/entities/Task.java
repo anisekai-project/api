@@ -159,9 +159,11 @@ public class Task extends UuidEntity implements TaskInterface {
 
     private void refreshActiveKey() {
 
+        // Task names already embed the factory name (e.g. "media:convert:<id>:<ref>"),
+        // so storing "factory:name" would duplicate the prefix pointlessly.
         boolean active = this.status == TaskStatus.SCHEDULED || this.status == TaskStatus.EXECUTING;
-        this.activeKey = active && this.factoryName != null && this.name != null
-                ? this.factoryName + ":" + this.name
+        this.activeKey = active && this.name != null
+                ? this.name
                 : null;
     }
 
