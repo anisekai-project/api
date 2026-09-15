@@ -7,6 +7,7 @@ import fr.anisekai.server.domain.entities.Worker;
 import fr.anisekai.server.repositories.TaskRepository;
 import fr.anisekai.server.repositories.WorkerRepository;
 import fr.anisekai.server.services.TaskService;
+import fr.anisekai.server.services.WorkerPollResult;
 import fr.anisekai.server.services.WorkerService;
 import fr.anisekai.web.annotations.RequireAuth;
 import fr.anisekai.web.dto.TaskCompletionRequest;
@@ -53,9 +54,9 @@ public class WorkerController {
 
     @PostMapping(value = "/ping", produces = MediaType.APPLICATION_JSON_VALUE)
     @RequireAuth(allowedSessionTypes = TokenType.APPLICATION, scopes = TokenScope.WORKER)
-    @Operation(summary = "Worker heartbeat and task assignment", description = "Heartbeat the single worker bound to the session token. Returns an available task or indicates no tasks are available. Rejected when the worker is already active.")
+    @Operation(summary = "Worker heartbeat and task assignment", description = "Heartbeat the single worker bound to the session token. The worker reports the task it is actively working on (if any) so server-side state can be reconciled: unknown tasks are failed server-side, and the worker is told to give up tasks the server does not hold for it. A new task is only assigned to an idle worker holding nothing.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Heartbeat recorded, task returned.",
+            @ApiResponse(responseCode = "200", description = "Heartbeat recorded, reconcile outcome returned.",
                     content = @Content(schema = @Schema(implementation = WorkerPingResponse.class))),
             @ApiResponse(responseCode = "400", description = "No worker provisioned for this session token, or missing/unknown factory names.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
             @ApiResponse(responseCode = "409", description = "Worker is already active.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
@@ -75,7 +76,8 @@ public class WorkerController {
 
         workerService.heartbeat(worker, request.workerName());
 
-        Task task = taskService.pollForWorker(worker, request.factoryNames()).orElse(null);
+        WorkerPollResult result = taskService.reconcileAndPoll(worker, request.factoryNames(), request.currentTaskId());
+        Task task = result.assigned().orElse(null);
 
         WorkerPingResponse response = new WorkerPingResponse(worker.getId(),
                 task != null ? new TaskSummary(task.getId(), task.getFactoryName(), task.getName(),
@@ -83,7 +85,8 @@ public class WorkerController {
                         task.getArguments())
                         : null,
                 task != null,
-                task != null ? task.getIsolationId() : null);
+                task != null ? task.getIsolationId() : null,
+                result.directive());
 
         return ResponseEntity.ok(response);
     }
