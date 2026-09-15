@@ -1,87 +1,69 @@
 package fr.anisekai.server.services;
 
-import fr.anisekai.core.annotations.FatalTask;
-import fr.anisekai.core.internal.json.exceptions.JSONValidationException;
-import fr.anisekai.core.internal.sentry.ITimedAction;
 import fr.anisekai.core.persistence.AnisekaiService;
+import fr.anisekai.library.Library;
+import fr.anisekai.sanctum.AccessScope;
+import fr.anisekai.sanctum.interfaces.isolation.IsolationSession;
+import fr.anisekai.server.tasking.IsolatedServerFactory;
 import fr.anisekai.core.persistence.EntityEventProcessor;
+import fr.anisekai.scheduler.commons.ActionPlan;
+import fr.anisekai.scheduler.tasking.data.ReservedTaskMeta;
+import fr.anisekai.scheduler.tasking.data.TaskExecutedPacket;
+import fr.anisekai.scheduler.tasking.data.TaskFailedPacket;
+import fr.anisekai.scheduler.tasking.data.TaskMeta;
+import fr.anisekai.scheduler.tasking.enums.TaskStatus;
+import fr.anisekai.scheduler.tasking.exceptions.UnknownFactoryException;
+import fr.anisekai.scheduler.tasking.interfaces.factories.Factory;
+import fr.anisekai.scheduler.tasking.interfaces.factories.ServerFactory;
+import fr.anisekai.scheduler.tasking.interfaces.structure.TaskClient;
 import fr.anisekai.server.domain.entities.Task;
-import fr.anisekai.server.domain.enums.TaskStatus;
-import fr.anisekai.server.enums.TaskPipeline;
-import fr.anisekai.server.exceptions.task.FactoryAlreadyRegisteredException;
-import fr.anisekai.server.exceptions.task.FactoryNotFoundException;
+import fr.anisekai.server.domain.entities.Worker;
+import fr.anisekai.server.exceptions.task.TaskNotFoundException;
 import fr.anisekai.server.repositories.TaskRepository;
-import fr.anisekai.server.tasking.TaskBuilder;
-import fr.anisekai.server.tasking.TaskExecutor;
-import fr.anisekai.server.tasking.TaskFactory;
-import io.sentry.Sentry;
-import jakarta.annotation.PostConstruct;
+import fr.anisekai.server.tasking.server.ServerFactoryRegistry;
+import fr.anisekai.server.tasking.server.ServerOrchestrator;
+import fr.anisekai.utils.DataUtils;
+import fr.anisekai.web.exceptions.WebException;
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.*;
 
 @Service
-public class TaskService extends AnisekaiService<Task, Long, TaskRepository> {
+public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
 
-    private final static Logger LOGGER           = LoggerFactory.getLogger(TaskService.class);
-    private final static int    MAX_TASK_FAILURE = 3;
+    private static final Logger LOGGER = LoggerFactory.getLogger(TaskService.class);
 
-    private final Map<TaskPipeline, Collection<TaskFactory<?>>> factoryPipelines = new HashMap<>();
+    private final ServerOrchestrator    serverOrchestrator;
+    private final ServerFactoryRegistry serverFactory;
+    private final DatabaseLockService   databaseLockService;
+    private final Library               library;
 
-    public TaskService(TaskRepository repository, EntityEventProcessor eventProcessor) {
+    public TaskService(
+            TaskRepository repository,
+            EntityEventProcessor eventProcessor,
+            ServerOrchestrator serverOrchestrator,
+            ServerFactoryRegistry serverFactory,
+            DatabaseLockService databaseLockService,
+            Library library
+    ) {
 
         super(repository, eventProcessor);
+        this.serverOrchestrator  = serverOrchestrator;
+        this.serverFactory       = serverFactory;
+        this.databaseLockService = databaseLockService;
+        this.library             = library;
     }
 
-    /**
-     * Register the {@link TaskFactory} into this {@link TaskService}. {@link TaskPipeline}s.
-     *
-     * @param pipeline
-     *         The {@link TaskPipeline} into which the {@link TaskFactory} will be registered.
-     * @param factory
-     *         The {@link TaskFactory} to register.
-     */
-    public void registerFactory(@NotNull TaskPipeline pipeline, @NotNull TaskFactory<?> factory) {
+    public boolean hasScheduled(String name) {
 
-        if (!this.factoryPipelines.containsKey(pipeline)) {
-            this.factoryPipelines.put(pipeline, new HashSet<>());
-        }
-
-        for (Map.Entry<TaskPipeline, Collection<TaskFactory<?>>> entry : this.factoryPipelines.entrySet()) {
-            if (entry.getValue().contains(factory)) {
-                throw new FactoryAlreadyRegisteredException(entry.getKey(), factory);
-            }
-        }
-
-        this.factoryPipelines.get(pipeline).add(factory);
-    }
-
-    /**
-     * Retrieve the {@link TaskFactory} of the provided class.
-     *
-     * @param factoryClass
-     *         Class of the {@link TaskFactory}.
-     * @param <T>
-     *         Type of the {@link TaskFactory}
-     *
-     * @return A {@link TaskFactory} instance
-     */
-    public <T extends TaskFactory<?>> T getFactory(@NotNull Class<T> factoryClass) {
-
-        return this
-                .factoryPipelines
-                .values()
-                .stream()
-                .flatMap(Collection::stream)
-                .filter(factoryClass::isInstance)
-                .map(factoryClass::cast)
-                .findAny()
-                .orElseThrow(() -> new IllegalArgumentException("Tried to retrieve an unregistered factory " + factoryClass.getName()));
+        return this.getRepository()
+                   .existsByNameAndStatusIn(name, Arrays.asList(TaskStatus.SCHEDULED, TaskStatus.EXECUTING));
     }
 
     /**
@@ -90,271 +72,233 @@ public class TaskService extends AnisekaiService<Task, Long, TaskRepository> {
      * @param name
      *         The name of the {@link Task}s to cancel.
      */
+    @Transactional
     public void cancel(String name) {
 
-        List<Task> tasks = this.getRepository().findAllByNameAndStatus(name, TaskStatus.SCHEDULED);
+        List<Task> tasks = this.getRepository()
+                               .findAllByNameAndStatusIn(name, Collections.singletonList(TaskStatus.SCHEDULED));
+
         for (Task task : tasks) {
             task.setStatus(TaskStatus.CANCELED);
         }
         this.getRepository().saveAll(tasks);
     }
 
-    /**
-     * Find a {@link Task} matching the provided name.
-     *
-     * @param name
-     *         The name of the {@link Task}
-     *
-     * @return An optional {@link Task}.
-     */
-    public Optional<Task> find(String name) {
+    @Transactional
+    public <F extends ServerFactory<Task, I, ?>, I> List<Task> queue(@NotNull Class<F> factoryClass, @NotNull Collection<I> arguments, byte priority) {
 
-        return this.getRepository().findByNameAndStatusIn(name, List.of(TaskStatus.SCHEDULED));
+        this.databaseLockService.lock(DatabaseLockService.TASK_QUEUE);
+        ActionPlan<UUID, ReservedTaskMeta, Task> plan = this.serverOrchestrator.queue(
+                factoryClass,
+                arguments,
+                priority
+        );
+        return DataUtils.applyPlan(this.getRepository(), plan, this::createTask);
     }
 
-    /**
-     * Check if any scheduled {@link Task} match the provided name.
-     *
-     * @param name
-     *         The name of the {@link Task}
-     *
-     * @return True if a {@link Task} matching the name is scheduled, false otherwise.
-     */
-    public boolean has(String name) {
+    @Transactional
+    public <F extends ServerFactory<Task, I, ?>, I> List<Task> queue(@NonNull F factory, @NotNull Collection<I> arguments, byte priority) {
 
-        return this.find(name).isPresent();
+        this.databaseLockService.lock(DatabaseLockService.TASK_QUEUE);
+        ActionPlan<UUID, ReservedTaskMeta, Task> plan = this.serverOrchestrator.queue(factory, arguments, priority);
+        return DataUtils.applyPlan(this.getRepository(), plan, this::createTask);
     }
 
-    /**
-     * Create a new {@link Task} and queue it.
-     *
-     * @param builder
-     *         The {@link TaskBuilder} to use to create the {@link Task}.
-     *
-     * @return The queued {@link Task}, or {@code null} if nothing has been queued.
-     */
-    public Task queue(TaskBuilder builder) {
+    @Transactional
+    public <F extends ServerFactory<Task, I, ?>, I> Task queueOne(@NotNull Class<F> factoryClass, @NotNull I argument, byte priority) {
 
-        boolean isFactoryRegistered = this.factoryPipelines
-                .values()
-                .stream()
-                .anyMatch(pipeline -> pipeline.contains(builder.getFactory()));
+        this.databaseLockService.lock(DatabaseLockService.TASK_QUEUE);
+        F      factory  = this.serverFactory.query(factoryClass);
+        String taskName = factory.getTaskName(argument);
+        Optional<Task> active = this.getRepository().findFirstByFactoryNameAndNameAndStatusIn(
+                factory.getName(),
+                taskName,
+                List.of(TaskStatus.SCHEDULED, TaskStatus.EXECUTING)
+        );
+        if (active.isPresent() && active.get().getStatus() == TaskStatus.EXECUTING) return active.get();
 
-        if (!isFactoryRegistered) { // Safeguard, just in case we forgot to call registerFactory()
-            throw new IllegalStateException("Tried to register a task on a unregistered factory " + builder.getName());
+        List<Task> changed = this.queue(factory, List.of(argument), priority);
+        if (!changed.isEmpty()) return changed.getFirst();
+
+        return this.getRepository()
+                   .findFirstByFactoryNameAndNameAndStatusIn(
+                           factory.getName(),
+                           taskName,
+                           List.of(TaskStatus.SCHEDULED)
+                   )
+                   .orElseThrow(() -> new IllegalStateException(
+                           "Scheduler returned an empty plan without an existing task"));
+    }
+
+    @Transactional
+    @SuppressWarnings("unchecked")
+    public <R> List<Task> resolveSuccess(TaskMeta meta, String result) {
+
+        Task          task         = this.requireByTaskMeta(meta);
+        Factory<?, R> factory      = (Factory<?, R>) this.serverFactory.query(task.getFactoryName());
+        R             resultObject = factory.getResultSerializer().deserialize(result);
+
+        if (task.getIsolationId() != null && !this.tryCommitTaskIsolation(task, factory)) {
+            return this.resolveFailure(meta, new IllegalStateException(
+                    "Isolation context of task " + task.getId() + " could not be committed"));
         }
 
-        // This allows any task to inherit their own priority on subtasks if necessary.
-        builder.getArgs().put(TaskExecutor.OPTION_PRIORITY, builder.getPriority());
+        TaskExecutedPacket<Task, R>              packet = new TaskExecutedPacket<>(task, resultObject);
+        ActionPlan<UUID, ReservedTaskMeta, Task> plan   = this.serverOrchestrator.resolve(packet);
 
-        if (!builder.getFactory().allowDuplicated()) {
-            Optional<Task> optionalTask = this.find(builder.getName());
-            if (optionalTask.isPresent()) {
-                Task task = optionalTask.get();
-
-                if (task.getPriority() >= builder.getPriority()) {
-                    LOGGER.debug(
-                            "Queuing of task '{}' dropped: The task already exists with a higher priority.",
-                            builder.getName()
-                    );
-                    return task;
-                }
-
-                LOGGER.info(
-                        "Updating task '{}' priority from {} to {}",
-                        task.getName(),
-                        task.getPriority(),
-                        builder.getPriority()
-                );
-
-                task.setPriority(builder.getPriority());
-                return this.getRepository().save(task);
-            }
-        }
-
-        LOGGER.info("Queuing task '{}' with a priority of {}.", builder.getName(), builder.getPriority());
-        LOGGER.debug(" :: Arguments = {}", builder.getArgs());
-
-        return this.getRepository().save(builder.build());
+        return DataUtils.applyPlan(this.getRepository(), plan, this::createTask);
     }
 
-    @Scheduled(cron = "0 * * * * *")
-    private void executeHeavy() {
+    @Transactional
+    public List<Task> resolveFailure(TaskMeta meta, Throwable failure) {
 
-        this.runPipeline(TaskPipeline.HEAVY);
-    }
+        Task task = this.requireByTaskMeta(meta);
+        this.discardTaskIsolation(task);
 
-    @Scheduled(cron = "0/5 * * * * *")
-    private void executeSoft() {
+        Exception exception = failure instanceof Exception e ? e : new RuntimeException(
+                failure);
+        TaskFailedPacket<Task>                   packet = new TaskFailedPacket<>(task, exception);
+        ActionPlan<UUID, ReservedTaskMeta, Task> plan   = this.serverOrchestrator.resolve(packet);
 
-        this.runPipeline(TaskPipeline.SOFT);
-    }
-
-    @Scheduled(cron = "0/5 * * * * *")
-    private void executeMessaging() {
-
-        this.runPipeline(TaskPipeline.MESSAGING);
-    }
-
-    @PostConstruct
-    private void controlData() {
-
-        List<Task> tasks = this.getRepository().findAllByStatus(TaskStatus.EXECUTING);
-
-        for (Task task : tasks) {
-            LOGGER.warn("Task {} was still running when the application stopped.", task.getId());
-            task.setStatus(TaskStatus.SCHEDULED);
-        }
-
-        this.getRepository().saveAll(tasks);
+        return DataUtils.applyPlan(this.getRepository(), plan, this::createTask);
     }
 
     /**
-     * Find the next {@link Task} to execute in the provided {@link TaskPipeline}.
-     *
-     * @param pipeline
-     *         The {@link TaskPipeline} into which the next {@link Task} will be retrieved.
-     *
-     * @return An {@link Optional} {@link Task}.
-     */
-    private Optional<Task> findNextTask(TaskPipeline pipeline) {
-
-        Collection<TaskFactory<?>> factories = this.factoryPipelines
-                .getOrDefault(pipeline, Collections.emptyList())
-                .stream()
-                .toList();
-
-        if (factories.isEmpty()) {
-            return Optional.empty();
-        }
-
-        Collection<String> factoryNames = factories.stream().map(TaskFactory::getName).toList();
-
-        return this.getRepository().findNextOf(TaskStatus.SCHEDULED, factoryNames);
-    }
-
-    /**
-     * Retrieve the {@link TaskFactory} of the provided {@link Task}.
+     * Validate and commit the isolation context staged for the provided task.
      *
      * @param task
-     *         The {@link Task} for which the {@link TaskFactory} must be retrieved.
+     *         The succeeding task.
+     * @param factory
+     *         The factory that produced the task.
      *
-     * @return A {@link TaskFactory}.
+     * @return {@code true} when the isolation was committed, {@code false} when the
+     *         task must go through failure handling instead.
      */
-    private @NotNull TaskFactory<?> getTaskFactory(Task task) {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private boolean tryCommitTaskIsolation(Task task, Factory<?, ?> factory) {
 
-        String factoryName = task.getFactoryName();
-
-        return this.factoryPipelines
-                .values()
-                .stream()
-                .flatMap(Collection::stream)
-                .filter(factory -> factory.getName().equals(factoryName))
-                .findAny()
-                .orElseThrow(() -> new FactoryNotFoundException(task));
+        try {
+            IsolationSession isolation = this.library.getIsolatedStorage(task.getIsolationId(), false).context();
+            if (factory instanceof IsolatedServerFactory<?> isolated) {
+                Object input = ((ServerFactory<Task, Object, ?>) factory).getArgumentsSerializer()
+                                                                         .deserialize(task.getArguments());
+                ((IsolatedServerFactory<Object>) isolated).validateStagedOutput(isolation, task, input);
+            }
+            isolation.commit();
+            task.setIsolationId(null);
+            return true;
+        } catch (RuntimeException e) {
+            LOGGER.warn("Isolation commit failed for task {}", task.getId(), e);
+            this.discardTaskIsolation(task);
+            return false;
+        }
     }
 
     /**
-     * Run the next {@link Task} found within the provided {@link TaskPipeline}. The method will return early if no task
-     * are waiting to be executed.
+     * Best-effort discard of the isolation context bound to the provided task.
+     * Discard failures are logged and never propagated: task outcome takes precedence
+     * over staging cleanup.
      *
-     * @param pipeline
-     *         The {@link TaskPipeline} from which the {@link Task} should be executed.
+     * @param task
+     *         The task being resolved or released.
      */
-    private void runPipeline(TaskPipeline pipeline) {
+    private void discardTaskIsolation(Task task) {
 
-        Optional<Task> optionalTask = this.findNextTask(pipeline);
-        if (optionalTask.isEmpty()) {
-            return;
+        if (task.getIsolationId() == null) return;
+        this.library.discardIsolation(task.getIsolationId());
+        task.setIsolationId(null);
+    }
+
+    private Task createTask(ReservedTaskMeta data) {
+
+        Task task = new Task();
+        task.setFactoryName(data.factoryName());
+        task.setName(data.name());
+        task.setStatus(TaskStatus.SCHEDULED);
+        task.setPriority(data.priority());
+        task.setArguments(data.arguments());
+        return task;
+    }
+
+    public Task requireByTaskMeta(TaskMeta meta) {
+
+        return this.getRepository()
+                   .findById(meta.identifier())
+                   .orElseThrow(TaskNotFoundException::new);
+    }
+
+    /**
+     * Poll for a task on behalf of a worker, going through the {@link ServerOrchestrator} so factory attribution
+     * callbacks ({@code onAssigningTask}) fire and claiming stays atomic.
+     *
+     * @param worker
+     *         The worker polling for a task. It is recorded on the claimed task for audit and ownership checks.
+     * @param factoryNames
+     *         The compatible factory names declared by the worker. Must not be empty, all names must be known.
+     *
+     * @return The claimed task, if any.
+     */
+    @Transactional
+    public Optional<Task> pollForWorker(@NotNull Worker worker, Collection<String> factoryNames) {
+
+        if (factoryNames == null || factoryNames.isEmpty()) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "Worker must declare compatible factories");
         }
 
-        Task task = optionalTask.get();
-
-        try (ITimedAction timer = ITimedAction.create()) {
-            timer.open("task", task.getFactoryName(), "Execution of the task");
-
-            this.flagExecuting(task);
-
+        List<ServerFactory<Task, ?, ?>> factories = new ArrayList<>(factoryNames.size());
+        for (String factoryName : factoryNames) {
             try {
-                timer.action("prepare", "Perform basic task checks");
-                TaskExecutor executor = this.getTaskFactory(task).create();
-                executor.validateParams(task.getArguments());
-                timer.endAction();
-
-                timer.action("exec", "Run the queued task");
-                LOGGER.debug("[{}] Executing task...", task.getName());
-                executor.execute(timer, task.getArguments());
-                LOGGER.debug("[{}] Done.", task.getName());
-                timer.endAction();
-
-                this.flagSuccessful(task);
-
-            } catch (Exception e) {
-                timer.action("failure", "Handle task execution failure");
-                LOGGER.error("[{}] Execution failure.", task.getName(), e);
-                if (this.isFatal(e)) {
-                    this.flagImmediateFailure(task);
-                } else {
-                    this.flagFailure(task);
-                }
-                timer.endAction();
-
-                Map<String, Object> context = new HashMap<>();
-                context.put("id", task.getId());
-                context.put("factory", task.getFactoryName());
-                context.put("name", task.getName());
-                context.put("params", task.getArguments().toString());
-
-                Sentry.withScope(scope -> {
-                    scope.setContexts("Task", context);
-                    Sentry.captureException(e);
-                });
+                factories.add(this.serverFactory.query(factoryName));
+            } catch (UnknownFactoryException e) {
+                throw new WebException(HttpStatus.BAD_REQUEST, "Unknown factory: " + factoryName, e);
             }
-            timer.endAction();
         }
 
-        this.getRepository().save(task);
-    }
+        TaskClient client = new TaskClient() {
+            @Override
+            public UUID getId() {
 
-    private void flagExecuting(Task entity) {
+                return worker.getId();
+            }
 
-        entity.setStatus(TaskStatus.EXECUTING);
-        entity.setStartedAt(Instant.now());
-        entity.setCompletedAt(null);
-    }
+            @Override
+            public @NotNull Collection<Factory<?, ?>> getSupportedFactories() {
 
-    private void flagSuccessful(Task entity) {
+                return List.copyOf(factories);
+            }
+        };
 
-        entity.setStatus(TaskStatus.SUCCEEDED);
-        entity.setCompletedAt(Instant.now());
-    }
-
-    private void flagFailure(Task entity) {
-
-        entity.setFailureCount((byte) (entity.getFailureCount() + 1));
-
-        if (entity.getFailureCount() >= MAX_TASK_FAILURE) {
-            entity.setStatus(TaskStatus.FAILED);
-        } else {
-            entity.setStatus(TaskStatus.SCHEDULED);
+        Optional<Task> claimed = this.serverOrchestrator.poll(client);
+        if (claimed.isPresent()) {
+            Task task = claimed.get();
+            task.setAssignedWorker(worker);
+            ServerFactory<Task, ?, ?> factory = this.serverFactory.query(task.getFactoryName());
+            if (factory instanceof IsolatedServerFactory<?> isolated) {
+                this.createTaskIsolation(task, worker, factory, isolated);
+            }
+            this.getRepository().save(task);
         }
-
-        entity.setStartedAt(null);
-        entity.setCompletedAt(null);
-
+        return claimed;
     }
 
-    private void flagImmediateFailure(Task entity) {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void createTaskIsolation(Task task, Worker worker, ServerFactory<Task, ?, ?> factory, IsolatedServerFactory<?> isolated) {
 
-        entity.setFailureCount((byte) (entity.getFailureCount() + 1));
-        entity.setStatus(TaskStatus.FAILED);
-        entity.setStartedAt(null);
-        entity.setCompletedAt(null);
+        Object input = ((ServerFactory<Task, Object, ?>) factory).getArgumentsSerializer()
+                                                                 .deserialize(task.getArguments());
+        Set<AccessScope> scopes = ((IsolatedServerFactory<Object>) isolated).getIsolationScopes(task, input);
+        if (scopes.isEmpty()) return;
+
+        IsolationSession isolation = this.library.createIsolation(
+                worker.getSessionToken(),
+                scopes.toArray(new AccessScope[0])
+        );
+        task.setIsolationId(isolation.uuid());
     }
 
-    private boolean isFatal(Exception ex) {
+    public int recoverExecutingTasks() {
 
-        return ex instanceof JSONValidationException || ex.getClass().isAnnotationPresent(FatalTask.class);
+        return this.getRepository().resetExecuting(TaskStatus.EXECUTING, TaskStatus.SCHEDULED);
     }
 
 }

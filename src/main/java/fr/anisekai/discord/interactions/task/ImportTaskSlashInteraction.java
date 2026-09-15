@@ -12,7 +12,7 @@ import fr.anisekai.discord.completions.ImportableFileCompletion;
 import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.library.Library;
-import fr.anisekai.library.tasks.factories.MediaImportFactory;
+import fr.anisekai.library.tasks.media.conversion.MediaConversionTaskFactory;
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.entities.Episode;
@@ -26,10 +26,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -59,7 +56,7 @@ public class ImportTaskSlashInteraction {
                     @Option(
                             name = "anime",
                             description = "Anime pour lequel le fichier sera importé",
-                            type = OptionType.INTEGER,
+                            type = OptionType.STRING,
                             required = true,
                             completion = @Completion(named = AnimeCompletion.NAME)
                     ),
@@ -79,9 +76,10 @@ public class ImportTaskSlashInteraction {
                     )
             }
     )
-    public InteractionResponse executeFile(DiscordUser user, @Param("anime") long animeId, @Param("file") String file, @Param("episode") long episodeNumber) {
+    public InteractionResponse executeFile(DiscordUser user, @Param("anime") String animeId, @Param("file") String file, @Param("episode") long episodeNumber) {
 
-        Anime anime  = this.animeService.requireById(animeId);
+        UUID  id     = UUID.fromString(animeId);
+        Anime anime  = this.animeService.requireById(id);
         Path  source = this.library.getResolver(Library.IMPORTS).file(file);
 
         if (!Files.isRegularFile(source)) {
@@ -100,7 +98,11 @@ public class ImportTaskSlashInteraction {
                                .findFirst()
                                .orElseGet(() -> this.episodeService.create(anime, (int) episodeNumber));
 
-        Task task = this.service.getFactory(MediaImportFactory.class).queue(source, episode);
+        Task task = this.service.queueOne(
+                MediaConversionTaskFactory.class,
+                MediaConversionTaskFactory.createInput(this.library, episode, source),
+                Task.PRIORITY_MANUAL_HIGH
+        );
 
         return DiscordResponse.info(
                 "L'épisode **%s** de l'anime **%s** va être importé.\n%s",
@@ -117,7 +119,7 @@ public class ImportTaskSlashInteraction {
                     @Option(
                             name = "anime",
                             description = "Anime pour lequel le fichier sera importé",
-                            type = OptionType.INTEGER,
+                            type = OptionType.STRING,
                             required = true,
                             completion = @Completion(named = AnimeCompletion.NAME)
                     ),
@@ -130,9 +132,10 @@ public class ImportTaskSlashInteraction {
                     ),
             }
     )
-    public InteractionResponse executeDirectory(DiscordUser user, @Param("anime") long animeId, @Param("directory") String directory) throws IOException {
+    public InteractionResponse executeDirectory(DiscordUser user, @Param("anime") String animeId, @Param("directory") String directory) throws IOException {
 
-        Anime anime  = this.animeService.requireById(animeId);
+        UUID  id     = UUID.fromString(animeId);
+        Anime anime  = this.animeService.requireById(id);
         Path  source = this.library.getResolver(Library.IMPORTS).directory(directory);
 
         if (!Files.isDirectory(source)) {
@@ -179,7 +182,11 @@ public class ImportTaskSlashInteraction {
                                    .findFirst()
                                    .orElseGet(() -> this.episodeService.create(anime, entry.getKey()));
 
-            Task task = this.service.getFactory(MediaImportFactory.class).queue(entry.getValue(), episode);
+            Task task = this.service.queueOne(
+                    MediaConversionTaskFactory.class,
+                    MediaConversionTaskFactory.createInput(this.library, episode, entry.getValue()),
+                    Task.PRIORITY_MANUAL_HIGH
+            );
             tasks.add(task);
         }
 

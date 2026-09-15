@@ -47,7 +47,8 @@ public class EpisodeCompletion implements CompletionProvider {
                                         episode.getNumber()
                                 ),
                                 100, 30
-                        ), episode.getId()
+                        ),
+                        episode.getId().toString()
                 ));
     }
 

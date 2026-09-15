@@ -3,6 +3,7 @@ package fr.anisekai.library;
 import fr.anisekai.ApplicationConfiguration;
 import fr.anisekai.sanctum.AccessScope;
 import fr.anisekai.sanctum.Sanctum;
+import fr.anisekai.sanctum.SanctumUtils;
 import fr.anisekai.sanctum.enums.StorePolicy;
 import fr.anisekai.sanctum.exceptions.StorageException;
 import fr.anisekai.sanctum.interfaces.FileStore;
@@ -13,6 +14,8 @@ import fr.anisekai.sanctum.stores.ScopedDirectoryStorage;
 import fr.anisekai.sanctum.stores.ScopedFileStorage;
 import fr.anisekai.server.domain.entities.*;
 import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Files;
@@ -24,18 +27,21 @@ import java.util.stream.Stream;
 @Component
 public class Library extends Sanctum {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Library.class);
+
     public static final FileStore CHUNKS    = new ScopedDirectoryStorage("chunks", Episode.class);
     public static final FileStore EPISODES  = new ScopedFileStorage("episodes", Episode.class, "mkv");
     public static final FileStore SUBTITLES = new ScopedDirectoryStorage("subs", Episode.class);
 
     public static final FileStore EVENT_IMAGES = new ScopedFileStorage("event-images", Anime.class, "webp");
 
-    public static final FileStore DOWNLOADS = new RawStorage("downloads");
-    public static final FileStore IMPORTS   = new RawStorage("imports");
+    public static final FileStore DOWNLOADS      = new RawStorage("downloads");
+    public static final FileStore IMPORTS        = new RawStorage("imports");
+    public static final FileStore LEGACY_EPISODE = new ScopedFileStorage("legacy", Episode.class, "mkv");
 
     private final ApplicationConfiguration.Library configuration;
 
-    private final Map<SessionToken, List<IsolationSession>> isolationMap = new HashMap<>();
+    private final Map<SessionToken, List<UUID>> sessionIsolations = new HashMap<>();
 
     public Library(ApplicationConfiguration configuration) {
 
@@ -50,28 +56,87 @@ public class Library extends Sanctum {
 
         this.registerStore(DOWNLOADS, StorePolicy.PRIVATE);
         this.registerStore(IMPORTS, StorePolicy.PRIVATE);
+        this.registerStore(LEGACY_EPISODE, StorePolicy.PRIVATE);
     }
 
-    public Optional<IsolationSession> resolveIsolation(SessionToken sessionToken, UUID isolation) {
+    public Optional<IsolationSession> resolveIsolationSession(SessionToken sessionToken, UUID uuid) {
 
-        if (!this.isolationMap.containsKey(sessionToken)) return Optional.empty();
-        return this.isolationMap.get(sessionToken).stream()
-                                .filter(item -> item.uuid().equals(isolation))
-                                .findFirst();
+        // Middleware
+        List<UUID> allowed = this.sessionIsolations.getOrDefault(sessionToken, Collections.emptyList());
+
+        if (allowed.contains(uuid)) {
+            return Optional.of(this.getIsolatedStorage(uuid, true).context());
+        }
+
+        return Optional.empty();
     }
 
     public IsolationSession createIsolation(SessionToken sessionToken, AccessScope... scopes) {
 
-        IsolationSession isolation = this.createIsolation(scopes);
-        this.isolationMap.computeIfAbsent(sessionToken, item -> new ArrayList<>());
-        this.isolationMap.get(sessionToken).add(isolation);
+        IsolationSession isolation = this.createIsolation(Set.of(scopes));
+        this.sessionIsolations.computeIfAbsent(sessionToken, _ -> new ArrayList<>());
+        this.sessionIsolations.get(sessionToken).add(isolation.uuid());
         return isolation;
     }
 
+    /**
+     * Best-effort discard of the provided isolation context. Discard failures are logged
+     * and never propagated: task outcome takes precedence over staging cleanup.
+     *
+     * @param isolationId
+     *         The identifier of the isolation context to discard.
+     *
+     * @return {@code true} when the context was discarded, {@code false} otherwise.
+     */
+    public boolean discardIsolation(UUID isolationId) {
+
+        try {
+            this.getIsolatedStorage(isolationId, true).context().close();
+        } catch (RuntimeException e) {
+            LOGGER.warn("Unable to discard isolation context {}", isolationId, e);
+            return false;
+        }
+        for (List<UUID> allowed : this.sessionIsolations.values()) {
+            allowed.remove(isolationId);
+        }
+        return true;
+    }
 
     public Path relativize(Path other) {
 
         return this.configuration.getIoPath().relativize(other);
+    }
+
+    /**
+     * Delete every leftover isolation staging directory.
+     * <p>
+     * Sanctum forgets all isolation contexts on reboot, so library-assisted clearing is
+     * impossible: leftovers are removed with plain IO instead. This is safe because committed
+     * work already lives in the library while uncommitted work is discardable by definition
+     * (no resume design exists), and fresh sessions mint new UUID directories that cannot
+     * collide. Failures are logged and never propagated: boot must not hinge on staging cleanup.
+     * <p>
+     * Note: the {@code "isolation"} segment mirrors {@code Sanctum} internals; update together.
+     */
+    public void purgeIsolationStagings() {
+
+        Path isolationRoot = this.configuration.getIoPath().resolve("isolation");
+        if (!Files.isDirectory(isolationRoot)) return;
+
+        List<Path> children;
+        try (Stream<Path> stream = Files.list(isolationRoot)) {
+            children = stream.toList();
+        } catch (Exception e) {
+            LOGGER.warn("Unable to list stale isolation stagings in {}", isolationRoot, e);
+            return;
+        }
+        for (Path child : children) {
+            try {
+                SanctumUtils.delete(child);
+            } catch (Exception e) {
+                LOGGER.warn("Unable to purge stale isolation staging {}", child, e);
+            }
+        }
     }
 
     public Optional<Path> findDownload(TorrentFile torrentFile) {

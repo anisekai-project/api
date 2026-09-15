@@ -6,8 +6,10 @@ import fr.anisekai.server.domain.events.interest.InterestLevelUpdatedEvent;
 import fr.anisekai.server.domain.keys.InterestKey;
 import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.jetbrains.annotations.NotNull;
 
+import java.sql.Types;
 import java.util.Objects;
 
 @Entity
@@ -20,6 +22,7 @@ public class Interest extends BaseEntity<InterestKey> {
     private DiscordUser user;
 
     @Id
+    @JdbcTypeCode(Types.BINARY)
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     private Anime anime;
 

@@ -1,7 +1,6 @@
 package fr.anisekai.utils;
 
-
-import fr.anisekai.core.internal.plannifier.interfaces.entities.Planifiable;
+import fr.anisekai.scheduler.event.interfaces.entities.Planifiable;
 
 import java.util.function.Function;
 
@@ -138,7 +137,7 @@ public final class StringUtils {
                     "%s %02d et %02d",
                     prefix,
                     planifiable.getFirstEpisode(),
-                    planifiable.getLastEpisode()
+                    planifiable.getFirstEpisode() + (planifiable.getEpisodeCount() - 1)
             );
         } else {
             String prefix = emphasize ? "**Épisodes**" : "épisodes";
@@ -146,7 +145,7 @@ public final class StringUtils {
                     "%s %02d à %02d",
                     prefix,
                     planifiable.getFirstEpisode(),
-                    planifiable.getLastEpisode()
+                    planifiable.getFirstEpisode() + (planifiable.getEpisodeCount() - 1)
             );
         }
     }

@@ -24,35 +24,21 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.springframework.actuator)
-    implementation(libs.springframework.data.jpa)
-    implementation(libs.springframework.jdbc)
-    implementation(libs.springframework.web)
-
+    implementation(libs.bundles.spring)
     testImplementation(libs.testing.springframework.test)
-
-    implementation(libs.springdoc.openapi)
+    testImplementation(libs.testing.h2)
+    testImplementation(libs.testing.springframework.data.jpa.test)
 
     implementation(libs.security.uuid)
-    implementation(libs.security.jjwt.api)
-    runtimeOnly(libs.security.jjwt.impl)
-    runtimeOnly(libs.security.jjwt.jackson)
-
     runtimeOnly(libs.database.mariadb.client)
-    implementation(libs.database.flyway.core)
-    implementation(libs.database.flyway.mysql)
 
-    implementation(libs.api.discord.jda)
-    implementation(libs.api.discord.jda.interactions)
-    implementation(libs.api.anisekai.sanctum)
-    implementation(libs.api.anisekai.proxy)
-    implementation(libs.api.anisekai.ffmpeg)
+    implementation(libs.bundles.anisekai)
+    implementation(libs.bundles.discord)
+    implementation(libs.bundles.flyway)
+    implementation(libs.bundles.jwt)
+    implementation(libs.bundles.utils)
 
     implementation(libs.util.http.client)
-    implementation(libs.util.json)
-    implementation(libs.util.jsoup)
-    implementation(libs.util.rome)
-    implementation(libs.util.slugify)
 
     annotationProcessor(libs.dev.spring.configuration.processor)
     implementation(libs.dev.annotations.jetbrains)

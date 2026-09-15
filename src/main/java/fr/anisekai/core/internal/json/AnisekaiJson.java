@@ -22,7 +22,7 @@ import static fr.anisekai.utils.StringUtils.parseIntOrThrow;
 /**
  * Utility class adding few features on top of {@link JSONObject}.
  */
-
+@Deprecated
 public class AnisekaiJson extends JSONObject {
 
     private static final BiFunction<JSONObject, String, AnisekaiJson> ANISEKAI_JSON_JSON =

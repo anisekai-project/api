@@ -6,6 +6,7 @@ import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.web.annotations.RequireAuth;
 import fr.anisekai.web.dto.AnimeDto;
+import fr.anisekai.web.enums.TokenScope;
 import fr.anisekai.web.enums.TokenType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -31,7 +32,7 @@ public class AnimeController {
 
     @Deprecated
     @PostMapping(value = "/import", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-    @RequireAuth(allowedSessionTypes = TokenType.APPLICATION)
+    @RequireAuth(allowedSessionTypes = TokenType.APPLICATION, scopes = TokenScope.ANIME_WRITE)
     @Operation(summary = "[Deprecated] Import an anime", description = "This endpoint is used in the browser extension and should not be used for any other purpose.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Import successful."),

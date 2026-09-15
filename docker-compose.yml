@@ -2,7 +2,6 @@ services:
   service:
     restart: unless-stopped
     image:   akionakao/anisekai:beta
-    user:    '${UID:-1000}:${GID:-1000}'
     ports:
       - '${FORWARD_SERVICE_ON:-8080}:8080'
     environment:
@@ -47,7 +46,6 @@ services:
   website:
     restart: unless-stopped
     image:   akionakao/anisekai-website:beta
-    user:    '${UID:-1000}:${GID:-1000}'
     environment:
       NUXT_PUBLIC_DISCORD_CLIENT_ID:    "${DISCORD_CLIENT_ID}"
       NUXT_PUBLIC_DISCORD_GRANT_TYPE:   "${DISCORD_GRANT_TYPE}"
@@ -90,14 +88,13 @@ services:
       retries:      3
   transmission:
     image: akionakao/transmission:4.0.5
-    user:  '${UID:-1000}:${GID:-1000}'
     ports:
       - '${FORWARD_TRANSMISSION_ON:-9091}:9091'
       - '${FORWARD_TRANSMISSION_PEER_ON:-51423}:51423'
     networks:
       - anisekai
     volumes:
-      - './data/transmission:/app/data'
+      - './data/transmission:/app/data:rw'
       - './data/library/downloads:/app/downloads'
     healthcheck:
       test: [ "CMD", "curl", "-f", 'http://localhost:9091/transmission/rpc' ]

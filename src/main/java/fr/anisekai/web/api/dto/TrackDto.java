@@ -7,9 +7,10 @@ import fr.anisekai.server.domain.entities.Track;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.UUID;
 
 public record TrackDto(
-        long id,
+        UUID id,
         String name,
         Codec codec,
         CodecType type,

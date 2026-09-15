@@ -4,8 +4,10 @@ import fr.alexpado.interactions.annotations.Slash;
 import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
-import fr.anisekai.discord.tasks.watchlist.create.WatchlistCreateFactory;
-import fr.anisekai.discord.tasks.watchlist.update.WatchlistUpdateFactory;
+import fr.anisekai.discord.tasks.Nothing;
+import fr.anisekai.discord.tasks.watchlist.create.WatchlistCreateTaskFactory;
+import fr.anisekai.discord.tasks.watchlist.update.WatchlistUpdateTaskFactory;
+import fr.anisekai.discord.tasks.watchlist.update.WatchlistUpdateTaskInput;
 import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.domain.entities.Watchlist;
 import fr.anisekai.server.domain.enums.AnimeList;
@@ -40,7 +42,8 @@ public class WatchlistTaskSlashInteraction {
             return DiscordResponse.error("Le salon des watchlist n'a pas été configuré.");
         }
 
-        this.service.getFactory(WatchlistCreateFactory.class).queue(Task.PRIORITY_MANUAL_HIGH);
+        this.service.queueOne(WatchlistCreateTaskFactory.class, Nothing.INSTANCE, Task.PRIORITY_MANUAL_HIGH);
+
         return DiscordResponse.success(
                 "Les listes ont été réinitialisée. Il vous faudra supprimer les messages des anciennes listes."
         );
@@ -66,7 +69,11 @@ public class WatchlistTaskSlashInteraction {
         }
 
         for (AnimeList status : statuses) {
-            this.service.getFactory(WatchlistUpdateFactory.class).queue(status, Task.PRIORITY_MANUAL_HIGH);
+            this.service.queueOne(
+                    WatchlistUpdateTaskFactory.class,
+                    new WatchlistUpdateTaskInput(status),
+                    Task.PRIORITY_MANUAL_HIGH
+            );
         }
 
         return DiscordResponse.success(

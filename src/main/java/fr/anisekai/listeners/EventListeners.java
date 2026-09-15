@@ -4,14 +4,12 @@ import fr.anisekai.core.persistence.EventContextRegistry;
 import fr.anisekai.core.persistence.events.EntityCreatedEvent;
 import fr.anisekai.core.persistence.events.EntityDeletedEvent;
 import fr.anisekai.core.persistence.events.EntityUpdatedEvent;
-import fr.anisekai.discord.tasks.anime.announcement.create.AnnouncementCreateFactory;
-import fr.anisekai.discord.tasks.anime.announcement.update.AnnouncementUpdateFactory;
-import fr.anisekai.discord.tasks.broadcast.schedule.BroadcastScheduleFactory;
-import fr.anisekai.discord.tasks.watchlist.update.WatchlistUpdateFactory;
-import fr.anisekai.server.domain.entities.Anime;
-import fr.anisekai.server.domain.entities.Broadcast;
-import fr.anisekai.server.domain.entities.Interest;
-import fr.anisekai.server.domain.entities.Voter;
+import fr.anisekai.discord.tasks.announcement.AnnouncementTaskFactory;
+import fr.anisekai.discord.tasks.announcement.AnnouncementTaskInput;
+import fr.anisekai.discord.tasks.broadcast.schedule.BroadcastScheduleTaskFactory;
+import fr.anisekai.discord.tasks.watchlist.update.WatchlistUpdateTaskFactory;
+import fr.anisekai.discord.tasks.watchlist.update.WatchlistUpdateTaskInput;
+import fr.anisekai.server.domain.entities.*;
 import fr.anisekai.server.domain.enums.AnimeList;
 import fr.anisekai.server.domain.enums.BroadcastStatus;
 import fr.anisekai.server.domain.events.anime.*;
@@ -31,6 +29,7 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -50,7 +49,7 @@ public class EventListeners {
 
     public EventListeners(EventContextRegistry registry, SettingService settingService, TaskService taskService, AnimeService animeService, VoterService voterService, BroadcastService broadcastService) {
 
-        this.registry = registry;
+        this.registry         = registry;
         this.settingService   = settingService;
         this.taskService      = taskService;
         this.animeService     = animeService;
@@ -76,6 +75,33 @@ public class EventListeners {
         LOGGER.debug("Received updated event {}", event.getClass().getSimpleName());
     }
 
+    private void queueAnnouncement(Anime anime) {
+
+        this.taskService.queueOne(
+                AnnouncementTaskFactory.class,
+                new AnnouncementTaskInput(anime.getId(), anime.getAnnouncementId() != null),
+                Task.PRIORITY_DEFAULT
+        );
+    }
+
+    private void queueWatchlist(AnimeList list) {
+
+        this.taskService.queueOne(
+                WatchlistUpdateTaskFactory.class,
+                new WatchlistUpdateTaskInput(list),
+                Task.PRIORITY_DEFAULT
+        );
+    }
+
+    private void queueBroadcast(Broadcast broadcast) {
+
+        this.taskService.queueOne(
+                BroadcastScheduleTaskFactory.class,
+                BroadcastScheduleTaskFactory.createInput(broadcast),
+                Task.PRIORITY_DEFAULT
+        );
+    }
+
     // <editor-fold desc="Anime">
 
     @EventListener
@@ -83,11 +109,11 @@ public class EventListeners {
 
         this.registry.withEventContext(() -> {
             if (this.settingService.isAnimeAnnouncementEnabled()) {
-                this.taskService.getFactory(AnnouncementCreateFactory.class).queue(event.getEntity());
+                this.queueAnnouncement(event.getEntity());
             }
 
             if (event.getEntity().getList().hasProperty(AnimeList.Property.SHOW)) {
-                this.taskService.getFactory(WatchlistUpdateFactory.class).queue(event.getEntity().getList());
+                this.queueWatchlist(event.getEntity().getList());
             }
         });
     }
@@ -104,7 +130,7 @@ public class EventListeners {
 
         this.registry.withEventContext(() -> {
             if (event.getEntity().getAnnouncementId() != null) {
-                this.taskService.getFactory(AnnouncementUpdateFactory.class).queue(event.getEntity());
+                this.queueAnnouncement(event.getEntity());
             }
         });
     }
@@ -117,7 +143,7 @@ public class EventListeners {
 
         this.registry.withEventContext(() -> {
             if (event.getEntity().getList().hasProperty(AnimeList.Property.SHOW)) {
-                this.taskService.getFactory(WatchlistUpdateFactory.class).queue(event.getEntity().getList());
+                this.queueWatchlist(event.getEntity().getList());
             }
         });
     }
@@ -127,11 +153,11 @@ public class EventListeners {
 
         this.registry.withEventContext(() -> {
             if (event.getPrevious().hasProperty(AnimeList.Property.SHOW)) {
-                this.taskService.getFactory(WatchlistUpdateFactory.class).queue(event.getPrevious());
+                this.queueWatchlist(event.getPrevious());
             }
 
             if (event.getCurrent().hasProperty(AnimeList.Property.SHOW)) {
-                this.taskService.getFactory(WatchlistUpdateFactory.class).queue(event.getCurrent());
+                this.queueWatchlist(event.getCurrent());
             }
         });
     }
@@ -150,7 +176,7 @@ public class EventListeners {
             }
 
             if (anime.getList().hasProperty(AnimeList.Property.PROGRESS)) {
-                this.taskService.getFactory(WatchlistUpdateFactory.class).queue(anime.getList());
+                this.queueWatchlist(anime.getList());
             }
 
             if (event instanceof AnimeWatchedUpdatedEvent watchedUpdatedEvent) {
@@ -170,7 +196,7 @@ public class EventListeners {
 
         this.registry.withEventContext(() -> {
             if (!this.broadcastService.hasPreviousScheduled(event.getEntity())) {
-                this.taskService.getFactory(BroadcastScheduleFactory.class).queue(event.getEntity());
+                this.queueBroadcast(event.getEntity());
             } else {
                 LOGGER.info("Broadcast {} set to be scheduled later.", event.getEntity().getId());
             }
@@ -207,8 +233,7 @@ public class EventListeners {
                         );
 
                 if (!broadcasts.isEmpty()) {
-                    Broadcast first = broadcasts.getFirst();
-                    this.taskService.getFactory(BroadcastScheduleFactory.class).queue(first);
+                    this.queueBroadcast(broadcasts.getFirst());
                 }
             }
         });
@@ -223,7 +248,7 @@ public class EventListeners {
 
         this.registry.withEventContext(() -> {
             if (event.getEntity().getStatus() == BroadcastStatus.SCHEDULED) {
-                this.taskService.getFactory(BroadcastScheduleFactory.class).queue(event.getEntity());
+                this.queueBroadcast(event.getEntity());
             }
         });
     }
@@ -232,13 +257,13 @@ public class EventListeners {
 
     // <editor-fold desc="User">
 
-    @EventListener
-    public void onUserEmoteUpdated(UserEmoteUpdatedEvent event) {
+    @EventListener(UserEmoteUpdatedEvent.class)
+    public void onUserEmoteUpdated() {
 
         this.registry.withEventContext(() -> {
             // TODO: Optimisation possible, only select watchlist where the user has at least a single interest
             for (AnimeList status : AnimeList.collect(AnimeList.Property.SHOW)) {
-                this.taskService.getFactory(WatchlistUpdateFactory.class).queue(status);
+                this.queueWatchlist(status);
             }
         });
     }
@@ -251,8 +276,8 @@ public class EventListeners {
     public void onInterestCreate(EntityCreatedEvent<Interest> event) {
 
         this.registry.withEventContext(() -> {
-            this.taskService.getFactory(AnnouncementCreateFactory.class).queue(event.getEntity().getAnime());
-            this.taskService.getFactory(WatchlistUpdateFactory.class).queue(event.getEntity().getAnime().getList());
+            this.queueAnnouncement(event.getEntity().getAnime());
+            this.queueWatchlist(event.getEntity().getAnime().getList());
         });
     }
 
@@ -260,8 +285,8 @@ public class EventListeners {
     public void onInterestUpdated(InterestLevelUpdatedEvent event) {
 
         this.registry.withEventContext(() -> {
-            this.taskService.getFactory(AnnouncementCreateFactory.class).queue(event.getEntity().getAnime());
-            this.taskService.getFactory(WatchlistUpdateFactory.class).queue(event.getEntity().getAnime().getList());
+            this.queueAnnouncement(event.getEntity().getAnime());
+            this.queueWatchlist(event.getEntity().getAnime().getList());
         });
     }
 
@@ -273,7 +298,7 @@ public class EventListeners {
     public void onSelectionStateUpdated(SelectionStatusUpdatedEvent event) {
 
         this.registry.withEventContext(() -> {
-            List<Long> ids = switch (event.getCurrent()) {
+            List<UUID> ids = switch (event.getCurrent()) {
                 case OPEN -> Collections.emptyList();
                 case CLOSED -> this.voterService
                         .getVoters(event.getEntity())

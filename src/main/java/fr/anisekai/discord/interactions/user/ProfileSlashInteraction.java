@@ -44,7 +44,7 @@ public class ProfileSlashInteraction {
     )
     public InteractionResponse execute(User sender, @Param("user") User user) {
 
-        User effectiveUser = user == null ? sender : user;
+        User           effectiveUser        = user == null ? sender : user;
         DiscordUser    effectiveDiscordUser = this.userService.of(effectiveUser);
         List<Anime>    animes               = this.animeService.getRepository().findByAddedBy(effectiveDiscordUser);
         List<Interest> interests            = this.interestService.getInterests(effectiveDiscordUser);

@@ -7,7 +7,9 @@ import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
 import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
-import fr.anisekai.library.tasks.factories.TorrentSourcingFactory;
+import fr.anisekai.library.tasks.torrent.sourcing.TorrentSourcingTaskFactory;
+import fr.anisekai.library.tasks.torrent.sourcing.TorrentSourcingTaskInput;
+import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.services.SettingService;
 import fr.anisekai.server.services.TaskService;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -41,17 +43,27 @@ public class DownloadTaskSlashInteraction {
         Optional<String> optionalUserSource    = Optional.ofNullable(url);
         Optional<String> optionalDefaultSource = this.settingService.getDownloadSource();
 
+
         if (optionalUserSource.isPresent()) {
-            this.service.getFactory(TorrentSourcingFactory.class).queue(optionalUserSource.get());
+            this.queueSourcing(optionalUserSource.get());
             return DiscordResponse.success("La vérification va être effectuée sous peu.");
         }
 
         if (optionalDefaultSource.isPresent()) {
-            this.service.getFactory(TorrentSourcingFactory.class).queue(optionalDefaultSource.get());
+            this.queueSourcing(optionalDefaultSource.get());
             return DiscordResponse.success("La vérification va être effectuée sous peu.");
         }
 
         return DiscordResponse.error("Aucune source disponible pour le téléchargement automatique.");
+    }
+
+    private void queueSourcing(String url) {
+
+        this.service.queueOne(
+                TorrentSourcingTaskFactory.class,
+                new TorrentSourcingTaskInput(url, Task.PRIORITY_MANUAL_HIGH),
+                Task.PRIORITY_MANUAL_HIGH
+        );
     }
 
 }

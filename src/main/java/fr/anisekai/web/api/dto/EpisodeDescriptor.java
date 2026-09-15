@@ -15,8 +15,8 @@ public record EpisodeDescriptor(
     public static EpisodeDescriptor of(Episode episode) {
 
         return new EpisodeDescriptor(
-                "/api/v3/library/chunks/%d/meta.mpd".formatted(episode.getId()),
-                "/api/v3/library/episodes/%d".formatted(episode.getId()),
+                "/api/v3/library/chunks/%s/meta.mpd".formatted(episode.getId()),
+                "/api/v3/library/episodes/%s".formatted(episode.getId()),
                 episode.getAnime().getTitle(),
                 episode.getNumber(),
                 episode.getTracks().stream().map(TrackDto::of).toList()

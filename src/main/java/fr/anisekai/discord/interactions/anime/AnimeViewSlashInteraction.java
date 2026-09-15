@@ -10,7 +10,8 @@ import fr.anisekai.discord.completions.AnimeCompletion;
 import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
 import fr.anisekai.discord.responses.messages.AnimeCardMessage;
-import fr.anisekai.discord.tasks.anime.announcement.create.AnnouncementCreateFactory;
+import fr.anisekai.discord.tasks.announcement.AnnouncementTaskFactory;
+import fr.anisekai.discord.tasks.announcement.AnnouncementTaskInput;
 import fr.anisekai.library.Library;
 import fr.anisekai.sanctum.AccessScope;
 import fr.anisekai.sanctum.interfaces.isolation.IsolationSession;
@@ -23,6 +24,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 
 import java.nio.file.Path;
+import java.util.UUID;
 
 @DiscordBean
 public class AnimeViewSlashInteraction {
@@ -47,14 +49,15 @@ public class AnimeViewSlashInteraction {
                             name = "anime",
                             description = "Anime pour lequel la fiche sera envoyée.",
                             required = true,
-                            type = OptionType.INTEGER,
+                            type = OptionType.STRING,
                             completion = @Completion(named = AnimeCompletion.NAME)
                     )
             }
     )
-    public InteractionResponse executeCard(@Param("anime") long animeId) {
+    public InteractionResponse executeCard(@Param("anime") String animeId) {
 
-        Anime anime = this.service.requireById(animeId);
+        UUID  id    = UUID.fromString(animeId);
+        Anime anime = this.service.requireById(id);
         return new AnimeCardMessage(anime);
     }
 
@@ -66,23 +69,29 @@ public class AnimeViewSlashInteraction {
                             name = "anime",
                             description = "Anime pour lequel l'annonce sera envoyée.",
                             required = true,
-                            type = OptionType.INTEGER,
+                            type = OptionType.STRING,
                             completion = @Completion(named = AnimeCompletion.NAME)
                     )
             }
     )
     @RequireAdmin
-    public InteractionResponse executeAnnouncement(@Param("anime") long animeId) {
+    public InteractionResponse executeAnnouncement(@Param("anime") String animeId) {
 
-        Anime anime = this.service.requireById(animeId);
-        this.taskService.getFactory(AnnouncementCreateFactory.class).queue(anime, Task.PRIORITY_MANUAL_LOW);
+        UUID  id    = UUID.fromString(animeId);
+        Anime anime = this.service.requireById(id);
+
+        this.taskService.queueOne(
+                AnnouncementTaskFactory.class,
+                new AnnouncementTaskInput(anime.getId(), anime.getAnnouncementId() != null),
+                Task.PRIORITY_MANUAL_HIGH
+        );
+
         if (anime.getAnnouncementId() == null) {
             return DiscordResponse.info("L'annonce pour l'anime **%s** sera envoyée d'ici peu.", anime.getTitle());
         } else {
             return DiscordResponse.info("L'annonce pour l'anime **%s** sera mise à jour d'ici peu.", anime.getTitle());
         }
     }
-
 
     @Slash(
             name = "anime/event-image",
@@ -92,7 +101,7 @@ public class AnimeViewSlashInteraction {
                             name = "anime",
                             description = "\uD83D\uDD12 — Change l'image d'évènement d'un anime.",
                             required = true,
-                            type = OptionType.INTEGER,
+                            type = OptionType.STRING,
                             completion = @Completion(named = AnimeCompletion.NAME)
                     ),
                     @Option(
@@ -104,7 +113,7 @@ public class AnimeViewSlashInteraction {
             }
     )
     @RequireAdmin
-    public InteractionResponse execute(@Param("anime") long animeId, @Param("image") Message.Attachment attachment) throws Exception {
+    public InteractionResponse execute(@Param("anime") String animeId, @Param("image") Message.Attachment attachment) throws Exception {
 
 
         if (!attachment.isImage() || !"webp".equals(attachment.getFileExtension())) {
@@ -119,7 +128,8 @@ public class AnimeViewSlashInteraction {
             ));
         }
 
-        Anime anime = this.service.requireById(animeId);
+        UUID  id    = UUID.fromString(animeId);
+        Anime anime = this.service.requireById(id);
 
         AccessScope scope = new AccessScope(Library.EVENT_IMAGES, anime);
 

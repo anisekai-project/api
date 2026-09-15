@@ -1,8 +1,7 @@
 package fr.anisekai.server.planifier;
 
-
-import fr.anisekai.core.internal.plannifier.interfaces.ScheduleSpotData;
-import fr.anisekai.core.internal.plannifier.interfaces.entities.WatchTarget;
+import fr.anisekai.scheduler.event.interfaces.ScheduleSpotData;
+import fr.anisekai.scheduler.event.interfaces.entities.WatchTarget;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;

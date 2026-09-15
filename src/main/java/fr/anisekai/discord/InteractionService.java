@@ -47,7 +47,7 @@ public class InteractionService extends ListenerAdapter {
     private final InteractionManager       manager;
     private final ApplicationConfiguration configuration;
     private final ListableBeanFactory      factory;
-    private final EventContextRegistry eventContextRegistry;
+    private final EventContextRegistry     eventContextRegistry;
 
     private final SlashInteractionResolver slashResolver;
 
@@ -145,25 +145,19 @@ public class InteractionService extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
 
-        this.eventContextRegistry.withEventContext(() -> {
-            this.manager.processEvent(event.getInteraction());
-        });
+        this.eventContextRegistry.withEventContext(() -> this.manager.processEvent(event.getInteraction()));
     }
 
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
 
-        this.eventContextRegistry.withEventContext(() -> {
-            this.manager.processEvent(event.getInteraction());
-        });
+        this.eventContextRegistry.withEventContext(() -> this.manager.processEvent(event.getInteraction()));
     }
 
     @Override
     public void onCommandAutoCompleteInteraction(@NotNull CommandAutoCompleteInteractionEvent event) {
 
-        this.eventContextRegistry.withEventContext(() -> {
-            this.manager.processEvent(event.getInteraction());
-        });
+        this.eventContextRegistry.withEventContext(() -> this.manager.processEvent(event.getInteraction()));
     }
 
 }

@@ -8,21 +8,24 @@ import net.dv8tion.jda.api.EmbedBuilder;
 
 import java.util.Comparator;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class SelectionAnimeEmbed extends EmbedBuilder {
 
     public SelectionAnimeEmbed(Selection selection, Map<Anime, DiscordUser> votes) {
 
+        AtomicInteger counter = new AtomicInteger(1);
 
         String animes = selection.getAnimes().stream()
                                  .sorted(Comparator.comparing(Anime::getId))
                                  .map(anime -> {
+                                     int fakeId = counter.getAndIncrement();
                                      if (votes.containsKey(anime)) {
                                          DiscordUser voter = votes.get(anime);
                                          return String.format(
                                                  "%s — %s [%s](%s)",
-                                                 this.padded(anime.getId(), "—"),
+                                                 this.padded(fakeId, '—'),
                                                  voter.getEmote(),
                                                  StringUtils.truncate(anime.getTitle(), 50),
                                                  anime.getUrl()
@@ -30,7 +33,7 @@ public class SelectionAnimeEmbed extends EmbedBuilder {
                                      } else {
                                          return String.format(
                                                  "**%s — [%s](%s)**",
-                                                 this.padded(anime.getId()),
+                                                 this.padded(fakeId),
                                                  StringUtils.truncate(anime.getTitle(), 50),
                                                  anime.getUrl()
                                          );
@@ -43,16 +46,16 @@ public class SelectionAnimeEmbed extends EmbedBuilder {
 
     private String padded(long id) {
 
-        return this.padded(id, " ");
+        return this.padded(id, ' ');
     }
 
-    private String padded(long id, String padder) {
+    private String padded(long id, char paddingCharacter) {
 
-        int    len   = 4;
+        int    len   = 2;
         String value = String.valueOf(id);
         int    pad   = len - value.length();
 
-        return "`%s%s`".formatted(padder.repeat(pad), value);
+        return "`%s%s`".formatted(String.valueOf(paddingCharacter).repeat(pad), value);
     }
 
 }

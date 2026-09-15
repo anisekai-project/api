@@ -2,9 +2,12 @@ package fr.anisekai.server.domain.keys;
 
 import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.domain.entities.DiscordUser;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
+import java.sql.Types;
+import java.util.UUID;
 
 /**
  * Represents a composite key linking a specific anime to a specific user.
@@ -16,7 +19,10 @@ import java.io.Serializable;
  * @param user
  *         The {@link DiscordUser} ID
  */
-public record InterestKey(long anime, long user) implements Serializable {
+public record InterestKey(
+        @JdbcTypeCode(Types.BINARY) UUID anime,
+        long user
+) implements Serializable {
 
     /**
      * Creates a new {@link InterestKey} from the given {@link Anime} and {@link DiscordUser}.

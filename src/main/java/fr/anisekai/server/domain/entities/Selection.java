@@ -1,7 +1,7 @@
 package fr.anisekai.server.domain.entities;
 
 import fr.anisekai.core.persistence.annotations.TriggerEvent;
-import fr.anisekai.core.persistence.domain.IncrementableEntity;
+import fr.anisekai.core.persistence.domain.UuidEntity;
 import fr.anisekai.server.domain.enums.AnimeSeason;
 import fr.anisekai.server.domain.enums.SelectionStatus;
 import fr.anisekai.server.domain.events.selection.SelectionAnimesUpdatedEvent;
@@ -15,7 +15,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "selection")
-public class Selection extends IncrementableEntity {
+public class Selection extends UuidEntity {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)

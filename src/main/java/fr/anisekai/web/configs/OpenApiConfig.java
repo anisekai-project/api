@@ -55,9 +55,15 @@ public class OpenApiConfig {
                                        .map(Enum::name)
                                        .toList();
 
-            desc.append("\u0083 Allowed session types: `")
+            desc.append("• Allowed session types: `")
                 .append(String.join(", ", types))
                 .append("`\n");
+
+            if (auth.scopes().length > 0) {
+                desc.append("• Required token scopes: `")
+                    .append(String.join(", ", auth.scopes()))
+                    .append("`\n");
+            }
 
             operation.setDescription(desc.toString());
 

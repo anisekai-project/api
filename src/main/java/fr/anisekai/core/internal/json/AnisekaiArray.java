@@ -11,6 +11,7 @@ import java.util.function.Function;
 /**
  * Utility class adding few features on top of {@link JSONArray}.
  */
+@Deprecated
 public class AnisekaiArray extends JSONArray {
 
     /**

@@ -13,6 +13,8 @@ import fr.anisekai.server.domain.entities.Anime;
 import fr.anisekai.server.services.AnimeService;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 
+import java.util.UUID;
+
 @DiscordBean
 @RequireAdmin
 public class AnimeEpisodeSlashInteraction {
@@ -32,7 +34,7 @@ public class AnimeEpisodeSlashInteraction {
                             name = "anime",
                             description = "Anime pour lequel la fiche sera envoyée.",
                             required = true,
-                            type = OptionType.INTEGER,
+                            type = OptionType.STRING,
                             completion = @Completion(named = AnimeCompletion.NAME)
                     ),
                     @Option(
@@ -43,9 +45,11 @@ public class AnimeEpisodeSlashInteraction {
                     )
             }
     )
-    public InteractionResponse executeProgress(@Param("anime") long animeId, @Param("progress") long progress) {
+    public InteractionResponse executeProgress(@Param("anime") String animeId, @Param("progress") long progress) {
 
-        Anime anime = this.service.mod(animeId, entity -> entity.setWatched((int) progress));
+        UUID id = UUID.fromString(animeId);
+
+        Anime anime = this.service.mod(id, entity -> entity.setWatched((int) progress));
         return DiscordResponse.info(
                 "La progression de l'anime **%s** a bien été mis à jour.\n%s épisode(s) regardé(s)",
                 anime.getTitle(),
@@ -61,7 +65,7 @@ public class AnimeEpisodeSlashInteraction {
                             name = "anime",
                             description = "Anime pour lequel la fiche sera envoyée.",
                             required = true,
-                            type = OptionType.INTEGER,
+                            type = OptionType.STRING,
                             completion = @Completion(named = AnimeCompletion.NAME)
                     ),
                     @Option(
@@ -72,9 +76,10 @@ public class AnimeEpisodeSlashInteraction {
                     )
             }
     )
-    public InteractionResponse executeTotal(@Param("anime") long animeId, @Param("total") long total) {
+    public InteractionResponse executeTotal(@Param("anime") String animeId, @Param("total") long total) {
 
-        Anime anime = this.service.mod(animeId, entity -> entity.setTotal((int) total));
+        UUID  id    = UUID.fromString(animeId);
+        Anime anime = this.service.mod(id, entity -> entity.setTotal((int) total));
         return DiscordResponse.info(
                 "Le nombre total d'épisode de l'anime **%s** a bien été mis à jour.\n%s épisode(s) au total %s",
                 anime.getTitle(),
@@ -91,7 +96,7 @@ public class AnimeEpisodeSlashInteraction {
                             name = "anime",
                             description = "Anime pour lequel la fiche sera envoyée.",
                             required = true,
-                            type = OptionType.INTEGER,
+                            type = OptionType.STRING,
                             completion = @Completion(named = AnimeCompletion.NAME)
                     ),
                     @Option(
@@ -102,9 +107,10 @@ public class AnimeEpisodeSlashInteraction {
                     )
             }
     )
-    public InteractionResponse executeDuration(@Param("anime") long animeId, @Param("duration") long duration) {
+    public InteractionResponse executeDuration(@Param("anime") String animeId, @Param("duration") long duration) {
 
-        Anime anime = this.service.mod(animeId, entity -> entity.setEpisodeDuration((int) duration));
+        UUID  id    = UUID.fromString(animeId);
+        Anime anime = this.service.mod(id, entity -> entity.setEpisodeDuration((int) duration));
         return DiscordResponse.info(
                 "La durée d'un épisode pour l'anime **%s** a bien été mis à jour.\n%s minutes",
                 anime.getTitle(),

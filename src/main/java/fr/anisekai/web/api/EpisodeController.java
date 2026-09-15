@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v3/episodes")
 public class EpisodeController {
@@ -23,8 +25,8 @@ public class EpisodeController {
     }
 
     @RequireAuth(allowGuests = false)
-    @GetMapping(path = "/{episodeId:[0-9]+}/descriptor", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EpisodeDescriptor> getEpisodeDescriptor(@PathVariable long episodeId) {
+    @GetMapping(path = "/{episodeId:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}}/descriptor", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EpisodeDescriptor> getEpisodeDescriptor(@PathVariable UUID episodeId) {
 
         Episode episode = this.service.requireById(episodeId);
         return ResponseEntity.ok(EpisodeDescriptor.of(episode));

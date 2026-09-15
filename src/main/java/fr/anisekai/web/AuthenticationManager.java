@@ -7,6 +7,7 @@ import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.server.repositories.SessionTokenRepository;
 import fr.anisekai.server.services.UserService;
 import fr.anisekai.web.dto.auth.AuthData;
+import fr.anisekai.web.enums.TokenScope;
 import fr.anisekai.web.enums.TokenType;
 import fr.anisekai.web.exceptions.auth.BearerParsingException;
 import fr.anisekai.web.exceptions.auth.InvalidSessionException;
@@ -27,9 +28,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class AuthenticationManager {
@@ -54,11 +53,17 @@ public class AuthenticationManager {
 
     private SessionToken createToken(TokenType type, DiscordUser user, Instant expiresAt) {
 
+        return this.createToken(type, user, expiresAt, Set.of());
+    }
+
+    private SessionToken createToken(TokenType type, DiscordUser user, Instant expiresAt, Collection<String> scopes) {
+
         SessionToken token = new SessionToken();
         token.setId(UuidCreator.getTimeOrderedEpoch());
         token.setOwner(user);
         token.setType(type);
         token.setExpiresAt(expiresAt);
+        token.setScopes(TokenScope.validateAll(scopes));
 
         // Ensure we have the 'entity' version
         return this.sessionTokenRepository.save(token);
@@ -222,6 +227,26 @@ public class AuthenticationManager {
         return this.createToken(TokenType.APPLICATION, user, expiresAt);
     }
 
+    /**
+     * Create a scoped {@link SessionToken} with a type of {@link TokenType#APPLICATION}
+     *
+     * @param user
+     *         The {@link DiscordUser} for which the {@link SessionToken} will be created.
+     * @param expiresAt
+     *         When the token expires.
+     * @param scopes
+     *         The {@link TokenScope} values granted to the token. Unknown scopes are rejected.
+     *
+     * @return The newly created {@link SessionToken}.
+     *
+     * @throws IllegalArgumentException
+     *         when any requested scope is unknown.
+     */
+    public SessionToken createApplicationToken(DiscordUser user, Instant expiresAt, Collection<String> scopes) {
+
+        return this.createToken(TokenType.APPLICATION, user, expiresAt, scopes);
+    }
+
     public AuthData authenticate(String code) throws Exception {
 
         LOGGER.info("Authentication request using {}", code);
@@ -241,7 +266,7 @@ public class AuthenticationManager {
         return new AuthData(accessToken, refreshToken);
     }
 
-    public AuthData exchange(String jwt) {
+    public AuthData exchange(CharSequence jwt) {
 
         UUID         uuid  = this.getJti(jwt);
         SessionToken token = this.getRefreshToken(uuid);
@@ -257,7 +282,7 @@ public class AuthenticationManager {
 
     public String stringify(SessionToken token) {
 
-        return Jwts
+        var builder = Jwts
                 .builder()
                 // 1. ISS
                 .issuer("Anisekai")
@@ -272,7 +297,15 @@ public class AuthenticationManager {
                 // 6. JTI
                 .id(token.getId().toString())
                 // 7. Role Claim
-                .claim("role", token.getType().name())
+                .claim("role", token.getType().name());
+
+        // 8. Scopes Claim (space-delimited, OAuth convention; informational only —
+        //    enforcement always reads the persisted scopes from the database)
+        if (!token.getScopes().isEmpty()) {
+            builder.claim("scp", String.join(" ", token.getScopes().stream().sorted().toList()));
+        }
+
+        return builder
                 .signWith(this.apiConfiguration.getSigningSecretKey())
                 .compact();
 
