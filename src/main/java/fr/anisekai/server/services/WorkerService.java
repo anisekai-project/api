@@ -2,6 +2,7 @@ package fr.anisekai.server.services;
 
 import fr.anisekai.core.persistence.AnisekaiService;
 import fr.anisekai.core.persistence.EntityEventProcessor;
+import fr.anisekai.library.Library;
 import fr.anisekai.scheduler.tasking.enums.TaskStatus;
 import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.server.domain.entities.Task;
@@ -28,15 +29,18 @@ public class WorkerService extends AnisekaiService<Worker, UUID, WorkerRepositor
     public static final Duration STALE_AFTER = Duration.ofSeconds(120);
 
     private final TaskRepository taskRepository;
+    private final Library        library;
 
     public WorkerService(
             WorkerRepository repository,
             EntityEventProcessor eventProcessor,
-            TaskRepository taskRepository
+            TaskRepository taskRepository,
+            Library library
     ) {
 
         super(repository, eventProcessor);
         this.taskRepository = taskRepository;
+        this.library        = library;
     }
 
     /**
@@ -96,6 +100,10 @@ public class WorkerService extends AnisekaiService<Worker, UUID, WorkerRepositor
 
         List<Task> tasks = this.taskRepository.findAllByAssignedWorkerAndStatus(worker, TaskStatus.EXECUTING);
         for (Task task : tasks) {
+            if (task.getIsolationId() != null) {
+                this.library.discardIsolation(task.getIsolationId());
+                task.setIsolationId(null);
+            }
             task.setStatus(TaskStatus.SCHEDULED);
             task.setStartedAt(null);
             task.setAssignedWorker(null);

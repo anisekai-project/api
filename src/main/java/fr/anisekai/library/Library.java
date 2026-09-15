@@ -13,6 +13,8 @@ import fr.anisekai.sanctum.stores.ScopedDirectoryStorage;
 import fr.anisekai.sanctum.stores.ScopedFileStorage;
 import fr.anisekai.server.domain.entities.*;
 import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Files;
@@ -23,6 +25,8 @@ import java.util.stream.Stream;
 
 @Component
 public class Library extends Sanctum {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Library.class);
 
     public static final FileStore CHUNKS    = new ScopedDirectoryStorage("chunks", Episode.class);
     public static final FileStore EPISODES  = new ScopedFileStorage("episodes", Episode.class, "mkv");
@@ -72,6 +76,29 @@ public class Library extends Sanctum {
         this.sessionIsolations.computeIfAbsent(sessionToken, _ -> new ArrayList<>());
         this.sessionIsolations.get(sessionToken).add(isolation.uuid());
         return isolation;
+    }
+
+    /**
+     * Best-effort discard of the provided isolation context. Discard failures are logged
+     * and never propagated: task outcome takes precedence over staging cleanup.
+     *
+     * @param isolationId
+     *         The identifier of the isolation context to discard.
+     *
+     * @return {@code true} when the context was discarded, {@code false} otherwise.
+     */
+    public boolean discardIsolation(UUID isolationId) {
+
+        try {
+            this.getIsolatedStorage(isolationId, true).context().close();
+        } catch (RuntimeException e) {
+            LOGGER.warn("Unable to discard isolation context {}", isolationId, e);
+            return false;
+        }
+        for (List<UUID> allowed : this.sessionIsolations.values()) {
+            allowed.remove(isolationId);
+        }
+        return true;
     }
 
     public Path relativize(Path other) {

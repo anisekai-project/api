@@ -26,6 +26,8 @@ import fr.anisekai.utils.DataUtils;
 import fr.anisekai.web.exceptions.WebException;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +36,8 @@ import java.util.*;
 
 @Service
 public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(TaskService.class);
 
     private final ServerOrchestrator    serverOrchestrator;
     private final ServerFactoryRegistry serverFactory;
@@ -134,6 +138,11 @@ public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
         Factory<?, R> factory      = (Factory<?, R>) this.serverFactory.query(task.getFactoryName());
         R             resultObject = factory.getResultSerializer().deserialize(result);
 
+        if (task.getIsolationId() != null && !this.tryCommitTaskIsolation(task, factory)) {
+            return this.resolveFailure(meta, new IllegalStateException(
+                    "Isolation context of task " + task.getId() + " could not be committed"));
+        }
+
         TaskExecutedPacket<Task, R>              packet = new TaskExecutedPacket<>(task, resultObject);
         ActionPlan<UUID, ReservedTaskMeta, Task> plan   = this.serverOrchestrator.resolve(packet);
 
@@ -144,6 +153,7 @@ public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
     public List<Task> resolveFailure(TaskMeta meta, Throwable failure) {
 
         Task task = this.requireByTaskMeta(meta);
+        this.discardTaskIsolation(task);
 
         Exception exception = failure instanceof Exception e ? e : new RuntimeException(
                 failure);
@@ -151,6 +161,52 @@ public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
         ActionPlan<UUID, ReservedTaskMeta, Task> plan   = this.serverOrchestrator.resolve(packet);
 
         return DataUtils.applyPlan(this.getRepository(), plan, this::createTask);
+    }
+
+    /**
+     * Validate and commit the isolation context staged for the provided task.
+     *
+     * @param task
+     *         The succeeding task.
+     * @param factory
+     *         The factory that produced the task.
+     *
+     * @return {@code true} when the isolation was committed, {@code false} when the
+     *         task must go through failure handling instead.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private boolean tryCommitTaskIsolation(Task task, Factory<?, ?> factory) {
+
+        try {
+            IsolationSession isolation = this.library.getIsolatedStorage(task.getIsolationId(), false).context();
+            if (factory instanceof IsolatedServerFactory<?> isolated) {
+                Object input = ((ServerFactory<Task, Object, ?>) factory).getArgumentsSerializer()
+                                                                         .deserialize(task.getArguments());
+                ((IsolatedServerFactory<Object>) isolated).validateStagedOutput(isolation, task, input);
+            }
+            isolation.commit();
+            task.setIsolationId(null);
+            return true;
+        } catch (RuntimeException e) {
+            LOGGER.warn("Isolation commit failed for task {}", task.getId(), e);
+            this.discardTaskIsolation(task);
+            return false;
+        }
+    }
+
+    /**
+     * Best-effort discard of the isolation context bound to the provided task.
+     * Discard failures are logged and never propagated: task outcome takes precedence
+     * over staging cleanup.
+     *
+     * @param task
+     *         The task being resolved or released.
+     */
+    private void discardTaskIsolation(Task task) {
+
+        if (task.getIsolationId() == null) return;
+        this.library.discardIsolation(task.getIsolationId());
+        task.setIsolationId(null);
     }
 
     private Task createTask(ReservedTaskMeta data) {
