@@ -19,12 +19,15 @@ import fr.anisekai.scheduler.tasking.interfaces.structure.TaskClient;
 import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.domain.entities.Worker;
 import fr.anisekai.server.exceptions.task.TaskNotFoundException;
+import fr.anisekai.server.exceptions.task.WorkerDesyncException;
 import fr.anisekai.server.repositories.TaskRepository;
 import fr.anisekai.server.tasking.server.ServerFactoryRegistry;
 import fr.anisekai.server.tasking.server.ServerOrchestrator;
 import fr.anisekai.utils.DataUtils;
+import fr.anisekai.web.dto.WorkerDirective;
 import fr.anisekai.web.exceptions.WebException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -279,6 +282,55 @@ public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
             this.getRepository().save(task);
         }
         return claimed;
+    }
+
+    /**
+     * Reconcile the worker-reported state with the server-side state, then poll for a task
+     * when the worker is idle. A worker holds at most one task: a new task is only claimed
+     * when the worker reported no task and holds none server-side.
+     *
+     * @param worker
+     *         The worker pinging. Its heartbeat must already have been recorded.
+     * @param factoryNames
+     *         The compatible factory names declared by the worker. Only used when polling.
+     * @param currentTaskId
+     *         The task the worker reports actively working on, or {@code null} when idle.
+     *
+     * @return The reconcile outcome: a freshly assigned task, a directive for the worker,
+     *         or neither when the states match.
+     */
+    @Transactional
+    public WorkerPollResult reconcileAndPoll(@NotNull Worker worker, Collection<String> factoryNames, @Nullable UUID currentTaskId) {
+
+        List<Task> executing = new ArrayList<>(this.getRepository()
+                .findAllByAssignedWorkerAndStatus(worker, TaskStatus.EXECUTING));
+        executing.sort(Comparator.comparing(Task::getStartedAt, Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing(Task::getId));
+
+        boolean retained = currentTaskId != null
+                && executing.stream().anyMatch(task -> task.getId().equals(currentTaskId));
+
+        for (Task task : executing) {
+            if (task.getId().equals(currentTaskId)) continue;
+            LOGGER.warn("Worker {} desynced on task {}, failing it", worker.getId(), task.getId());
+            this.resolveFailure(TaskMeta.of(task), new WorkerDesyncException(
+                    "Worker " + worker.getId() + " desynced on task " + task.getId()));
+        }
+
+        // States match: the worker keeps working, nothing to assign.
+        if (retained) {
+            return new WorkerPollResult(Optional.empty(), WorkerDirective.NONE);
+        }
+
+        // The worker reports a task the server does not hold for it: no isolation context
+        // exists server-side, so it could never complete. Tell it to give up.
+        if (currentTaskId != null) {
+            LOGGER.warn("Worker {} reports unknown task {}, telling it to give up", worker.getId(), currentTaskId);
+            return new WorkerPollResult(Optional.empty(), WorkerDirective.GIVE_UP_TASK);
+        }
+
+        // The worker is idle: poll for a fresh task.
+        return new WorkerPollResult(this.pollForWorker(worker, factoryNames), WorkerDirective.NONE);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
