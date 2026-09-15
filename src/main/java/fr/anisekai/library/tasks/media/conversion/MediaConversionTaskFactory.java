@@ -6,11 +6,13 @@ import fr.anisekai.media.enums.Codec;
 import fr.anisekai.scheduler.commons.interfaces.ObjectSerializer;
 import fr.anisekai.scheduler.tasking.data.TaskExecutedPacket;
 import fr.anisekai.scheduler.tasking.interfaces.factories.ServerFactory;
+import fr.anisekai.sanctum.AccessScope;
 import fr.anisekai.server.domain.entities.Episode;
 import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.domain.entities.TorrentFile;
 import fr.anisekai.server.services.EpisodeService;
 import fr.anisekai.server.services.TrackService;
+import fr.anisekai.server.tasking.IsolatedServerFactory;
 import fr.anisekai.utils.IOUtils;
 import fr.anisekai.wireless.tasks.conversion.MediaConversionInput;
 import fr.anisekai.wireless.tasks.conversion.MediaConversionOutput;
@@ -23,9 +25,10 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.Set;
 
 @Component
-public class MediaConversionTaskFactory implements ServerFactory<Task, MediaConversionInput, MediaConversionOutput> {
+public class MediaConversionTaskFactory implements ServerFactory<Task, MediaConversionInput, MediaConversionOutput>, IsolatedServerFactory<MediaConversionInput> {
 
     public static final MediaConversionInput.ConversionOptions DEFAULT_CONVERSION_OPTION = new MediaConversionInput.ConversionOptions(
             Codec.AAC,
@@ -132,6 +135,13 @@ public class MediaConversionTaskFactory implements ServerFactory<Task, MediaConv
     public @NotNull ObjectSerializer<MediaConversionOutput> getResultSerializer() {
 
         return this.serializerFactory.createSerializer(MediaConversionOutput.class);
+    }
+
+    @Override
+    public @NotNull Set<AccessScope> getIsolationScopes(@NotNull Task task, @NotNull MediaConversionInput input) {
+
+        Episode episode = this.episodeService.requireById(input.episode().id());
+        return Set.of(new AccessScope(Library.EPISODES, episode.getScopedName()));
     }
 
     @Override

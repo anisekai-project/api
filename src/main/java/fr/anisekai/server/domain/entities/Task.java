@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 
 @Entity
 @Table(name = "task")
@@ -53,6 +54,9 @@ public class Task extends UuidEntity implements TaskInterface {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "worker_id")
     private Worker assignedWorker;
+
+    @Column(name = "isolation_id")
+    private UUID isolationId;
 
     public @NotNull String getFactoryName() {
 
@@ -155,6 +159,16 @@ public class Task extends UuidEntity implements TaskInterface {
     public void setAssignedWorker(@Nullable Worker assignedWorker) {
 
         this.assignedWorker = assignedWorker;
+    }
+
+    public @Nullable UUID getIsolationId() {
+
+        return this.isolationId;
+    }
+
+    public void setIsolationId(@Nullable UUID isolationId) {
+
+        this.isolationId = isolationId;
     }
 
     private void refreshActiveKey() {

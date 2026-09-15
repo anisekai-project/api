@@ -19,6 +19,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -142,11 +143,87 @@ class ServerOrchestratorTest {
         verify(repository, never()).findAll();
     }
 
+    @Test
+    void skipsConvertWhileStoreCounterpartExecutes() {
+
+        TaskRepository repository = mock(TaskRepository.class);
+        ServerFactory<Task, ?, ?> convertFactory = factory("media:convert");
+        ServerFactory<Task, ?, ?> otherFactory = factory("test");
+        ServerOrchestrator orchestrator = new ServerOrchestrator(registry(convertFactory, otherFactory), repository);
+        UUID episodeId = UUID.randomUUID();
+        Task convert = task("media:convert", "media:convert:" + episodeId, TaskStatus.SCHEDULED);
+        Task other = task("test", "other", TaskStatus.SCHEDULED);
+
+        when(repository.findAllByStatusOrderByPriorityDescCreatedAtAscIdAsc(TaskStatus.SCHEDULED))
+                .thenReturn(List.of(convert, other));
+        when(repository.findFirstByFactoryNameAndNameAndStatusIn(
+                "media:store", "media:store:" + episodeId, List.of(TaskStatus.EXECUTING)))
+                .thenReturn(Optional.of(task("media:store", "media:store:" + episodeId, TaskStatus.EXECUTING)));
+        when(repository.claim(eq(other.getId()), eq(TaskStatus.SCHEDULED), eq(TaskStatus.EXECUTING), any()))
+                .thenReturn(1);
+
+        assertSame(other, orchestrator.poll(client(convertFactory, otherFactory)).orElseThrow());
+        verify(repository, never()).claim(
+                eq(convert.getId()), eq(TaskStatus.SCHEDULED), eq(TaskStatus.EXECUTING), any());
+        assertEquals(TaskStatus.SCHEDULED, convert.getStatus());
+    }
+
+    @Test
+    void skipsStoreWhileConvertCounterpartExecutes() {
+
+        TaskRepository repository = mock(TaskRepository.class);
+        ServerFactory<Task, ?, ?> storeFactory = factory("media:store");
+        ServerFactory<Task, ?, ?> otherFactory = factory("test");
+        ServerOrchestrator orchestrator = new ServerOrchestrator(registry(storeFactory, otherFactory), repository);
+        UUID episodeId = UUID.randomUUID();
+        Task store = task("media:store", "media:store:" + episodeId, TaskStatus.SCHEDULED);
+        Task other = task("test", "other", TaskStatus.SCHEDULED);
+
+        when(repository.findAllByStatusOrderByPriorityDescCreatedAtAscIdAsc(TaskStatus.SCHEDULED))
+                .thenReturn(List.of(store, other));
+        when(repository.findFirstByFactoryNameAndNameAndStatusIn(
+                "media:convert", "media:convert:" + episodeId, List.of(TaskStatus.EXECUTING)))
+                .thenReturn(Optional.of(task("media:convert", "media:convert:" + episodeId, TaskStatus.EXECUTING)));
+        when(repository.claim(eq(other.getId()), eq(TaskStatus.SCHEDULED), eq(TaskStatus.EXECUTING), any()))
+                .thenReturn(1);
+
+        assertSame(other, orchestrator.poll(client(storeFactory, otherFactory)).orElseThrow());
+        verify(repository, never()).claim(
+                eq(store.getId()), eq(TaskStatus.SCHEDULED), eq(TaskStatus.EXECUTING), any());
+        assertEquals(TaskStatus.SCHEDULED, store.getStatus());
+    }
+
+    @Test
+    void proceedsWhenNoCounterpartExecutes() {
+
+        TaskRepository repository = mock(TaskRepository.class);
+        ServerFactory<Task, ?, ?> convertFactory = factory("media:convert");
+        ServerOrchestrator orchestrator = new ServerOrchestrator(registry(convertFactory), repository);
+        UUID episodeId = UUID.randomUUID();
+        Task convert = task("media:convert", "media:convert:" + episodeId, TaskStatus.SCHEDULED);
+
+        when(repository.findAllByStatusOrderByPriorityDescCreatedAtAscIdAsc(TaskStatus.SCHEDULED))
+                .thenReturn(List.of(convert));
+        when(repository.findFirstByFactoryNameAndNameAndStatusIn(
+                "media:store", "media:store:" + episodeId, List.of(TaskStatus.EXECUTING)))
+                .thenReturn(Optional.empty());
+        when(repository.claim(eq(convert.getId()), eq(TaskStatus.SCHEDULED), eq(TaskStatus.EXECUTING), any()))
+                .thenReturn(1);
+
+        assertSame(convert, orchestrator.poll(client(convertFactory)).orElseThrow());
+        assertEquals(TaskStatus.EXECUTING, convert.getStatus());
+    }
+
     private static Task task(String name, TaskStatus status) {
+
+        return task("test", name, status);
+    }
+
+    private static Task task(String factoryName, String name, TaskStatus status) {
 
         Task task = new Task();
         task.setId(UUID.randomUUID());
-        task.setFactoryName("test");
+        task.setFactoryName(factoryName);
         task.setName(name);
         task.setStatus(status);
         ReflectionTestUtils.setField(task, "createdAt", Instant.now());
@@ -176,6 +253,42 @@ class ServerOrchestratorTest {
         FactoryRegistry<ServerFactory<Task, ?, ?>> registry = mock(FactoryRegistry.class);
         doReturn(factory).when(registry).query("test");
         return registry;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ServerFactory<Task, ?, ?> factory(String name) {
+
+        ServerFactory<Task, ?, ?> factory = mock(ServerFactory.class);
+        doReturn(name).when(factory).getName();
+        return factory;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static FactoryRegistry<ServerFactory<Task, ?, ?>> registry(ServerFactory<Task, ?, ?>... factories) {
+
+        FactoryRegistry<ServerFactory<Task, ?, ?>> registry = mock(FactoryRegistry.class);
+        for (ServerFactory<Task, ?, ?> factory : factories) {
+            String name = factory.getName();
+            doReturn(factory).when(registry).query(name);
+        }
+        return registry;
+    }
+
+    private static TaskClient client(ServerFactory<Task, ?, ?>... factories) {
+
+        return new TaskClient() {
+            @Override
+            public UUID getId() {
+
+                return UUID.randomUUID();
+            }
+
+            @Override
+            public Collection<Factory<?, ?>> getSupportedFactories() {
+
+                return List.of(factories);
+            }
+        };
     }
 
     private static final class TestFactory implements ServerFactory<Task, String, String> {

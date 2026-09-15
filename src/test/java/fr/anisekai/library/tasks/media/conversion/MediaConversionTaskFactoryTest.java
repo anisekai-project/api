@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -85,6 +86,30 @@ class MediaConversionTaskFactoryTest {
         assertEquals(
                 "media:convert:%s".formatted(episode.getId()),
                 factory.getTaskName(input)
+        );
+    }
+
+    @Test
+    void claimsEpisodeScopeForIsolation() {
+
+        UUID episodeId = UUID.randomUUID();
+        Episode episode = episode(episodeId);
+        EpisodeService episodeService = mock(EpisodeService.class);
+        when(episodeService.requireById(episodeId)).thenReturn(episode);
+
+        MediaConversionTaskFactory factory = new MediaConversionTaskFactory(
+                episodeService,
+                mock(TrackService.class),
+                mock(JsonSerializerFactory.class),
+                mock(ApplicationEventPublisher.class)
+        );
+
+        assertEquals(
+                Set.of(new fr.anisekai.sanctum.AccessScope(
+                        Library.EPISODES,
+                        episodeId.toString()
+                )),
+                factory.getIsolationScopes(new Task(), input(episodeId))
         );
     }
 

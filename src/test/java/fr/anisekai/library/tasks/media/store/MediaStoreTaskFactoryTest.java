@@ -2,6 +2,8 @@ package fr.anisekai.library.tasks.media.store;
 
 import fr.anisekai.core.serialization.JsonSerializerFactory;
 import fr.anisekai.discord.tasks.Nothing;
+import fr.anisekai.library.Library;
+import fr.anisekai.sanctum.AccessScope;
 import fr.anisekai.scheduler.commons.interfaces.ObjectSerializer;
 import fr.anisekai.scheduler.tasking.data.TaskExecutedPacket;
 import fr.anisekai.server.domain.entities.Episode;
@@ -10,6 +12,7 @@ import fr.anisekai.server.services.EpisodeService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -29,6 +32,43 @@ class MediaStoreTaskFactoryTest {
         MediaStoreTaskFactory factory = new MediaStoreTaskFactory(null, null);
 
         assertEquals("media:store:" + episodeId, factory.getTaskName(new MediaStoreTaskInput(episodeId, true)));
+    }
+
+    @Test
+    void refreshClaimsEpisodeChunksAndSubtitlesScopes() {
+
+        UUID episodeId = UUID.randomUUID();
+        EpisodeService episodeService = mock(EpisodeService.class);
+        when(episodeService.requireById(episodeId)).thenReturn(episode(episodeId));
+
+        MediaStoreTaskFactory factory = new MediaStoreTaskFactory(null, episodeService);
+
+        assertEquals(
+                Set.of(
+                        new AccessScope(Library.EPISODES, episodeId.toString()),
+                        new AccessScope(Library.CHUNKS, episodeId.toString()),
+                        new AccessScope(Library.SUBTITLES, episodeId.toString())
+                ),
+                factory.getIsolationScopes(new Task(), new MediaStoreTaskInput(episodeId, true))
+        );
+    }
+
+    @Test
+    void nonRefreshClaimsChunksAndSubtitlesScopesOnly() {
+
+        UUID episodeId = UUID.randomUUID();
+        EpisodeService episodeService = mock(EpisodeService.class);
+        when(episodeService.requireById(episodeId)).thenReturn(episode(episodeId));
+
+        MediaStoreTaskFactory factory = new MediaStoreTaskFactory(null, episodeService);
+
+        assertEquals(
+                Set.of(
+                        new AccessScope(Library.CHUNKS, episodeId.toString()),
+                        new AccessScope(Library.SUBTITLES, episodeId.toString())
+                ),
+                factory.getIsolationScopes(new Task(), new MediaStoreTaskInput(episodeId, false))
+        );
     }
 
     @Test
@@ -57,6 +97,13 @@ class MediaStoreTaskFactoryTest {
         readinessCaptor.getValue().accept(episode);
 
         assertTrue(episode.isReady());
+    }
+
+    private static Episode episode(UUID id) {
+
+        Episode episode = new Episode();
+        episode.setId(id);
+        return episode;
     }
 
 }

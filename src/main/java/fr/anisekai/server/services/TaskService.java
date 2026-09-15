@@ -1,6 +1,10 @@
 package fr.anisekai.server.services;
 
 import fr.anisekai.core.persistence.AnisekaiService;
+import fr.anisekai.library.Library;
+import fr.anisekai.sanctum.AccessScope;
+import fr.anisekai.sanctum.interfaces.isolation.IsolationSession;
+import fr.anisekai.server.tasking.IsolatedServerFactory;
 import fr.anisekai.core.persistence.EntityEventProcessor;
 import fr.anisekai.scheduler.commons.ActionPlan;
 import fr.anisekai.scheduler.tasking.data.ReservedTaskMeta;
@@ -34,19 +38,22 @@ public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
     private final ServerOrchestrator    serverOrchestrator;
     private final ServerFactoryRegistry serverFactory;
     private final DatabaseLockService   databaseLockService;
+    private final Library               library;
 
     public TaskService(
             TaskRepository repository,
             EntityEventProcessor eventProcessor,
             ServerOrchestrator serverOrchestrator,
             ServerFactoryRegistry serverFactory,
-            DatabaseLockService databaseLockService
+            DatabaseLockService databaseLockService,
+            Library library
     ) {
 
         super(repository, eventProcessor);
         this.serverOrchestrator  = serverOrchestrator;
         this.serverFactory       = serverFactory;
         this.databaseLockService = databaseLockService;
+        this.library             = library;
     }
 
     public boolean hasScheduled(String name) {
@@ -209,9 +216,28 @@ public class TaskService extends AnisekaiService<Task, UUID, TaskRepository> {
         if (claimed.isPresent()) {
             Task task = claimed.get();
             task.setAssignedWorker(worker);
+            ServerFactory<Task, ?, ?> factory = this.serverFactory.query(task.getFactoryName());
+            if (factory instanceof IsolatedServerFactory<?> isolated) {
+                this.createTaskIsolation(task, worker, factory, isolated);
+            }
             this.getRepository().save(task);
         }
         return claimed;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void createTaskIsolation(Task task, Worker worker, ServerFactory<Task, ?, ?> factory, IsolatedServerFactory<?> isolated) {
+
+        Object input = ((ServerFactory<Task, Object, ?>) factory).getArgumentsSerializer()
+                                                                 .deserialize(task.getArguments());
+        Set<AccessScope> scopes = ((IsolatedServerFactory<Object>) isolated).getIsolationScopes(task, input);
+        if (scopes.isEmpty()) return;
+
+        IsolationSession isolation = this.library.createIsolation(
+                worker.getSessionToken(),
+                scopes.toArray(new AccessScope[0])
+        );
+        task.setIsolationId(isolation.uuid());
     }
 
     public int recoverExecutingTasks() {

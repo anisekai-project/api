@@ -1,17 +1,23 @@
 package fr.anisekai.server.services;
 
 import fr.anisekai.core.persistence.EntityEventProcessor;
+import fr.anisekai.library.Library;
+import fr.anisekai.sanctum.AccessScope;
+import fr.anisekai.sanctum.interfaces.isolation.IsolationSession;
 import fr.anisekai.scheduler.commons.interfaces.ObjectSerializer;
 import fr.anisekai.scheduler.tasking.data.TaskExecutedPacket;
 import fr.anisekai.scheduler.tasking.data.TaskFailedPacket;
 import fr.anisekai.scheduler.tasking.enums.TaskStatus;
+import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.domain.entities.Worker;
 import fr.anisekai.server.repositories.TaskRepository;
+import fr.anisekai.server.tasking.IsolatedServerFactory;
 import fr.anisekai.server.tasking.server.ServerFactoryRegistry;
 import fr.anisekai.server.tasking.server.ServerOrchestrator;
 import fr.anisekai.scheduler.tasking.interfaces.factories.ServerFactory;
 import fr.anisekai.web.exceptions.WebException;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -19,6 +25,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -84,6 +91,57 @@ class TaskServiceWorkerPollTest {
         assertEquals(0, fixture.factory.assignments.get());
     }
 
+    @Test
+    void createsIsolationForIsolatedFactoryAndRecordsIt() {
+
+        TaskRepository repository = mock(TaskRepository.class);
+        IsolatedTestFactory factory = new IsolatedTestFactory();
+        ServerFactoryRegistry registry = new ServerFactoryRegistry(List.of(factory));
+        ServerOrchestrator realOrchestrator = new ServerOrchestrator(registry, repository);
+        Library library = mock(Library.class);
+        TaskService service = new TaskService(
+                repository,
+                mock(EntityEventProcessor.class),
+                realOrchestrator,
+                registry,
+                mock(DatabaseLockService.class),
+                library
+        );
+
+        UUID isolationId = UUID.randomUUID();
+        IsolationSession isolation = mock(IsolationSession.class);
+        when(isolation.uuid()).thenReturn(isolationId);
+        when(library.createIsolation(any(SessionToken.class), any(AccessScope[].class))).thenReturn(isolation);
+
+        SessionToken token = new SessionToken();
+        token.setId(UUID.randomUUID());
+        Worker worker = new Worker();
+        worker.setId(UUID.randomUUID());
+        worker.setSessionToken(token);
+        worker.setLastPing(Instant.now());
+
+        Task task = new Task();
+        task.setId(UUID.randomUUID());
+        task.setFactoryName("iso");
+        task.setName("iso-task");
+        task.setStatus(TaskStatus.SCHEDULED);
+        task.setArguments("input");
+        ReflectionTestUtils.setField(task, "createdAt", Instant.now());
+
+        when(repository.findAllByStatusOrderByPriorityDescCreatedAtAscIdAsc(TaskStatus.SCHEDULED))
+                .thenReturn(List.of(task));
+        when(repository.claim(eq(task.getId()), eq(TaskStatus.SCHEDULED), eq(TaskStatus.EXECUTING), any()))
+                .thenReturn(1);
+
+        Optional<Task> claimed = service.pollForWorker(worker, List.of("iso"));
+
+        assertTrue(claimed.isPresent());
+        assertSame(worker, task.getAssignedWorker());
+        assertEquals(isolationId, task.getIsolationId());
+        verify(library).createIsolation(eq(token), any(AccessScope[].class));
+        verify(repository).save(task);
+    }
+
     private static final class Fixture {
 
         private final TaskRepository repository = mock(TaskRepository.class);
@@ -103,7 +161,8 @@ class TaskServiceWorkerPollTest {
                     mock(EntityEventProcessor.class),
                     realOrchestrator,
                     registry,
-                    mock(DatabaseLockService.class)
+                    mock(DatabaseLockService.class),
+                    mock(Library.class)
             );
         }
 
@@ -175,6 +234,47 @@ class TaskServiceWorkerPollTest {
 
         @Override
         public void onFailure(TaskFailedPacket<Task> packet) {
+        }
+    }
+
+    private static final class IsolatedTestFactory implements ServerFactory<Task, String, String>, IsolatedServerFactory<String> {
+
+        private static final ObjectSerializer<String> SERIALIZER = new ObjectSerializer<>() {
+            @Override
+            public String serialize(String object) {
+
+                return object;
+            }
+
+            @Override
+            public String deserialize(String data) {
+
+                return data;
+            }
+        };
+
+        @Override
+        public String getName() {
+
+            return "iso";
+        }
+
+        @Override
+        public ObjectSerializer<String> getArgumentsSerializer() {
+
+            return SERIALIZER;
+        }
+
+        @Override
+        public ObjectSerializer<String> getResultSerializer() {
+
+            return SERIALIZER;
+        }
+
+        @Override
+        public @NotNull Set<AccessScope> getIsolationScopes(@NotNull Task task, @NotNull String input) {
+
+            return Set.of(new AccessScope(Library.EPISODES, "scope"));
         }
     }
 }

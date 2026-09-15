@@ -5,6 +5,7 @@ import java.util.UUID;
 public record WorkerPingResponse(
         UUID workerId,
         TaskSummary task,
-        boolean hasTask
+        boolean hasTask,
+        UUID isolationContextId
 ) {
 }

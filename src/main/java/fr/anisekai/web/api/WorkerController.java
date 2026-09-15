@@ -82,7 +82,8 @@ public class WorkerController {
                         task.getStatus(), task.getPriority(), task.getActiveKey(), task.getStartedAt(), task.getCompletedAt(),
                         task.getArguments())
                         : null,
-                task != null);
+                task != null,
+                task != null ? task.getIsolationId() : null);
 
         return ResponseEntity.ok(response);
     }
