@@ -119,13 +119,7 @@ public class MediaConversionTaskFactory implements ServerFactory<Task, MediaConv
     @Override
     public @NotNull String getTaskName(@NotNull MediaConversionInput arguments) {
 
-        MediaConversionInput.Episode episode = arguments.episode();
-        return "%s:%s:%s:%s".formatted(
-                this.getName(),
-                episode.id(),
-                episode.source().store(),
-                episode.source().reference()
-        );
+        return "%s:%s".formatted(this.getName(), arguments.episode().id());
     }
 
     @Override

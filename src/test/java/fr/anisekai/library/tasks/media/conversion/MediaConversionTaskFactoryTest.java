@@ -47,7 +47,7 @@ class MediaConversionTaskFactoryTest {
         assertEquals(MediaConversionInput.Store.IMPORTS, input.episode().source().store());
         assertTrue(input.episode().hash().matches("[0-9a-f]{64}"));
         assertEquals(
-                "media:convert:%s:IMPORTS:batch/episode.mkv".formatted(episode.getId()),
+                "media:convert:%s".formatted(episode.getId()),
                 factory.getTaskName(input)
         );
     }
@@ -83,7 +83,7 @@ class MediaConversionTaskFactoryTest {
         assertEquals(MediaConversionInput.Store.DOWNLOADS, input.episode().source().store());
         assertTrue(input.episode().hash().matches("[0-9a-f]{64}"));
         assertEquals(
-                "media:convert:%s:DOWNLOADS:%s/2".formatted(episode.getId(), torrentId),
+                "media:convert:%s".formatted(episode.getId()),
                 factory.getTaskName(input)
         );
     }
