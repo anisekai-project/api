@@ -3,6 +3,7 @@ package fr.anisekai.library;
 import fr.anisekai.ApplicationConfiguration;
 import fr.anisekai.sanctum.AccessScope;
 import fr.anisekai.sanctum.Sanctum;
+import fr.anisekai.sanctum.SanctumUtils;
 import fr.anisekai.sanctum.enums.StorePolicy;
 import fr.anisekai.sanctum.exceptions.StorageException;
 import fr.anisekai.sanctum.interfaces.FileStore;
@@ -104,6 +105,38 @@ public class Library extends Sanctum {
     public Path relativize(Path other) {
 
         return this.configuration.getIoPath().relativize(other);
+    }
+
+    /**
+     * Delete every leftover isolation staging directory.
+     * <p>
+     * Sanctum forgets all isolation contexts on reboot, so library-assisted clearing is
+     * impossible: leftovers are removed with plain IO instead. This is safe because committed
+     * work already lives in the library while uncommitted work is discardable by definition
+     * (no resume design exists), and fresh sessions mint new UUID directories that cannot
+     * collide. Failures are logged and never propagated: boot must not hinge on staging cleanup.
+     * <p>
+     * Note: the {@code "isolation"} segment mirrors {@code Sanctum} internals; update together.
+     */
+    public void purgeIsolationStagings() {
+
+        Path isolationRoot = this.configuration.getIoPath().resolve("isolation");
+        if (!Files.isDirectory(isolationRoot)) return;
+
+        List<Path> children;
+        try (Stream<Path> stream = Files.list(isolationRoot)) {
+            children = stream.toList();
+        } catch (Exception e) {
+            LOGGER.warn("Unable to list stale isolation stagings in {}", isolationRoot, e);
+            return;
+        }
+        for (Path child : children) {
+            try {
+                SanctumUtils.delete(child);
+            } catch (Exception e) {
+                LOGGER.warn("Unable to purge stale isolation staging {}", child, e);
+            }
+        }
     }
 
     public Optional<Path> findDownload(TorrentFile torrentFile) {

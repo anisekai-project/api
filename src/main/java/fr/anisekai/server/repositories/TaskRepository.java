@@ -43,7 +43,7 @@ public interface TaskRepository extends AnisekaiRepository<Task, UUID> {
     @Transactional
     @Query("""
             UPDATE Task t
-            SET t.status = :scheduled, t.startedAt = NULL, t.assignedWorker = NULL
+            SET t.status = :scheduled, t.startedAt = NULL, t.assignedWorker = NULL, t.isolationId = NULL
             WHERE t.status = :executing
             """)
     int resetExecuting(TaskStatus executing, TaskStatus scheduled);
