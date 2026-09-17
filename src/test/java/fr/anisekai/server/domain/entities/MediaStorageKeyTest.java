@@ -1,6 +1,8 @@
 package fr.anisekai.server.domain.entities;
 
+import fr.anisekai.library.Library;
 import fr.anisekai.media.enums.Codec;
+import fr.anisekai.sanctum.AccessScope;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -41,6 +43,22 @@ class MediaStorageKeyTest {
         assertEquals("12", anime.getScopedName());
         assertEquals("34", episode.getScopedName());
         assertEquals("56." + track.getCodec().getExtension(), track.asFilename());
+    }
+
+    @Test
+    void eventImageScopePreservesNewAndLegacyStorageKeys() throws ReflectiveOperationException {
+
+        Anime anime = new Anime();
+        anime.setId(UUID_KEY);
+
+        AccessScope scope = new AccessScope(Library.EVENT_IMAGES, anime.getScopedName());
+        assertEquals(Library.EVENT_IMAGES, scope.store());
+        assertEquals(UUID_KEY.toString(), scope.claim());
+
+        setDiskId(anime, 12L);
+        AccessScope migratedScope = new AccessScope(Library.EVENT_IMAGES, anime.getScopedName());
+        assertEquals(Library.EVENT_IMAGES, migratedScope.store());
+        assertEquals("12", migratedScope.claim());
     }
 
     private static Track track(UUID id) {
