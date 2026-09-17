@@ -249,7 +249,7 @@ public class AuthenticationManager {
 
     public AuthData authenticate(String code) throws Exception {
 
-        LOGGER.info("Authentication request using {}", code);
+        LOGGER.info("Authentication request");
         AuthTokenPacket authTokenPacket = new AuthTokenPacket(this.oauthConfiguration, code);
         UserToken       userToken       = authTokenPacket.complete();
 

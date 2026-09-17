@@ -38,8 +38,6 @@ dependencies {
     implementation(libs.bundles.jwt)
     implementation(libs.bundles.utils)
 
-    implementation(libs.util.http.client)
-
     annotationProcessor(libs.dev.spring.configuration.processor)
     implementation(libs.dev.annotations.jetbrains)
 }
