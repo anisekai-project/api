@@ -1,13 +1,19 @@
 package fr.anisekai.core.internal.services;
 
-import fr.alexpado.lib.rest.RestAction;
-import fr.alexpado.lib.rest.exceptions.RestException;
-import fr.alexpado.lib.rest.interfaces.IRestAction;
-import fr.anisekai.core.internal.json.AnisekaiArray;
-import fr.anisekai.core.internal.json.AnisekaiJson;
-import fr.anisekai.core.internal.services.packets.TransmissionAuthPacket;
-import fr.anisekai.core.internal.services.packets.TransmissionCustomPacket;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
 
 /**
@@ -30,8 +36,14 @@ public class Transmission {
             "percentDone",
             "files"
     );
+    private static final String SESSION_HEADER = "X-Transmission-Session-Id";
+    private static final HttpClient CLIENT = HttpClient.newBuilder()
+                                                        .connectTimeout(Duration.ofSeconds(30))
+                                                        .build();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private final String endpoint;
-    private       String sessionId = null;
+    private volatile String sessionId = null;
 
     /**
      * Create a Transmission client targeting the specified RPC endpoint.
@@ -54,57 +66,49 @@ public class Transmission {
         return this.endpoint;
     }
 
-    /**
-     * Send the provided {@link RestAction} toward the transmission daemon RPC API.
-     *
-     * @param action
-     *         The {@link RestAction} to execute.
-     *
-     * @return The query result.
-     */
-    private AnisekaiJson send(IRestAction<AnisekaiJson> action) throws Exception {
+    private ObjectNode sendPacket(ObjectNode data) throws Exception {
 
-        if (this.sessionId == null) {
-            try {
-                new TransmissionAuthPacket(this.endpoint).complete();
-            } catch (RestException e) {
-                if (e.getCode() == 409) {
-                    this.sessionId = e.getHeaders().getOrDefault("X-Transmission-Session-Id", null);
-                }
-
-                if (this.sessionId == null) {
-                    throw new IllegalStateException("Could not authenticate to Transmission RPC API.", e);
-                }
-            }
-        }
-
-        try {
-            return action.complete();
-        } catch (RestException e) {
-            if (e.getCode() == 409) {
-                // Retry with auto-auth enabled
-                this.sessionId = null;
-                return this.send(action);
+        String body = data.toString();
+        for (int attempt = 0; attempt < 2; attempt++) {
+            HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(this.endpoint))
+                                                     .timeout(Duration.ofSeconds(30))
+                                                     .header("Content-Type", "application/json")
+                                                     .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
+            String currentSession = this.sessionId;
+            if (currentSession != null) {
+                request.header(SESSION_HEADER, currentSession);
             }
 
-            throw e; // We are not supposed to handle this case
+            HttpResponse<byte[]> response = CLIENT.send(request.build(), HttpResponse.BodyHandlers.ofByteArray());
+            if (response.statusCode() == 409 && attempt == 0) {
+                String renewedSession = response.headers().firstValue(SESSION_HEADER).orElse(null);
+                if (renewedSession != null && !renewedSession.isBlank()) {
+                    this.sessionId = renewedSession;
+                    continue;
+                }
+            }
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw httpError(response);
+            }
+            return (ObjectNode) OBJECT_MAPPER.readTree(response.body());
         }
+        throw new IllegalStateException("Could not authenticate to Transmission RPC API.");
     }
 
-    /**
-     * Send the provided {@link AnisekaiJson} to the transmission daemon server.
-     *
-     * @param data
-     *         {@link AnisekaiJson} to send
-     *
-     * @return The query response
-     *
-     * @throws Exception
-     *         Thrown if the query to the server fails.
-     */
-    private AnisekaiJson sendPacket(AnisekaiJson data) throws Exception {
+    private static RuntimeException httpError(HttpResponse<byte[]> response) {
 
-        return this.send(new TransmissionCustomPacket(this.endpoint, () -> this.sessionId, data));
+        HttpStatus statusCode = HttpStatus.valueOf(response.statusCode());
+        if (statusCode.is4xxClientError()) {
+            return new HttpClientErrorException(statusCode, "", httpHeaders(response), response.body(), StandardCharsets.UTF_8);
+        }
+        return new HttpServerErrorException(statusCode, "", httpHeaders(response), response.body(), StandardCharsets.UTF_8);
+    }
+
+    private static org.springframework.http.HttpHeaders httpHeaders(HttpResponse<byte[]> response) {
+
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        response.headers().map().forEach((key, values) -> headers.addAll(key, values));
+        return headers;
     }
 
     /**
@@ -115,10 +119,13 @@ public class Transmission {
      */
     public void getSession() throws Exception {
 
-        AnisekaiJson packetData = new AnisekaiJson();
+        ObjectNode packetData = OBJECT_MAPPER.createObjectNode();
         packetData.put("method", "session-get");
 
-        this.sendPacket(packetData);
+        ObjectNode response = this.sendPacket(packetData);
+        if (!response.get("result").asText().equals("success")) {
+            throw new IllegalStateException("Transmission client failed to retrieve session");
+        }
     }
 
     /**
@@ -136,26 +143,30 @@ public class Transmission {
      */
     public List<Torrent> query(Collection<String> hashes) throws Exception {
 
-        AnisekaiJson packetData = new AnisekaiJson();
+        ObjectNode packetData = OBJECT_MAPPER.createObjectNode();
         packetData.put("method", "torrent-get");
-        packetData.put("arguments.fields", DEFAULT_TORRENT_FIELDS);
+        ObjectNode requestArguments = OBJECT_MAPPER.createObjectNode();
+        requestArguments.set("fields", OBJECT_MAPPER.valueToTree(DEFAULT_TORRENT_FIELDS));
+        packetData.set("arguments", requestArguments);
 
         if (!hashes.isEmpty()) {
-            packetData.put("arguments.ids", hashes);
+            requestArguments.set("ids", OBJECT_MAPPER.valueToTree(hashes));
         }
 
-        AnisekaiJson response = this.sendPacket(packetData);
-        String       status   = response.getString("result");
+        ObjectNode response = this.sendPacket(packetData);
+        String       status   = response.get("result").asText();
 
         if (!status.equals("success")) {
             throw new IllegalStateException("Transmission failed to query torrents: Response was " + status);
         }
 
-        AnisekaiJson  arguments  = response.readJson("arguments");
-        AnisekaiArray torrents   = arguments.readArray("torrents");
+        ObjectNode    arguments  = (ObjectNode) response.get("arguments");
+        ArrayNode     torrents   = (ArrayNode) arguments.get("torrents");
         List<Torrent> torrentSet = new ArrayList<>();
 
-        torrents.forEachJson(json -> torrentSet.add(Torrent.of(json)));
+        for (int i = 0; i < torrents.size(); i++) {
+            torrentSet.add(Torrent.of((ObjectNode) torrents.get(i)));
+        }
         return torrentSet;
     }
 
@@ -200,30 +211,32 @@ public class Transmission {
      */
     public Torrent download(Nyaa.Entry entry, boolean paused) throws Exception {
 
-        AnisekaiJson packetData = new AnisekaiJson();
+        ObjectNode packetData = OBJECT_MAPPER.createObjectNode();
         packetData.put("method", "torrent-add");
-        packetData.put("arguments.paused", paused);
-        packetData.put("arguments.filename", entry.torrent());
+        ObjectNode requestArguments = OBJECT_MAPPER.createObjectNode();
+        requestArguments.put("paused", paused);
+        requestArguments.put("filename", entry.torrent());
+        packetData.set("arguments", requestArguments);
 
-        AnisekaiJson response = this.sendPacket(packetData);
-        String       result   = response.getString("result");
+        ObjectNode response = this.sendPacket(packetData);
+        String     result   = response.get("result").asText();
 
         if (!result.equals("success")) {
             throw new IllegalStateException("Transmission client failed to queue torrent");
         }
 
-        AnisekaiJson arguments = response.readJson("arguments");
-        AnisekaiJson json;
+        ObjectNode arguments = (ObjectNode) response.get("arguments");
+        ObjectNode json;
 
         if (arguments.has("torrent-duplicate")) {
-            json = arguments.readJson("torrent-duplicate");
+            json = (ObjectNode) arguments.get("torrent-duplicate");
         } else if (arguments.has("torrent-added")) {
-            json = arguments.readJson("torrent-added");
+            json = (ObjectNode) arguments.get("torrent-added");
         } else {
             throw new IllegalStateException("Transmission client failed to read server response.");
         }
 
-        String hash = json.getString("hashString");
+        String hash = json.get("hashString").asText();
         return this.query(hash);
     }
 
@@ -242,12 +255,14 @@ public class Transmission {
      */
     public Torrent start(Torrent torrent) throws Exception {
 
-        AnisekaiJson packetData = new AnisekaiJson();
+        ObjectNode packetData = OBJECT_MAPPER.createObjectNode();
         packetData.put("method", "torrent-start");
-        packetData.put("arguments.ids", Collections.singleton(torrent.hash()));
+        ObjectNode requestArguments = OBJECT_MAPPER.createObjectNode();
+        requestArguments.set("ids", OBJECT_MAPPER.valueToTree(Collections.singleton(torrent.hash)));
+        packetData.set("arguments", requestArguments);
 
-        AnisekaiJson response = this.sendPacket(packetData);
-        String       result   = response.getString("result");
+        ObjectNode response = this.sendPacket(packetData);
+        String     result   = response.get("result").asText();
 
         if (!result.equals("success")) {
             throw new IllegalStateException("Transmission client failed to start torrent");
@@ -269,13 +284,15 @@ public class Transmission {
      */
     public void delete(Torrent torrent) throws Exception {
 
-        AnisekaiJson packetData = new AnisekaiJson();
+        ObjectNode packetData = OBJECT_MAPPER.createObjectNode();
         packetData.put("method", "torrent-remove");
-        packetData.put("arguments.ids", Collections.singleton(torrent.hash()));
-        packetData.put("arguments.delete-local-data", true);
+        ObjectNode requestArguments = OBJECT_MAPPER.createObjectNode();
+        requestArguments.set("ids", OBJECT_MAPPER.valueToTree(Collections.singleton(torrent.hash)));
+        packetData.set("arguments", requestArguments);
+        requestArguments.put("delete-local-data", true);
 
-        AnisekaiJson response = this.sendPacket(packetData);
-        String       result   = response.getString("result");
+        ObjectNode response = this.sendPacket(packetData);
+        String     result   = response.get("result").asText();
 
         if (!result.equals("success")) {
             throw new IllegalStateException("Transmission client failed to delete torrent");
@@ -389,7 +406,7 @@ public class Transmission {
     ) {
 
         /**
-         * Creates a {@link Torrent} instance from an {@link AnisekaiJson} object representing a Transmission torrent.
+         * Creates a {@link Torrent} instance from an {@link ObjectNode} object representing a Transmission torrent.
          *
          * @param json
          *         The JSON object containing torrent information, expected to have keys: "hashString", "status",
@@ -397,18 +414,21 @@ public class Transmission {
          *
          * @return A new {@link Torrent} instance populated with data parsed from the given JSON.
          */
-        public static Torrent of(AnisekaiJson json) {
+        public static Torrent of(ObjectNode json) {
 
-            String        hash        = json.getString("hashString");
-            TorrentStatus status      = TorrentStatus.from(json.getInt("status"));
-            String        downloadDir = json.getString("downloadDir");
-            double        percentDone = json.getDouble("percentDone");
-            List<String>  files       = json.readArray("files").map(rawFile -> rawFile.getString("name"));
+            String        hash        = json.get("hashString").asText();
+            TorrentStatus status      = TorrentStatus.from(json.get("status").asInt());
+            String        downloadDir = json.get("downloadDir").asText();
+            double        percentDone = json.get("percentDone").asDouble();
+            ArrayNode     rawFiles    = (ArrayNode) json.get("files");
+            List<String>  files       = new ArrayList<>();
+            for (int i = 0; i < rawFiles.size(); i++) {
+                files.add(rawFiles.get(i).get("name").asText());
+            }
 
             return new Torrent(hash, status, downloadDir, percentDone, files);
         }
 
     }
-
 
 }

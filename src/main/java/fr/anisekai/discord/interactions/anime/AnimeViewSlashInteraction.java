@@ -131,7 +131,7 @@ public class AnimeViewSlashInteraction {
         UUID  id    = UUID.fromString(animeId);
         Anime anime = this.service.requireById(id);
 
-        AccessScope scope = new AccessScope(Library.EVENT_IMAGES, anime);
+        AccessScope scope = new AccessScope(Library.EVENT_IMAGES, anime.getScopedName());
 
         try (IsolationSession context = this.library.createIsolation(scope)) {
             Path destination = context.resolve(scope);

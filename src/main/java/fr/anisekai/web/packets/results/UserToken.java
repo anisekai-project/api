@@ -1,7 +1,5 @@
 package fr.anisekai.web.packets.results;
 
-import org.json.JSONObject;
-
 public class UserToken {
 
     private String accessToken;
@@ -12,19 +10,19 @@ public class UserToken {
     private long   generationTime;
     private long   lastActivity;
 
-    public UserToken(JSONObject json) {
+    public UserToken(DiscordTokenResponse response) {
 
-        this.load(json);
+        this.load(response);
         this.signalActivity();
     }
 
-    public void load(JSONObject json) {
+    public void load(DiscordTokenResponse response) {
 
-        this.accessToken    = json.getString("access_token");
-        this.tokenType      = json.getString("token_type");
-        this.expiresIn      = json.getInt("expires_in");
-        this.refreshToken   = json.getString("refresh_token");
-        this.scope          = json.getString("scope");
+        this.accessToken    = response.accessToken();
+        this.tokenType      = response.tokenType();
+        this.expiresIn      = response.expiresIn();
+        this.refreshToken   = response.refreshToken();
+        this.scope          = response.scope();
         this.generationTime = System.currentTimeMillis() / 1000;
     }
 
