@@ -11,8 +11,12 @@ import fr.anisekai.server.repositories.TaskRepository;
 import fr.anisekai.server.repositories.WorkerRepository;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -21,6 +25,8 @@ import java.util.UUID;
 
 @Service
 public class WorkerService extends AnisekaiService<Worker, UUID, WorkerRepository> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(WorkerService.class);
 
     /**
      * Duration after which a worker that stopped pinging is considered stale and may be
@@ -68,6 +74,35 @@ public class WorkerService extends AnisekaiService<Worker, UUID, WorkerRepositor
     }
 
     /**
+     * Claim or renew a worker lease. A different claimant may take over only after the
+     * current lease is stale, at which point its executing tasks are released first.
+     *
+     * @param worker
+     *         The locked worker row.
+     * @param instanceId
+     *         The claimant's process identifier.
+     * @param name
+     *         The worker-declared name, may be {@code null} to keep the current one.
+     *
+     * @return Whether the lease was claimed or renewed.
+     */
+    @Transactional
+    public boolean claim(@NotNull Worker worker, @NotNull UUID instanceId, @Nullable String name) {
+
+        UUID currentInstanceId = worker.getInstanceId();
+        if (currentInstanceId != null && !currentInstanceId.equals(instanceId)) {
+            if (!this.isStale(worker, Instant.now())) {
+                return false;
+            }
+            this.release(worker);
+        }
+
+        worker.setInstanceId(instanceId);
+        this.heartbeat(worker, name);
+        return true;
+    }
+
+    /**
      * Record a heartbeat for the provided worker, optionally updating its display name.
      *
      * @param worker
@@ -101,13 +136,34 @@ public class WorkerService extends AnisekaiService<Worker, UUID, WorkerRepositor
         List<Task> tasks = this.taskRepository.findAllByAssignedWorkerAndStatus(worker, TaskStatus.EXECUTING);
         for (Task task : tasks) {
             if (task.getIsolationId() != null) {
-                this.library.discardIsolation(task.getIsolationId());
+                UUID isolationId = task.getIsolationId();
                 task.setIsolationId(null);
+                this.discardIsolationAfterCommit(isolationId);
             }
             task.setStatus(TaskStatus.SCHEDULED);
             task.setStartedAt(null);
             task.setAssignedWorker(null);
         }
         return this.taskRepository.saveAll(tasks);
+    }
+
+    private void discardIsolationAfterCommit(UUID isolationId) {
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            this.library.discardIsolation(isolationId);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+
+                try {
+                    library.discardIsolation(isolationId);
+                } catch (RuntimeException e) {
+                    LOGGER.error("Failed to discard released isolation {}", isolationId, e);
+                }
+            }
+        });
     }
 }

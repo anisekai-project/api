@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,5 +20,7 @@ public interface WorkerRepository extends AnisekaiRepository<Worker, UUID> {
     @Query("SELECT w FROM Worker w WHERE w.id = :id")
     Optional<Worker> findForUpdateById(@Param("id") UUID id);
 
-    List<Worker> findAllByLastPingBefore(java.time.Instant threshold);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT w FROM Worker w WHERE w.instanceId IS NOT NULL AND w.lastPing < :threshold")
+    List<Worker> findAllStaleLeasedForUpdate(@Param("threshold") Instant threshold);
 }

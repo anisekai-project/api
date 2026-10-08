@@ -36,12 +36,14 @@ public class WorkerCleanupService {
 
         Instant threshold = Instant.now().minus(WorkerService.STALE_AFTER);
 
-        List<Worker> staleWorkers = workerRepository.findAllByLastPingBefore(threshold);
+        List<Worker> staleWorkers = workerRepository.findAllStaleLeasedForUpdate(threshold);
 
         for (Worker worker : staleWorkers) {
             for (Task task : this.workerService.release(worker)) {
                 LOGGER.info("Freed stale task {} from worker {}", task.getId(), worker.getId());
             }
+            worker.setInstanceId(null);
+            this.workerRepository.save(worker);
         }
     }
 }

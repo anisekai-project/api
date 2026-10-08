@@ -1,6 +1,7 @@
 package fr.anisekai.web.api;
 
 import fr.anisekai.scheduler.tasking.data.TaskMeta;
+import fr.anisekai.scheduler.tasking.enums.TaskStatus;
 import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.server.domain.entities.Task;
 import fr.anisekai.server.domain.entities.Worker;
@@ -31,7 +32,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @RestController
@@ -69,12 +69,10 @@ public class WorkerController {
                 .orElseThrow(() -> new WebException(HttpStatus.BAD_REQUEST,
                         "No worker provisioned for this session token. Reissue an API key with the worker scope."));
 
-        if (!workerService.isStale(worker, Instant.now())) {
+        if (!workerService.claim(worker, request.instanceId(), request.workerName())) {
             LOGGER.warn("Worker {} ping rejected: worker already active", worker.getId());
             throw new WebException(HttpStatus.CONFLICT, "Worker is already active");
         }
-
-        workerService.heartbeat(worker, request.workerName());
 
         WorkerPollResult result = taskService.reconcileAndPoll(worker, request.factoryNames(), request.currentTaskId());
         Task task = result.assigned().orElse(null);
@@ -96,13 +94,16 @@ public class WorkerController {
     @Operation(summary = "Report task success", description = "Report that the worker successfully completed the task.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Task success reported."),
+            @ApiResponse(responseCode = "400", description = "Missing worker instance identifier.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
             @ApiResponse(responseCode = "404", description = "Task not found or not assigned to this worker.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
+            @ApiResponse(responseCode = "409", description = "The worker process no longer owns this lease.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
     })
+    @Transactional
     public ResponseEntity<?> reportSuccess(@PathVariable UUID taskId,
-                                          @RequestBody TaskCompletionRequest request,
-                                          SessionToken session) {
+                                           @RequestBody @Valid TaskCompletionRequest request,
+                                           SessionToken session) {
 
-        Task task = requireAssignedTask(taskId, session);
+        Task task = requireAssignedTask(taskId, session, request.instanceId());
 
         TaskMeta meta = TaskMeta.of(task);
         taskService.resolveSuccess(meta, request.result());
@@ -115,13 +116,16 @@ public class WorkerController {
     @Operation(summary = "Report task failure", description = "Report that the worker failed to complete the task.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Task failure reported."),
+            @ApiResponse(responseCode = "400", description = "Missing worker instance identifier.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
             @ApiResponse(responseCode = "404", description = "Task not found or not assigned to this worker.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
+            @ApiResponse(responseCode = "409", description = "The worker process no longer owns this lease.", content = @Content(schema = @Schema(implementation = WebException.Dto.class))),
     })
+    @Transactional
     public ResponseEntity<?> reportFailure(@PathVariable UUID taskId,
-                                          @RequestBody TaskCompletionRequest request,
-                                          SessionToken session) {
+                                           @RequestBody @Valid TaskCompletionRequest request,
+                                           SessionToken session) {
 
-        Task task = requireAssignedTask(taskId, session);
+        Task task = requireAssignedTask(taskId, session, request.instanceId());
 
         TaskMeta meta = TaskMeta.of(task);
         taskService.resolveFailure(meta, new RuntimeException(request.errorMessage()));
@@ -129,17 +133,24 @@ public class WorkerController {
         return ResponseEntity.ok().build();
     }
 
-    private Task requireAssignedTask(UUID taskId, SessionToken session) {
-        Worker worker = workerRepository.findById(session.getId())
+    private Task requireAssignedTask(UUID taskId, SessionToken session, UUID instanceId) {
+        Worker worker = workerRepository.findForUpdateById(session.getId())
                 .orElseThrow(() -> new WebException(HttpStatus.NOT_FOUND,
                         "Task not found or not assigned to this worker"));
+
+        if (!instanceId.equals(worker.getInstanceId())) {
+            LOGGER.warn("Worker instance {} attempted to report task {} under lease {}", instanceId, taskId,
+                    worker.getInstanceId());
+            throw new WebException(HttpStatus.CONFLICT, "Worker process no longer owns this lease");
+        }
 
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new WebException(HttpStatus.NOT_FOUND,
                         "Task not found or not assigned to this worker"));
 
         Worker assigned = task.getAssignedWorker();
-        if (assigned == null || !assigned.getId().equals(worker.getId())) {
+        if (task.getStatus() != TaskStatus.EXECUTING
+                || assigned == null || !assigned.getId().equals(worker.getId())) {
             LOGGER.warn("Worker {} attempted to report task {} owned by {}", worker.getId(), task.getId(),
                     assigned == null ? "nobody" : assigned.getId());
             throw new WebException(HttpStatus.NOT_FOUND,
