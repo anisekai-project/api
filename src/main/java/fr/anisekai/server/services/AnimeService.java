@@ -9,9 +9,8 @@ import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.enums.AnimeList;
 import fr.anisekai.server.exceptions.anime.AnimePermissionException;
 import fr.anisekai.server.repositories.AnimeRepository;
+import fr.anisekai.web.dto.AnimeImportRequest;
 import fr.anisekai.web.dto.AnimeRequestData;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,25 +63,21 @@ public class AnimeService extends AnisekaiService<Anime, UUID, AnimeRepository> 
 
     @Deprecated
     @Transactional
-    public UpsertResult<Anime> importAnime(DiscordUser sender, JSONObject source) {
-
-        JSONArray genreArray = source.getJSONArray("genres");
-        JSONArray themeArray = source.getJSONArray("themes");
-        String    rawStatus  = source.getString("status");
+    public UpsertResult<Anime> importAnime(DiscordUser sender, AnimeImportRequest request) {
 
         List<String> tagList = new ArrayList<>();
-        genreArray.forEach(obj -> tagList.add(obj.toString()));
-        themeArray.forEach(obj -> tagList.add(obj.toString()));
+        if (request.genres() != null) tagList.addAll(request.genres());
+        if (request.themes() != null) tagList.addAll(request.themes());
 
-        String    name            = source.getString("title");
-        String    synopsis        = source.getString("synopsis");
-        AnimeList status          = AnimeList.from(rawStatus);
-        String    link            = source.getString("link");
-        String    image           = source.getString("image");
-        int       total           = Integer.parseInt(source.getString("episode"));
-        int       episodeDuration = Integer.parseInt(source.getString("time"));
-        String    group           = source.getString("group");
-        byte      order           = Byte.parseByte(source.getString("order"));
+        String    name            = request.title();
+        String    synopsis        = request.synopsis();
+        AnimeList status          = AnimeList.from(request.status());
+        String    link            = request.link();
+        String    image           = request.image();
+        int       total           = request.episode();
+        int       episodeDuration = request.time();
+        String    group           = request.group();
+        byte      order           = request.order();
 
         return this.upsert(
                 repository -> repository.findByUrl(link),

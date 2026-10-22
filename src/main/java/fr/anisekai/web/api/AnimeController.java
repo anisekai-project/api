@@ -1,11 +1,12 @@
 package fr.anisekai.web.api;
 
-import fr.anisekai.core.internal.json.AnisekaiJson;
 import fr.anisekai.server.domain.entities.Anime;
+import fr.anisekai.server.domain.entities.DiscordUser;
 import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.server.services.AnimeService;
 import fr.anisekai.web.annotations.RequireAuth;
 import fr.anisekai.web.dto.AnimeDto;
+import fr.anisekai.web.dto.AnimeImportRequest;
 import fr.anisekai.web.enums.TokenScope;
 import fr.anisekai.web.enums.TokenType;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,14 +39,11 @@ public class AnimeController {
             @ApiResponse(responseCode = "200", description = "Import successful."),
             @ApiResponse(responseCode = "500", description = "Import failure.")
     })
-    public String importAnime(SessionToken session, @RequestBody String rawJson) {
+    public String importAnime(SessionToken session, @RequestBody AnimeImportRequest request) {
 
-        var result = this.animeService.importAnime(session.getOwner(), new AnisekaiJson(rawJson));
+        var result = this.animeService.importAnime(session.getOwner(), request);
 
-        return new AnisekaiJson()
-                .putInTree("result.success", true)
-                .putInTree("result.state", result.action().name())
-                .toString();
+        return String.format("{\"result.success\":%s,\"result.state\":\"%s\"}", true, result.action().name());
     }
 
     @RequireAuth(allowGuests = false)

@@ -1,7 +1,5 @@
 package fr.anisekai.web.packets.results;
 
-import org.json.JSONObject;
-
 public class DiscordIdentity {
 
     private final long   id;
@@ -10,13 +8,13 @@ public class DiscordIdentity {
     private final String globalName;
     private final String avatar;
 
-    public DiscordIdentity(JSONObject json) {
+    public DiscordIdentity(DiscordUserResponse response) {
 
-        this.id            = Long.parseLong(json.getString("id"));
-        this.username      = json.getString("username");
-        this.discriminator = json.optString("discriminator", null);
-        this.globalName    = json.getString("global_name");
-        this.avatar        = json.getString("avatar");
+        this.id            = response.id();
+        this.username      = response.username();
+        this.discriminator = response.discriminator();
+        this.globalName    = response.globalName();
+        this.avatar        = response.avatar();
     }
 
     public long getId() {

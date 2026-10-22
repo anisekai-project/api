@@ -5,7 +5,6 @@ import fr.anisekai.discord.annotations.DiscordBean;
 import fr.anisekai.discord.annotations.RequireAdmin;
 import fr.anisekai.discord.interfaces.InteractionResponse;
 import fr.anisekai.discord.responses.DiscordResponse;
-import fr.anisekai.library.Library;
 import fr.anisekai.server.planifier.CalibrationResult;
 import fr.anisekai.server.services.BroadcastService;
 import fr.anisekai.server.services.BroadcastWorkflowService;
@@ -18,7 +17,7 @@ public class BroadcastManagementSlashInteraction {
     private final BroadcastService         service;
     private final BroadcastWorkflowService workflowService;
 
-    public BroadcastManagementSlashInteraction(BroadcastService service, BroadcastWorkflowService workflowService, Library library) {
+    public BroadcastManagementSlashInteraction(BroadcastService service, BroadcastWorkflowService workflowService) {
 
         this.service         = service;
         this.workflowService = workflowService;
@@ -28,7 +27,6 @@ public class BroadcastManagementSlashInteraction {
             name = "broadcast/calibrate",
             description = "\uD83D\uDD12 — Permet de lancer une calibration manuelle des séances."
     )
-    @Deprecated
     public InteractionResponse executeCalibrate() {
 
         CalibrationResult calibrate = this.service.calibrate();

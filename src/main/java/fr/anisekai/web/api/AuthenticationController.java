@@ -1,7 +1,6 @@
 package fr.anisekai.web.api;
 
 
-import fr.alexpado.lib.rest.exceptions.RestException;
 import fr.anisekai.server.domain.entities.SessionToken;
 import fr.anisekai.web.AuthenticationManager;
 import fr.anisekai.web.annotations.RequireAuth;
@@ -22,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestClientResponseException;
 
 @RestController
 @RequestMapping("/api/v3/auth")
@@ -49,13 +49,13 @@ public class AuthenticationController {
             return ResponseEntity.ok(authentication.toResponse(this.manager));
         } catch (Exception ex) {
             LOGGER.error("Unable to authenticate user", ex);
-            if (ex instanceof RestException rex) {
-                LOGGER.debug("Feedback: {}", new String(rex.getBody()));
-                if (rex.getCode() >= 400 && rex.getCode() < 500) {
+            if (ex instanceof RestClientResponseException rex) {
+                LOGGER.debug("Feedback: {}", rex.getResponseBodyAsString());
+                if (rex.getStatusCode().is4xxClientError()) {
 
                     throw new WebException(
                             HttpStatus.BAD_GATEWAY,
-                            "Discord Exchange Error: %s".formatted(new String(rex.getBody())),
+                            "Discord Exchange Error: %s".formatted(rex.getResponseBodyAsString()),
                             "An error occured with discord",
                             rex
                     );
