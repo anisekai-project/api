@@ -5,9 +5,11 @@ import fr.anisekai.scheduler.tasking.enums.TaskStatus;
 import fr.anisekai.scheduler.tasking.interfaces.structure.TaskInterface;
 import fr.anisekai.utils.EntityUtils;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.sql.Types;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
@@ -56,6 +58,7 @@ public class Task extends UuidEntity implements TaskInterface {
     private Worker assignedWorker;
 
     @Column(name = "isolation_id")
+    @JdbcTypeCode(Types.BINARY)
     private UUID isolationId;
 
     public @NotNull String getFactoryName() {
